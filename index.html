@@ -183,8 +183,10 @@
 
     /* ─── Hero ──────────────────────────────────────────── */
     .hero {
-      padding-top: 5rem;
-      padding-bottom: 2rem;
+      min-height: 100vh;
+      padding-top: 6rem;
+      padding-left: max(2rem, calc((100% - 1160px) / 2));
+      padding-right: max(2rem, calc((100% - 1160px) / 2));
       display: grid;
       grid-template-columns: 1fr 420px;
       gap: 3rem;
@@ -216,7 +218,7 @@
       pointer-events: none;
     }
 
-    .hero-left { position: relative; z-index: 1; padding: 1rem 0; }
+    .hero-left { position: relative; z-index: 1; padding: 3rem 0; }
 
     .eyebrow {
       display: inline-flex;
@@ -476,7 +478,7 @@
     }
 
     /* ─── How It Works ──────────────────────────────────── */
-    .section { padding: 3.5rem 0; }
+    .section { padding: 5rem 0; }
     .section-label {
       font-size: 0.72rem;
       font-weight: 600;
@@ -551,7 +553,7 @@
 
     /* ─── Report Preview ────────────────────────────────── */
     .report-section {
-      padding: 3.5rem 0;
+      padding: 5rem 0;
       position: relative;
     }
     .report-grid {
@@ -721,7 +723,7 @@
     }
 
     /* ─── Pricing ───────────────────────────────────────── */
-    .pricing-section { padding: 3.5rem 0; }
+    .pricing-section { padding: 5rem 0; }
     .pricing-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -829,7 +831,7 @@
 
     /* ─── Bottom CTA ────────────────────────────────────── */
     .cta-section {
-      padding: 4rem 0;
+      padding: 6rem 0;
       text-align: center;
       position: relative;
       overflow: hidden;
@@ -1006,7 +1008,7 @@
   <div class="hero-glow"></div>
   <div class="container" style="display:contents">
 
-    <div class="hero-left container" style="padding-right:1rem">
+    <div class="hero-left" style="padding-right:1rem">
       <div class="eyebrow anim-1">
         <span class="eyebrow-dot"></span>
         AI Visibility Intelligence
