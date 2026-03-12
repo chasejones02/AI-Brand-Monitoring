@@ -569,8 +569,17 @@
       border-radius: 14px;
       padding: 1.5rem;
       position: relative;
-      overflow: hidden;
+      overflow-y: auto;
+      overflow-x: hidden;
+      max-height: 420px;
     }
+    .report-preview::-webkit-scrollbar { width: 4px; }
+    .report-preview::-webkit-scrollbar-track { background: transparent; }
+    .report-preview::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 2px;
+    }
+    .report-preview::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
     .report-preview-header {
       display: flex;
       align-items: center;
@@ -660,14 +669,19 @@
 
     /* Blur overlay on report */
     .report-blur-mask {
-      position: absolute;
+      position: sticky;
       bottom: 0; left: 0; right: 0;
-      height: 120px;
+      height: 100px;
+      margin: 0 -1.5rem -1.5rem;
       background: linear-gradient(transparent, var(--surface));
       display: flex;
       align-items: flex-end;
       justify-content: center;
       padding-bottom: 1.25rem;
+      pointer-events: none;
+    }
+    .report-blur-mask .unlock-btn {
+      pointer-events: all;
     }
 
     .unlock-btn {
@@ -721,6 +735,251 @@
       color: var(--text-muted);
       line-height: 1.55;
     }
+
+    /* ─── Plan Tabs ─────────────────────────────────────── */
+    .plan-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 2.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      width: fit-content;
+    }
+    .plan-tab {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 0.45rem 1.1rem;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      white-space: nowrap;
+    }
+    .plan-tab .plan-price {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      transition: color 0.2s;
+    }
+    .plan-tab:hover { color: var(--text); }
+    .plan-tab.active {
+      background: var(--surface-2);
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .plan-tab.active .plan-price { color: var(--accent); }
+
+    /* ─── Report section internals ───────────────────────── */
+    .report-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 1.25rem 0;
+    }
+    .report-section-label {
+      font-size: 0.67rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 0.75rem;
+    }
+    /* Trend bars */
+    .trend-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 5px;
+      height: 44px;
+    }
+    .trend-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 4px;
+    }
+    .trend-bar {
+      width: 100%;
+      background: var(--accent);
+      border-radius: 2px 2px 0 0;
+      opacity: 0.45;
+    }
+    .trend-bar.current { opacity: 1; }
+    .trend-lbl {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.58rem;
+      color: var(--text-dim);
+    }
+    .trend-delta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      margin-top: 0.5rem;
+    }
+    .trend-delta.up { color: var(--green); }
+    .trend-delta.down { color: var(--red); }
+    /* Competitor rows */
+    .comp-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.55rem;
+    }
+    .comp-name {
+      font-size: 0.76rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      width: 110px;
+      flex-shrink: 0;
+    }
+    .comp-bar-wrap {
+      flex: 1;
+      height: 5px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .comp-bar {
+      height: 100%;
+      border-radius: 3px;
+      background: rgba(239,68,68,0.65);
+    }
+    .comp-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      width: 28px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    /* Query items */
+    .query-item {
+      background: var(--surface-2);
+      border: 1px solid var(--border-dim);
+      border-radius: 8px;
+      padding: 0.7rem 0.85rem;
+      margin-bottom: 0.55rem;
+    }
+    .query-text {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      margin-bottom: 0.45rem;
+      font-style: italic;
+    }
+    .query-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      align-items: center;
+    }
+    .query-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.63rem;
+      padding: 0.12rem 0.42rem;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+    .query-badge.mentioned {
+      background: rgba(34,197,94,0.1);
+      color: var(--green);
+      border: 1px solid rgba(34,197,94,0.2);
+    }
+    .query-badge.not-found {
+      background: rgba(239,68,68,0.08);
+      color: var(--red);
+      border: 1px solid rgba(239,68,68,0.18);
+    }
+    .query-platform-tag {
+      font-size: 0.66rem;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Agency-specific */
+    .profile-chips {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .profile-chip {
+      font-size: 0.68rem;
+      font-weight: 500;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+    .profile-chip.active-chip {
+      background: var(--accent-dim);
+      border-color: rgba(240,165,0,0.3);
+      color: var(--accent);
+    }
+    .wl-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid rgba(240,165,0,0.2);
+      border-radius: 4px;
+      padding: 0.13rem 0.5rem;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    .api-usage-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+    .api-usage-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      width: 90px;
+      flex-shrink: 0;
+    }
+    .api-usage-bar-wrap {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .api-usage-bar {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+    .api-usage-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .daily-log-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.3rem 0;
+      border-bottom: 1px solid var(--border-dim);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .daily-log-row:last-child { border-bottom: none; }
+    .log-time { font-family: 'JetBrains Mono', monospace; color: var(--text-dim); font-size: 0.67rem; }
+    .log-change { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; }
+    .log-change.pos { color: var(--green); }
+    .log-change.neg { color: var(--red); }
+    .log-change.neutral { color: var(--text-dim); }
 
     /* ─── Pricing ───────────────────────────────────────── */
     .pricing-section { padding: 5rem 0; }
@@ -1247,50 +1506,278 @@
     <div class="section-label">Sample report</div>
     <h2>What you'll receive.</h2>
 
+    <!-- Plan selector -->
+    <div class="plan-tabs">
+      <button class="plan-tab active" onclick="switchPlan('free')">Free</button>
+      <button class="plan-tab" onclick="switchPlan('starter')">Starter <span class="plan-price">$29/mo</span></button>
+      <button class="plan-tab" onclick="switchPlan('agency')">Agency <span class="plan-price">$149/mo</span></button>
+    </div>
+
     <div class="report-grid">
       <!-- Preview card -->
-      <div class="report-preview">
-        <div class="report-preview-header">
-          <div>
-            <div class="report-biz-name">Maple Street Bakery</div>
-            <div class="report-date">Report generated · March 2026</div>
+      <div class="report-preview" id="report-preview-box">
+
+        <!-- ══ FREE plan content ══ -->
+        <div class="plan-content" data-plan="free">
+          <div class="report-preview-header">
+            <div>
+              <div class="report-biz-name">Maple Street Bakery</div>
+              <div class="report-date">Report generated · March 2026</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:var(--green);font-family:'JetBrains Mono',monospace;">
+              <div class="scan-dot active"></div>
+              Complete
+            </div>
           </div>
-          <div style="display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:var(--green);font-family:'JetBrains Mono',monospace;">
-            <div class="scan-dot active"></div>
-            Complete
+          <div class="score-display">
+            <div class="score-label">AI Visibility Score</div>
+            <div class="score-number">78</div>
+            <div class="score-max">out of 100</div>
+          </div>
+          <div class="platform-scores">
+            <div class="platform-score-row">
+              <span class="ps-name">ChatGPT</span>
+              <div class="ps-bar-wrap"><div class="ps-bar" style="--w:82%"></div></div>
+              <span class="ps-val">82</span>
+            </div>
+            <div class="platform-score-row">
+              <span class="ps-name">Claude</span>
+              <div class="ps-bar-wrap"><div class="ps-bar" style="--w:90%"></div></div>
+              <span class="ps-val">90</span>
+            </div>
+            <div class="platform-score-row">
+              <span class="ps-name">Perplexity</span>
+              <div class="ps-bar-wrap"><div class="ps-bar mid" style="--w:71%"></div></div>
+              <span class="ps-val">71</span>
+            </div>
+            <div class="platform-score-row">
+              <span class="ps-name">Gemini</span>
+              <div class="ps-bar-wrap"><div class="ps-bar low" style="--w:28%"></div></div>
+              <span class="ps-val">28</span>
+            </div>
           </div>
         </div>
 
-        <div class="score-display">
-          <div class="score-label">AI Visibility Score</div>
-          <div class="score-number">78</div>
-          <div class="score-max">out of 100</div>
+        <!-- ══ STARTER plan content ══ -->
+        <div class="plan-content" data-plan="starter" style="display:none">
+          <div class="report-preview-header">
+            <div>
+              <div class="report-biz-name">Maple Street Bakery</div>
+              <div class="report-date">Report generated · March 2026</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.5rem;">
+              <span style="font-size:.65rem;font-weight:600;background:rgba(240,165,0,.1);color:var(--accent);border:1px solid rgba(240,165,0,.25);border-radius:4px;padding:.1rem .45rem;letter-spacing:.06em;text-transform:uppercase;">Weekly</span>
+              <div style="display:flex;align-items:center;gap:.35rem;font-size:.72rem;color:var(--green);font-family:'JetBrains Mono',monospace;"><div class="scan-dot active"></div>Live</div>
+            </div>
+          </div>
+          <div class="score-display">
+            <div class="score-label">AI Visibility Score</div>
+            <div class="score-number">78</div>
+            <div class="score-max">out of 100</div>
+          </div>
+          <div class="platform-scores">
+            <div class="platform-score-row">
+              <span class="ps-name">ChatGPT</span>
+              <div class="ps-bar-wrap"><div class="ps-bar" style="--w:82%"></div></div>
+              <span class="ps-val">82</span>
+            </div>
+            <div class="platform-score-row">
+              <span class="ps-name">Claude</span>
+              <div class="ps-bar-wrap"><div class="ps-bar" style="--w:90%"></div></div>
+              <span class="ps-val">90</span>
+            </div>
+            <div class="platform-score-row">
+              <span class="ps-name">Perplexity</span>
+              <div class="ps-bar-wrap"><div class="ps-bar mid" style="--w:71%"></div></div>
+              <span class="ps-val">71</span>
+            </div>
+            <div class="platform-score-row">
+              <span class="ps-name">Gemini</span>
+              <div class="ps-bar-wrap"><div class="ps-bar low" style="--w:28%"></div></div>
+              <span class="ps-val">28</span>
+            </div>
+          </div>
+          <div class="report-divider"></div>
+          <div class="report-section-label">4-Week Trend</div>
+          <div class="trend-bars">
+            <div class="trend-col">
+              <div class="trend-bar" style="height:26px"></div>
+              <div class="trend-lbl">wk 1</div>
+            </div>
+            <div class="trend-col">
+              <div class="trend-bar" style="height:32px"></div>
+              <div class="trend-lbl">wk 2</div>
+            </div>
+            <div class="trend-col">
+              <div class="trend-bar" style="height:30px"></div>
+              <div class="trend-lbl">wk 3</div>
+            </div>
+            <div class="trend-col">
+              <div class="trend-bar current" style="height:44px"></div>
+              <div class="trend-lbl">now</div>
+            </div>
+          </div>
+          <div class="trend-delta up">↑ +12 pts over 4 weeks</div>
+          <div class="report-divider"></div>
+          <div class="report-section-label">Competitor Radar</div>
+          <div class="comp-row">
+            <span class="comp-name">Sweet Things Co.</span>
+            <div class="comp-bar-wrap"><div class="comp-bar" style="width:91%"></div></div>
+            <span class="comp-val">91</span>
+          </div>
+          <div class="comp-row">
+            <span class="comp-name">Harbor Cakes</span>
+            <div class="comp-bar-wrap"><div class="comp-bar" style="width:84%"></div></div>
+            <span class="comp-val">84</span>
+          </div>
+          <div class="comp-row">
+            <span class="comp-name">Flour + Co.</span>
+            <div class="comp-bar-wrap"><div class="comp-bar" style="width:62%"></div></div>
+            <span class="comp-val">62</span>
+          </div>
+          <div class="report-divider"></div>
+          <div class="report-section-label">Query Breakdown</div>
+          <div class="query-item">
+            <div class="query-text">"best bakery near downtown for custom cakes"</div>
+            <div class="query-meta">
+              <span class="query-badge mentioned">Mentioned #2</span>
+              <span class="query-platform-tag">ChatGPT · Claude · Perplexity</span>
+            </div>
+          </div>
+          <div class="query-item">
+            <div class="query-text">"where to buy artisan sourdough in [city]"</div>
+            <div class="query-meta">
+              <span class="query-badge mentioned">Mentioned #1</span>
+              <span class="query-platform-tag">Claude · Gemini</span>
+            </div>
+          </div>
+          <div class="query-item">
+            <div class="query-text">"bakeries open Sunday with vegan options"</div>
+            <div class="query-meta">
+              <span class="query-badge not-found">Not found</span>
+              <span class="query-platform-tag">All platforms</span>
+            </div>
+          </div>
         </div>
 
-        <div class="platform-scores">
-          <div class="platform-score-row">
-            <span class="ps-name">ChatGPT</span>
-            <div class="ps-bar-wrap"><div class="ps-bar" style="--w:82%"></div></div>
-            <span class="ps-val">82</span>
+        <!-- ══ AGENCY plan content ══ -->
+        <div class="plan-content" data-plan="agency" style="display:none">
+          <div class="report-preview-header">
+            <div style="display:flex;flex-direction:column;gap:.3rem;">
+              <div style="display:flex;align-items:center;gap:.5rem;">
+                <div class="report-biz-name">Maple Street Bakery</div>
+                <span class="wl-badge">White-label</span>
+              </div>
+              <div class="report-date">Daily scan · March 11, 2026</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.35rem;font-size:.72rem;color:var(--green);font-family:'JetBrains Mono',monospace;"><div class="scan-dot active"></div>Live</div>
           </div>
-          <div class="platform-score-row">
-            <span class="ps-name">Claude</span>
-            <div class="ps-bar-wrap"><div class="ps-bar" style="--w:90%"></div></div>
-            <span class="ps-val">90</span>
+          <div class="profile-chips">
+            <span class="profile-chip active-chip">Maple Street Bakery</span>
+            <span class="profile-chip">Harbor Cakes</span>
+            <span class="profile-chip">Flour + Co.</span>
+            <span class="profile-chip" style="color:var(--text-dim);">+17 more</span>
           </div>
-          <div class="platform-score-row">
-            <span class="ps-name">Perplexity</span>
-            <div class="ps-bar-wrap"><div class="ps-bar mid" style="--w:71%"></div></div>
-            <span class="ps-val">71</span>
+          <div class="score-display">
+            <div class="score-label">AI Visibility Score</div>
+            <div class="score-number">78</div>
+            <div class="score-max">out of 100</div>
           </div>
-          <div class="platform-score-row">
-            <span class="ps-name">Gemini</span>
-            <div class="ps-bar-wrap"><div class="ps-bar low" style="--w:28%"></div></div>
-            <span class="ps-val">28</span>
+          <div class="platform-scores">
+            <div class="platform-score-row">
+              <span class="ps-name">ChatGPT</span>
+              <div class="ps-bar-wrap"><div class="ps-bar" style="--w:82%"></div></div>
+              <span class="ps-val">82</span>
+            </div>
+            <div class="platform-score-row">
+              <span class="ps-name">Claude</span>
+              <div class="ps-bar-wrap"><div class="ps-bar" style="--w:90%"></div></div>
+              <span class="ps-val">90</span>
+            </div>
+            <div class="platform-score-row">
+              <span class="ps-name">Perplexity</span>
+              <div class="ps-bar-wrap"><div class="ps-bar mid" style="--w:71%"></div></div>
+              <span class="ps-val">71</span>
+            </div>
+            <div class="platform-score-row">
+              <span class="ps-name">Gemini</span>
+              <div class="ps-bar-wrap"><div class="ps-bar low" style="--w:28%"></div></div>
+              <span class="ps-val">28</span>
+            </div>
+          </div>
+          <div class="report-divider"></div>
+          <div class="report-section-label">Daily Scan Log</div>
+          <div class="daily-log-row">
+            <span>Maple Street Bakery</span>
+            <span class="log-time">08:00 AM</span>
+            <span class="log-change pos">+3 pts</span>
+          </div>
+          <div class="daily-log-row">
+            <span>Harbor Cakes</span>
+            <span class="log-time">08:02 AM</span>
+            <span class="log-change neg">−1 pt</span>
+          </div>
+          <div class="daily-log-row">
+            <span>Flour + Co.</span>
+            <span class="log-time">08:05 AM</span>
+            <span class="log-change neutral">no change</span>
+          </div>
+          <div class="report-divider"></div>
+          <div class="report-section-label">Competitor Radar</div>
+          <div class="comp-row">
+            <span class="comp-name">Sweet Things Co.</span>
+            <div class="comp-bar-wrap"><div class="comp-bar" style="width:91%"></div></div>
+            <span class="comp-val">91</span>
+          </div>
+          <div class="comp-row">
+            <span class="comp-name">Harbor Cakes</span>
+            <div class="comp-bar-wrap"><div class="comp-bar" style="width:84%"></div></div>
+            <span class="comp-val">84</span>
+          </div>
+          <div class="comp-row">
+            <span class="comp-name">Flour + Co.</span>
+            <div class="comp-bar-wrap"><div class="comp-bar" style="width:62%"></div></div>
+            <span class="comp-val">62</span>
+          </div>
+          <div class="report-divider"></div>
+          <div class="report-section-label">Query Breakdown</div>
+          <div class="query-item">
+            <div class="query-text">"best bakery near downtown for custom cakes"</div>
+            <div class="query-meta">
+              <span class="query-badge mentioned">Mentioned #2</span>
+              <span class="query-platform-tag">ChatGPT · Claude · Perplexity</span>
+            </div>
+          </div>
+          <div class="query-item">
+            <div class="query-text">"where to buy artisan sourdough in [city]"</div>
+            <div class="query-meta">
+              <span class="query-badge mentioned">Mentioned #1</span>
+              <span class="query-platform-tag">Claude · Gemini</span>
+            </div>
+          </div>
+          <div class="query-item">
+            <div class="query-text">"bakeries open Sunday with vegan options"</div>
+            <div class="query-meta">
+              <span class="query-badge not-found">Not found</span>
+              <span class="query-platform-tag">All platforms</span>
+            </div>
+          </div>
+          <div class="report-divider"></div>
+          <div class="report-section-label">API Usage</div>
+          <div class="api-usage-row">
+            <span class="api-usage-label">Queries used</span>
+            <div class="api-usage-bar-wrap"><div class="api-usage-bar" style="width:42%"></div></div>
+            <span class="api-usage-val">4,200 / 10k</span>
+          </div>
+          <div class="api-usage-row">
+            <span class="api-usage-label">Profiles active</span>
+            <div class="api-usage-bar-wrap"><div class="api-usage-bar" style="width:25%"></div></div>
+            <span class="api-usage-val">5 / 20</span>
           </div>
         </div>
 
-        <div class="report-blur-mask">
+        <!-- Blur mask: Free plan only -->
+        <div class="report-blur-mask" id="report-blur">
           <button class="unlock-btn" onclick="document.getElementById('hero-form').scrollIntoView({behavior:'smooth'})">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
             Get your full report →
@@ -1298,45 +1785,125 @@
         </div>
       </div>
 
-      <!-- Report feature list -->
-      <div class="report-points">
-        <div class="report-point">
-          <div class="rp-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><rect x="1" y="8" width="3" height="13" rx="1"/><rect x="6" y="5" width="3" height="16" rx="1"/><rect x="11" y="2" width="3" height="19" rx="1"/><rect x="16" y="6" width="3" height="15" rx="1"/><rect x="21" y="10" width="3" height="11" rx="1"/></svg>
+      <!-- Right: feature list per plan -->
+      <div>
+        <!-- FREE features -->
+        <div class="report-points plan-features" data-plan="free">
+          <div class="report-point">
+            <div class="rp-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><rect x="1" y="8" width="3" height="13" rx="1"/><rect x="6" y="5" width="3" height="16" rx="1"/><rect x="11" y="2" width="3" height="19" rx="1"/><rect x="16" y="6" width="3" height="15" rx="1"/><rect x="21" y="10" width="3" height="11" rx="1"/></svg>
+            </div>
+            <div>
+              <div class="rp-title">AI Visibility Score</div>
+              <div class="rp-desc">A single 0–100 score capturing your AI presence across mention rate, position, and sentiment.</div>
+            </div>
           </div>
-          <div>
-            <div class="rp-title">AI Visibility Score</div>
-            <div class="rp-desc">A single 0–100 score that captures your overall AI presence across mention rate, position, and sentiment.</div>
+          <div class="report-point">
+            <div class="rp-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </div>
+            <div>
+              <div class="rp-title">Per-platform breakdown</div>
+              <div class="rp-desc">See exactly what ChatGPT, Claude, Perplexity, and Gemini say about your business — all 4 platforms included.</div>
+            </div>
+          </div>
+          <div class="report-point">
+            <div class="rp-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </div>
+            <div>
+              <div class="rp-title">Email delivery</div>
+              <div class="rp-desc">Your report arrives in your inbox as a formatted snapshot — no dashboard login required.</div>
+            </div>
+          </div>
+          <div class="report-point">
+            <div class="rp-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div>
+              <div class="rp-title">One-time snapshot</div>
+              <div class="rp-desc">See exactly where you stand today — no credit card required. Upgrade anytime for ongoing monitoring.</div>
+            </div>
           </div>
         </div>
 
-        <div class="report-point">
-          <div class="rp-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <!-- STARTER features -->
+        <div class="report-points plan-features" data-plan="starter" style="display:none">
+          <div class="report-point">
+            <div class="rp-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>
+            </div>
+            <div>
+              <div class="rp-title">Historical trend graphs</div>
+              <div class="rp-desc">Track your AI visibility score week over week. See what's working — and what's slipping.</div>
+            </div>
           </div>
-          <div>
-            <div class="rp-title">Per-platform breakdown</div>
-            <div class="rp-desc">See exactly what ChatGPT, Claude, Perplexity, and Gemini say about your business — verbatim, with context.</div>
+          <div class="report-point">
+            <div class="rp-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>
+            </div>
+            <div>
+              <div class="rp-title">Competitor radar</div>
+              <div class="rp-desc">Find out which competitors AI recommends instead of you — and see the exact gap to close.</div>
+            </div>
+          </div>
+          <div class="report-point">
+            <div class="rp-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div>
+              <div class="rp-title">Weekly automated scans</div>
+              <div class="rp-desc">Fresh reports every week — no manual runs. Always know where you stand without lifting a finger.</div>
+            </div>
+          </div>
+          <div class="report-point">
+            <div class="rp-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <div>
+              <div class="rp-title">Query-by-query breakdown</div>
+              <div class="rp-desc">See mention rank, sentiment, and AI responses for every query you're tracking.</div>
+            </div>
           </div>
         </div>
 
-        <div class="report-point">
-          <div class="rp-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>
+        <!-- AGENCY features -->
+        <div class="report-points plan-features" data-plan="agency" style="display:none">
+          <div class="report-point">
+            <div class="rp-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div>
+              <div class="rp-title">Up to 20 client profiles</div>
+              <div class="rp-desc">Monitor multiple businesses from one dashboard. Perfect for marketing agencies and consultants.</div>
+            </div>
           </div>
-          <div>
-            <div class="rp-title">Competitor radar</div>
-            <div class="rp-desc">Find out which competitors AI recommends instead of you — and how to close the gap.</div>
+          <div class="report-point">
+            <div class="rp-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div>
+              <div class="rp-title">Daily scans</div>
+              <div class="rp-desc">Catch changes in AI recommendations the day they happen. Ideal for fast-moving competitive landscapes.</div>
+            </div>
           </div>
-        </div>
-
-        <div class="report-point">
-          <div class="rp-icon">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <div class="report-point">
+            <div class="rp-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div>
+              <div class="rp-title">White-label PDF reports</div>
+              <div class="rp-desc">Send branded reports to clients under your agency's name. Your logo, your domain, your value.</div>
+            </div>
           </div>
-          <div>
-            <div class="rp-title">Actionable recommendations</div>
-            <div class="rp-desc">Specific, prioritized steps to improve your AI visibility — not generic SEO advice.</div>
+          <div class="report-point">
+            <div class="rp-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            </div>
+            <div>
+              <div class="rp-title">API access</div>
+              <div class="rp-desc">Pull visibility data directly into your existing tools, dashboards, or client reporting workflows.</div>
+            </div>
           </div>
         </div>
       </div>
@@ -1483,6 +2050,24 @@
   // Duplicate ticker for seamless loop
   const ticker = document.getElementById('ticker');
   ticker.innerHTML += ticker.innerHTML;
+
+  // Plan tab switcher for sample report
+  function switchPlan(plan) {
+    document.querySelectorAll('.plan-tab').forEach(btn => {
+      const isMatch = btn.getAttribute('onclick') === `switchPlan('${plan}')`;
+      btn.classList.toggle('active', isMatch);
+    });
+    document.querySelectorAll('.plan-content').forEach(el => {
+      el.style.display = el.getAttribute('data-plan') === plan ? 'block' : 'none';
+    });
+    document.querySelectorAll('.plan-features').forEach(el => {
+      el.style.display = el.getAttribute('data-plan') === plan ? 'flex' : 'none';
+    });
+    const blur = document.getElementById('report-blur');
+    if (blur) blur.style.display = plan === 'free' ? 'flex' : 'none';
+    const box = document.getElementById('report-preview-box');
+    if (box) box.scrollTop = 0;
+  }
 
   // Animate scan preview cycling
   const statuses = [
