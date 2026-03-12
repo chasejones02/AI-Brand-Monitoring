@@ -133,12 +133,15 @@
     .logo-mark svg { display: block; }
     .logo-text {
       font-family: 'Outfit', sans-serif;
-      font-weight: 600;
-      font-size: 0.95rem;
+      font-weight: 700;
+      font-size: 1.1rem;
       color: var(--text);
-      letter-spacing: -0.01em;
+      letter-spacing: -0.02em;
     }
-    .logo-text span { color: var(--accent); }
+    .logo-ai {
+      color: var(--accent);
+      font-style: italic;
+    }
 
     .nav-links {
       display: flex;
