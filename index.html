@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Brand Monitor — See How AI Describes Your Business</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Reset & Variables ─────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #07090d;
+      --surface:     #0e1218;
+      --surface-2:   #141b24;
+      --border:      #1c2737;
+      --border-dim:  #111924;
+      --accent:      #f0a500;
+      --accent-glow: rgba(240,165,0,0.18);
+      --accent-dim:  rgba(240,165,0,0.08);
+      --green:       #22c55e;
+      --red:         #ef4444;
+      --text:        #dde5ef;
+      --text-muted:  #5e7590;
+      --text-dim:    #2d3f52;
+      --radius:      10px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-weight: 400;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* Noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+      opacity: 0.028;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ─── Typography ────────────────────────────────────── */
+    h1, h2, h3 { font-family: 'Instrument Serif', serif; line-height: 1.15; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* ─── Layout Helpers ────────────────────────────────── */
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* ─── Animations ────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.7); }
+    }
+    @keyframes scan-line {
+      0%   { transform: translateY(0); opacity: 0.6; }
+      100% { transform: translateY(100%); opacity: 0; }
+    }
+    @keyframes ticker {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    @keyframes glow-pulse {
+      0%, 100% { box-shadow: 0 0 20px var(--accent-glow); }
+      50%       { box-shadow: 0 0 40px rgba(240,165,0,0.3), 0 0 80px rgba(240,165,0,0.1); }
+    }
+    @keyframes bar-fill {
+      from { width: 0; }
+      to   { width: var(--w); }
+    }
+    @keyframes count-up {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes checkmark {
+      from { stroke-dashoffset: 100; opacity: 0; }
+      to   { stroke-dashoffset: 0; opacity: 1; }
+    }
+
+    .anim-1 { animation: fadeUp 0.7s cubic-bezier(.22,1,.36,1) 0.1s both; }
+    .anim-2 { animation: fadeUp 0.7s cubic-bezier(.22,1,.36,1) 0.25s both; }
+    .anim-3 { animation: fadeUp 0.7s cubic-bezier(.22,1,.36,1) 0.4s both; }
+    .anim-4 { animation: fadeUp 0.7s cubic-bezier(.22,1,.36,1) 0.55s both; }
+    .anim-5 { animation: fadeUp 0.7s cubic-bezier(.22,1,.36,1) 0.7s both; }
+
+    /* ─── Nav ───────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      padding: 1.1rem 0;
+      border-bottom: 1px solid var(--border-dim);
+      background: rgba(7,9,13,0.85);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      animation: fadeIn 0.5s ease both;
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      text-decoration: none;
+    }
+    .logo-mark {
+      width: 28px; height: 28px;
+      background: var(--accent);
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+    .logo-mark svg { display: block; }
+    .logo-text {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .logo-text span { color: var(--accent); }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    .btn-nav {
+      background: var(--accent);
+      color: #000;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 0.825rem;
+      border: none;
+      border-radius: 6px;
+      padding: 0.5rem 1.1rem;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn-nav:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    /* ─── Hero ──────────────────────────────────────────── */
+    .hero {
+      min-height: 100vh;
+      padding-top: 6rem;
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 3rem;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Decorative grid lines */
+    .hero::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border-dim) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border-dim) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* Ambient glow */
+    .hero-glow {
+      position: absolute;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(240,165,0,0.07) 0%, transparent 70%);
+      top: 10%; right: -100px;
+      pointer-events: none;
+    }
+
+    .hero-left { position: relative; z-index: 1; padding: 3rem 0; }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--accent-dim);
+      border: 1px solid rgba(240,165,0,0.2);
+      border-radius: 100px;
+      padding: 0.3rem 0.85rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+    }
+    .eyebrow-dot {
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse-dot 1.8s ease-in-out infinite;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.6rem, 5vw, 4.2rem);
+      color: var(--text);
+      margin-bottom: 1.4rem;
+      letter-spacing: -0.02em;
+    }
+    .hero h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      max-width: 520px;
+      margin-bottom: 2.2rem;
+      line-height: 1.7;
+    }
+
+    .platform-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .platform-row-label {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-right: 0.25rem;
+    }
+    .platform-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.3rem 0.65rem;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+    .platform-chip svg { flex-shrink: 0; }
+
+    /* ─── Form Card ─────────────────────────────────────── */
+    .form-card {
+      position: relative;
+      z-index: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      animation: glow-pulse 4s ease-in-out infinite;
+    }
+    .form-card::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 17px;
+      background: linear-gradient(135deg, rgba(240,165,0,0.15), transparent 50%, rgba(240,165,0,0.05));
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .form-header {
+      margin-bottom: 1.5rem;
+    }
+    .form-header h2 {
+      font-size: 1.35rem;
+      color: var(--text);
+      margin-bottom: 0.35rem;
+    }
+    .form-header p {
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.775rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.45rem;
+    }
+    .form-group input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.925rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-group input::placeholder { color: var(--text-dim); }
+    .form-group input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+
+    .btn-primary {
+      width: 100%;
+      background: var(--accent);
+      color: #000;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 0.95rem;
+      border: none;
+      border-radius: 8px;
+      padding: 0.875rem 1.5rem;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+      margin-top: 0.5rem;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .btn-primary:hover {
+      opacity: 0.92;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(240,165,0,0.3);
+    }
+    .btn-primary:active { transform: translateY(0); }
+
+    .form-trust {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      margin-top: 0.9rem;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+    .form-trust svg { opacity: 0.5; }
+
+    /* ─── Live Preview Widget ────────────────────────────── */
+    .scan-preview {
+      margin-top: 1.5rem;
+      background: var(--bg);
+      border: 1px solid var(--border-dim);
+      border-radius: 10px;
+      padding: 1rem;
+      overflow: hidden;
+    }
+    .scan-preview-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 0.75rem;
+    }
+    .scan-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.45rem 0;
+      border-bottom: 1px solid var(--border-dim);
+      font-size: 0.78rem;
+    }
+    .scan-row:last-child { border-bottom: none; }
+    .scan-platform {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .scan-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .scan-dot.active { background: var(--green); animation: pulse-dot 1.5s ease-in-out infinite; }
+    .scan-dot.pending { background: var(--text-dim); }
+    .scan-dot.scanning {
+      background: var(--accent);
+      animation: pulse-dot 0.8s ease-in-out infinite;
+    }
+    .scan-status {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+    }
+    .scan-status.found { color: var(--green); }
+    .scan-status.scanning { color: var(--accent); }
+    .scan-status.pending { color: var(--text-dim); }
+
+    /* ─── Ticker ────────────────────────────────────────── */
+    .ticker-wrap {
+      border-top: 1px solid var(--border-dim);
+      border-bottom: 1px solid var(--border-dim);
+      padding: 0.6rem 0;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .ticker-inner {
+      display: inline-flex;
+      gap: 0;
+      animation: ticker 30s linear infinite;
+    }
+    .ticker-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0 2.5rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .ticker-item .tick-biz { color: var(--text); }
+    .ticker-item .tick-score {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent);
+      font-size: 0.72rem;
+    }
+    .ticker-sep {
+      color: var(--text-dim);
+      margin: 0 0.25rem;
+    }
+
+    /* ─── How It Works ──────────────────────────────────── */
+    .section { padding: 5rem 0; }
+    .section-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+    .section h2 {
+      font-size: clamp(2rem, 3.5vw, 2.8rem);
+      color: var(--text);
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+    .section-sub {
+      font-size: 1rem;
+      color: var(--text-muted);
+      max-width: 540px;
+      line-height: 1.7;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5px;
+      margin-top: 3.5rem;
+      background: var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .step {
+      background: var(--surface);
+      padding: 2.2rem 2rem;
+      position: relative;
+    }
+    .step-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .step-num::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .step-icon {
+      width: 44px; height: 44px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(240,165,0,0.15);
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 1.2rem;
+    }
+    .step h3 {
+      font-size: 1.15rem;
+      color: var(--text);
+      margin-bottom: 0.6rem;
+    }
+    .step p {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.65;
+    }
+
+    /* ─── Report Preview ────────────────────────────────── */
+    .report-section {
+      padding: 5rem 0;
+      position: relative;
+    }
+    .report-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      align-items: center;
+      margin-top: 3rem;
+    }
+    .report-preview {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .report-preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .report-biz-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text);
+    }
+    .report-date {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+    }
+    .score-display {
+      text-align: center;
+      padding: 1.5rem 0;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .score-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 0.5rem;
+    }
+    .score-number {
+      font-family: 'Instrument Serif', serif;
+      font-size: 5rem;
+      line-height: 1;
+      color: var(--accent);
+    }
+    .score-max {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 0.2rem;
+    }
+
+    .platform-scores {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .platform-score-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .ps-name {
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      width: 90px;
+      flex-shrink: 0;
+    }
+    .ps-bar-wrap {
+      flex: 1;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .ps-bar {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--accent);
+      width: var(--w);
+      animation: bar-fill 1.2s cubic-bezier(.22,1,.36,1) both;
+    }
+    .ps-bar.low { background: var(--red); }
+    .ps-bar.mid { background: #f97316; }
+    .ps-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      width: 28px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* Blur overlay on report */
+    .report-blur-mask {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 120px;
+      background: linear-gradient(transparent, var(--surface));
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 1.25rem;
+    }
+
+    .unlock-btn {
+      background: var(--bg);
+      color: var(--accent);
+      border: 1px solid rgba(240,165,0,0.3);
+      border-radius: 7px;
+      padding: 0.5rem 1.1rem;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+    }
+    .unlock-btn:hover {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+    }
+
+    .report-points {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    .report-point {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+    .rp-icon {
+      width: 36px; height: 36px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .rp-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text);
+      margin-bottom: 0.2rem;
+    }
+    .rp-desc {
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    /* ─── Pricing ───────────────────────────────────────── */
+    .pricing-section { padding: 5rem 0; }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      margin-top: 3rem;
+      background: var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .pricing-card {
+      background: var(--surface);
+      padding: 2rem;
+      position: relative;
+    }
+    .pricing-card.featured {
+      background: var(--surface-2);
+    }
+    .pricing-tag {
+      position: absolute;
+      top: 1.25rem; right: 1.25rem;
+      background: var(--accent);
+      color: #000;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+    }
+    .pricing-tier {
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 0.75rem;
+    }
+    .pricing-price {
+      display: flex;
+      align-items: baseline;
+      gap: 0.2rem;
+      margin-bottom: 0.5rem;
+    }
+    .pricing-dollar {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .pricing-amount {
+      font-family: 'Instrument Serif', serif;
+      font-size: 3.2rem;
+      color: var(--text);
+      line-height: 1;
+    }
+    .pricing-period {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    .pricing-desc {
+      font-size: 0.83rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .pricing-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin-bottom: 1.75rem;
+    }
+    .pricing-features li {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.83rem;
+      color: var(--text-muted);
+    }
+    .pricing-features li svg { flex-shrink: 0; color: var(--green); }
+
+    .btn-pricing {
+      width: 100%;
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.7rem;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-pricing:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .btn-pricing.featured-btn {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+    }
+    .btn-pricing.featured-btn:hover { opacity: 0.88; }
+
+    /* ─── Bottom CTA ────────────────────────────────────── */
+    .cta-section {
+      padding: 6rem 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px; height: 400px;
+      background: radial-gradient(ellipse, rgba(240,165,0,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-section h2 {
+      font-size: clamp(2.2rem, 4vw, 3.5rem);
+      max-width: 700px;
+      margin: 0 auto 1.2rem;
+      letter-spacing: -0.02em;
+    }
+    .cta-section p {
+      font-size: 1rem;
+      color: var(--text-muted);
+      margin-bottom: 2.5rem;
+    }
+    .cta-form {
+      display: flex;
+      gap: 0.75rem;
+      max-width: 480px;
+      margin: 0 auto 1rem;
+      flex-wrap: wrap;
+    }
+    .cta-form input {
+      flex: 1;
+      min-width: 180px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.9rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .cta-form input:focus { border-color: var(--accent); }
+    .cta-form input::placeholder { color: var(--text-dim); }
+    .btn-cta {
+      background: var(--accent);
+      color: #000;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border: none;
+      border-radius: 8px;
+      padding: 0.75rem 1.5rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn-cta:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    /* ─── Footer ────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border-dim);
+      padding: 2.5rem 0;
+    }
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-copy {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+    }
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+      list-style: none;
+    }
+    .footer-links a {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: var(--text-muted); }
+
+    /* ─── Success State ─────────────────────────────────── */
+    .success-state {
+      display: none;
+      text-align: center;
+      padding: 1rem 0;
+    }
+    .success-icon {
+      width: 56px; height: 56px;
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.25);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      margin: 0 auto 1rem;
+    }
+    .success-state h3 {
+      font-size: 1.3rem;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+    .success-state p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ─── Loading State ─────────────────────────────────── */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(0,0,0,0.2);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    /* ─── Responsive ────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .hero {
+        grid-template-columns: 1fr;
+        padding-top: 7rem;
+        gap: 2rem;
+      }
+      .hero-left { padding: 1rem 0; }
+      .steps-grid { grid-template-columns: 1fr; }
+      .report-grid { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      .cta-form { flex-direction: column; }
+      .cta-form input, .btn-cta { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── Nav ──────────────────────────────────────────────── -->
+<nav>
+  <div class="container nav-inner">
+    <a href="#" class="logo">
+      <div class="logo-mark">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="1" y="8" width="3" height="7" fill="#000" rx="1"/>
+          <rect x="6" y="5" width="3" height="10" fill="#000" rx="1"/>
+          <rect x="11" y="2" width="3" height="13" fill="#000" rx="1"/>
+        </svg>
+      </div>
+      <span class="logo-text">AI Brand <span>Monitor</span></span>
+    </a>
+
+    <ul class="nav-links">
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#report">Sample report</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+    </ul>
+
+    <button class="btn-nav" onclick="document.getElementById('hero-form').scrollIntoView({behavior:'smooth'})">
+      Get Free Report
+    </button>
+  </div>
+</nav>
+
+<!-- ─── Hero ──────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="container" style="display:contents">
+
+    <div class="hero-left container" style="padding-right:1rem">
+      <div class="eyebrow anim-1">
+        <span class="eyebrow-dot"></span>
+        AI Visibility Intelligence
+      </div>
+
+      <h1 class="anim-2">
+        Do AI chatbots<br />
+        <em>know your business?</em>
+      </h1>
+
+      <p class="hero-sub anim-3">
+        When someone asks ChatGPT, Claude, Perplexity, or Gemini to recommend a business like yours — are you mentioned? Find out in 60 seconds with a free AI visibility report.
+      </p>
+
+      <div class="platform-row anim-4">
+        <span class="platform-row-label">Scans</span>
+
+        <div class="platform-chip">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+          ChatGPT
+        </div>
+        <div class="platform-chip">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          Claude
+        </div>
+        <div class="platform-chip">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          Perplexity
+        </div>
+        <div class="platform-chip">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12,2 22,20 2,20"/></svg>
+          Gemini
+        </div>
+      </div>
+    </div>
+
+    <!-- Form Card -->
+    <div style="padding-right:2rem">
+      <div class="form-card anim-5" id="hero-form">
+        <!-- Default form state -->
+        <div id="form-default">
+          <div class="form-header">
+            <h2>Get your free report</h2>
+            <p>One-time scan. No credit card. Results delivered to your inbox.</p>
+          </div>
+
+          <form id="report-form" onsubmit="handleSubmit(event)">
+            <div class="form-group">
+              <label for="biz-name">Business Name</label>
+              <input
+                type="text"
+                id="biz-name"
+                name="business_name"
+                placeholder="e.g. Riverside Dental Studio"
+                required
+                autocomplete="organization"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="email">Email Address</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="you@yourbusiness.com"
+                required
+                autocomplete="email"
+              />
+            </div>
+
+            <button type="submit" class="btn-primary" id="submit-btn">
+              <span id="btn-text">Generate My Free Report</span>
+              <div class="spinner" id="btn-spinner"></div>
+              <svg id="btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+          </form>
+
+          <p class="form-trust">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            No spam. Unsubscribe anytime. We never share your data.
+          </p>
+
+          <!-- Mini live preview -->
+          <div class="scan-preview">
+            <div class="scan-preview-label">Live scan preview</div>
+            <div class="scan-row">
+              <div class="scan-platform">
+                <div class="scan-dot active"></div>
+                ChatGPT
+              </div>
+              <span class="scan-status found">mentioned · rank #2</span>
+            </div>
+            <div class="scan-row">
+              <div class="scan-platform">
+                <div class="scan-dot scanning"></div>
+                Claude
+              </div>
+              <span class="scan-status scanning">scanning...</span>
+            </div>
+            <div class="scan-row">
+              <div class="scan-platform">
+                <div class="scan-dot pending"></div>
+                Perplexity
+              </div>
+              <span class="scan-status pending">queued</span>
+            </div>
+            <div class="scan-row">
+              <div class="scan-platform">
+                <div class="scan-dot pending"></div>
+                Gemini
+              </div>
+              <span class="scan-status pending">queued</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Success state -->
+        <div class="success-state" id="form-success">
+          <div class="success-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <h3>Report queued!</h3>
+          <p>
+            We're scanning ChatGPT, Claude, Perplexity, and Gemini for
+            <strong id="submitted-biz"></strong>.<br /><br />
+            Your full AI Visibility Report will arrive in your inbox within a few minutes.
+          </p>
+          <div style="margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid var(--border);">
+            <p style="font-size:0.78rem; color:var(--text-dim);">While you wait — see what our paid plans include:</p>
+            <div style="display:flex;gap:.5rem;margin-top:.75rem;flex-wrap:wrap;">
+              <div style="background:var(--accent-dim);border:1px solid rgba(240,165,0,.15);border-radius:6px;padding:.35rem .7rem;font-size:.75rem;color:var(--accent);">Weekly scans</div>
+              <div style="background:var(--accent-dim);border:1px solid rgba(240,165,0,.15);border-radius:6px;padding:.35rem .7rem;font-size:.75rem;color:var(--accent);">Competitor radar</div>
+              <div style="background:var(--accent-dim);border:1px solid rgba(240,165,0,.15);border-radius:6px;padding:.35rem .7rem;font-size:.75rem;color:var(--accent);">Trend graphs</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ─── Ticker ─────────────────────────────────────────────── -->
+<div class="ticker-wrap">
+  <div class="ticker-inner" id="ticker">
+    <!-- JS will duplicate these -->
+    <span class="ticker-item">
+      <span class="tick-biz">Maple Street Bakery</span>
+      <span class="ticker-sep">·</span>
+      AI Score <span class="tick-score">78/100</span>
+      <span class="ticker-sep">·</span>
+      Mentioned on 3/4 platforms
+    </span>
+    <span class="ticker-item">
+      <span class="tick-biz">Summit Legal Group</span>
+      <span class="ticker-sep">·</span>
+      AI Score <span class="tick-score">45/100</span>
+      <span class="ticker-sep">·</span>
+      Not found on Perplexity
+    </span>
+    <span class="ticker-item">
+      <span class="tick-biz">BlueSky Plumbing Co.</span>
+      <span class="ticker-sep">·</span>
+      AI Score <span class="tick-score">91/100</span>
+      <span class="ticker-sep">·</span>
+      Top mention on all platforms
+    </span>
+    <span class="ticker-item">
+      <span class="tick-biz">Harbor View Realty</span>
+      <span class="ticker-sep">·</span>
+      AI Score <span class="tick-score">34/100</span>
+      <span class="ticker-sep">·</span>
+      Competitor ranked #1
+    </span>
+    <span class="ticker-item">
+      <span class="tick-biz">Nova Fitness Studio</span>
+      <span class="ticker-sep">·</span>
+      AI Score <span class="tick-score">62/100</span>
+      <span class="ticker-sep">·</span>
+      Positive sentiment · 2/4 platforms
+    </span>
+    <span class="ticker-item">
+      <span class="tick-biz">Clearwater Accounting</span>
+      <span class="ticker-sep">·</span>
+      AI Score <span class="tick-score">55/100</span>
+      <span class="ticker-sep">·</span>
+      Neutral mention · ChatGPT only
+    </span>
+  </div>
+</div>
+
+<!-- ─── How It Works ───────────────────────────────────────── -->
+<section class="section" id="how-it-works">
+  <div class="container">
+    <div class="section-label">How it works</div>
+    <h2>From name to report<br />in under 60 seconds.</h2>
+    <p class="section-sub">No setup. No agents. No scrapers. We query the actual AI platforms and analyze the results in real time.</p>
+
+    <div class="steps-grid">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <h3>Enter your business</h3>
+        <p>Tell us your business name and email. That's it. We handle the rest.</p>
+      </div>
+
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        </div>
+        <h3>We query 4 AI platforms</h3>
+        <p>Our engine fires relevant prompts at ChatGPT, Claude, Perplexity, and Gemini — the same queries your potential customers use.</p>
+      </div>
+
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        </div>
+        <h3>Report hits your inbox</h3>
+        <p>You get a full breakdown: mention rate, position, sentiment, and an AI Visibility Score from 0–100. Actionable. Clear. Immediate.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Report Preview ─────────────────────────────────────── -->
+<section class="report-section" id="report">
+  <div class="container">
+    <div class="section-label">Sample report</div>
+    <h2>What you'll receive.</h2>
+
+    <div class="report-grid">
+      <!-- Preview card -->
+      <div class="report-preview">
+        <div class="report-preview-header">
+          <div>
+            <div class="report-biz-name">Maple Street Bakery</div>
+            <div class="report-date">Report generated · March 2026</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:var(--green);font-family:'JetBrains Mono',monospace;">
+            <div class="scan-dot active"></div>
+            Complete
+          </div>
+        </div>
+
+        <div class="score-display">
+          <div class="score-label">AI Visibility Score</div>
+          <div class="score-number">78</div>
+          <div class="score-max">out of 100</div>
+        </div>
+
+        <div class="platform-scores">
+          <div class="platform-score-row">
+            <span class="ps-name">ChatGPT</span>
+            <div class="ps-bar-wrap"><div class="ps-bar" style="--w:82%"></div></div>
+            <span class="ps-val">82</span>
+          </div>
+          <div class="platform-score-row">
+            <span class="ps-name">Claude</span>
+            <div class="ps-bar-wrap"><div class="ps-bar" style="--w:90%"></div></div>
+            <span class="ps-val">90</span>
+          </div>
+          <div class="platform-score-row">
+            <span class="ps-name">Perplexity</span>
+            <div class="ps-bar-wrap"><div class="ps-bar mid" style="--w:71%"></div></div>
+            <span class="ps-val">71</span>
+          </div>
+          <div class="platform-score-row">
+            <span class="ps-name">Gemini</span>
+            <div class="ps-bar-wrap"><div class="ps-bar low" style="--w:28%"></div></div>
+            <span class="ps-val">28</span>
+          </div>
+        </div>
+
+        <div class="report-blur-mask">
+          <button class="unlock-btn" onclick="document.getElementById('hero-form').scrollIntoView({behavior:'smooth'})">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+            Get your full report →
+          </button>
+        </div>
+      </div>
+
+      <!-- Report feature list -->
+      <div class="report-points">
+        <div class="report-point">
+          <div class="rp-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><rect x="1" y="8" width="3" height="13" rx="1"/><rect x="6" y="5" width="3" height="16" rx="1"/><rect x="11" y="2" width="3" height="19" rx="1"/><rect x="16" y="6" width="3" height="15" rx="1"/><rect x="21" y="10" width="3" height="11" rx="1"/></svg>
+          </div>
+          <div>
+            <div class="rp-title">AI Visibility Score</div>
+            <div class="rp-desc">A single 0–100 score that captures your overall AI presence across mention rate, position, and sentiment.</div>
+          </div>
+        </div>
+
+        <div class="report-point">
+          <div class="rp-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </div>
+          <div>
+            <div class="rp-title">Per-platform breakdown</div>
+            <div class="rp-desc">See exactly what ChatGPT, Claude, Perplexity, and Gemini say about your business — verbatim, with context.</div>
+          </div>
+        </div>
+
+        <div class="report-point">
+          <div class="rp-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>
+          </div>
+          <div>
+            <div class="rp-title">Competitor radar</div>
+            <div class="rp-desc">Find out which competitors AI recommends instead of you — and how to close the gap.</div>
+          </div>
+        </div>
+
+        <div class="report-point">
+          <div class="rp-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div>
+            <div class="rp-title">Actionable recommendations</div>
+            <div class="rp-desc">Specific, prioritized steps to improve your AI visibility — not generic SEO advice.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Pricing ────────────────────────────────────────────── -->
+<section class="pricing-section" id="pricing">
+  <div class="container">
+    <div class="section-label">Pricing</div>
+    <h2>Start free.<br />Scale when you're ready.</h2>
+    <p class="section-sub">Your first report is always free. Upgrade for recurring scans, trend graphs, and competitor tracking.</p>
+
+    <div class="pricing-grid">
+      <!-- Free -->
+      <div class="pricing-card">
+        <div class="pricing-tier">Free</div>
+        <div class="pricing-price">
+          <span class="pricing-dollar">$</span>
+          <span class="pricing-amount">0</span>
+        </div>
+        <p class="pricing-desc">One snapshot report. See where you stand today.</p>
+        <ul class="pricing-features">
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            1 AI Visibility Report
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            All 4 AI platforms
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Visibility Score
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Email delivery
+          </li>
+        </ul>
+        <button class="btn-pricing" onclick="document.getElementById('hero-form').scrollIntoView({behavior:'smooth'})">Get free report</button>
+      </div>
+
+      <!-- Starter -->
+      <div class="pricing-card featured">
+        <div class="pricing-tag">Most popular</div>
+        <div class="pricing-tier">Starter</div>
+        <div class="pricing-price">
+          <span class="pricing-dollar">$</span>
+          <span class="pricing-amount">29</span>
+          <span class="pricing-period">/mo</span>
+        </div>
+        <p class="pricing-desc">Weekly scans and trend tracking for growing businesses.</p>
+        <ul class="pricing-features">
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Weekly automated scans
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Historical trend graphs
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Competitor radar
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Email digest reports
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            1 business profile
+          </li>
+        </ul>
+        <button class="btn-pricing featured-btn">Start 7-day free trial</button>
+      </div>
+
+      <!-- Agency -->
+      <div class="pricing-card">
+        <div class="pricing-tier">Agency</div>
+        <div class="pricing-price">
+          <span class="pricing-dollar">$</span>
+          <span class="pricing-amount">149</span>
+          <span class="pricing-period">/mo</span>
+        </div>
+        <p class="pricing-desc">Multi-client management, white-label reports, and API access.</p>
+        <ul class="pricing-features">
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Up to 20 business profiles
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Daily scans
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            White-label PDF reports
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            API access
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Priority support
+          </li>
+        </ul>
+        <button class="btn-pricing">Contact sales</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Bottom CTA ─────────────────────────────────────────── -->
+<section class="cta-section">
+  <div class="container">
+    <h2>Your competitors are<br /><em style="font-style:italic;color:var(--accent)">already being found</em> by AI.</h2>
+    <p>Run your free scan and see exactly where you stand.</p>
+
+    <form class="cta-form" onsubmit="handleCtaSubmit(event)">
+      <input type="email" id="cta-email" placeholder="Your email address" required />
+      <button type="submit" class="btn-cta">Get Free Report →</button>
+    </form>
+    <p style="font-size:.75rem;color:var(--text-dim)">No credit card required. Takes 60 seconds.</p>
+  </div>
+</section>
+
+<!-- ─── Footer ─────────────────────────────────────────────── -->
+<footer>
+  <div class="container footer-inner">
+    <div class="footer-copy">© 2026 AI Brand Monitor. All rights reserved.</div>
+    <ul class="footer-links">
+      <li><a href="#">Privacy</a></li>
+      <li><a href="#">Terms</a></li>
+      <li><a href="#">Contact</a></li>
+    </ul>
+  </div>
+</footer>
+
+<script>
+  // Duplicate ticker for seamless loop
+  const ticker = document.getElementById('ticker');
+  ticker.innerHTML += ticker.innerHTML;
+
+  // Animate scan preview cycling
+  const statuses = [
+    { dot: 'active',   text: 'found · rank #2',    cls: 'found' },
+    { dot: 'active',   text: 'found · rank #1',    cls: 'found' },
+    { dot: 'active',   text: 'mentioned · top 3',  cls: 'found' },
+    { dot: 'scanning', text: 'scanning...',         cls: 'scanning' },
+    { dot: 'pending',  text: 'queued',              cls: 'pending' },
+  ];
+
+  // Cycling animation for the scan preview rows
+  const rows = document.querySelectorAll('.scan-row');
+  let cyclePhase = 0;
+
+  function cycleScan() {
+    const phases = [
+      // Phase 0: chatgpt found, claude scanning, rest pending
+      [
+        { dot: 'active',   text: 'mentioned · rank #2', cls: 'found' },
+        { dot: 'scanning', text: 'scanning...',          cls: 'scanning' },
+        { dot: 'pending',  text: 'queued',               cls: 'pending' },
+        { dot: 'pending',  text: 'queued',               cls: 'pending' },
+      ],
+      // Phase 1: chatgpt+claude found, perplexity scanning
+      [
+        { dot: 'active',   text: 'mentioned · rank #2', cls: 'found' },
+        { dot: 'active',   text: 'found · rank #1',     cls: 'found' },
+        { dot: 'scanning', text: 'scanning...',          cls: 'scanning' },
+        { dot: 'pending',  text: 'queued',               cls: 'pending' },
+      ],
+      // Phase 2: 3 found, gemini scanning
+      [
+        { dot: 'active',   text: 'mentioned · rank #2', cls: 'found' },
+        { dot: 'active',   text: 'found · rank #1',     cls: 'found' },
+        { dot: 'active',   text: 'mentioned · top 5',   cls: 'found' },
+        { dot: 'scanning', text: 'scanning...',          cls: 'scanning' },
+      ],
+      // Phase 3: all done
+      [
+        { dot: 'active',   text: 'mentioned · rank #2', cls: 'found' },
+        { dot: 'active',   text: 'found · rank #1',     cls: 'found' },
+        { dot: 'active',   text: 'mentioned · top 5',   cls: 'found' },
+        { dot: 'active',   text: 'not found',            cls: 'pending' },
+      ],
+    ];
+
+    const phase = phases[cyclePhase];
+    rows.forEach((row, i) => {
+      const dotEl = row.querySelector('.scan-dot');
+      const statusEl = row.querySelector('.scan-status');
+      dotEl.className = 'scan-dot ' + phase[i].dot;
+      statusEl.className = 'scan-status ' + phase[i].cls;
+      statusEl.textContent = phase[i].text;
+    });
+
+    cyclePhase = (cyclePhase + 1) % phases.length;
+  }
+
+  setInterval(cycleScan, 2200);
+
+  // Form submission handler
+  function handleSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submit-btn');
+    const btnText = document.getElementById('btn-text');
+    const spinner = document.getElementById('btn-spinner');
+    const arrow = document.getElementById('btn-arrow');
+    const bizName = document.getElementById('biz-name').value;
+
+    // Loading state
+    btn.disabled = true;
+    btnText.textContent = 'Queuing scan...';
+    spinner.style.display = 'block';
+    arrow.style.display = 'none';
+    btn.style.opacity = '0.8';
+
+    // Simulate API call
+    setTimeout(() => {
+      document.getElementById('form-default').style.display = 'none';
+      document.getElementById('submitted-biz').textContent = '"' + bizName + '"';
+      const successEl = document.getElementById('form-success');
+      successEl.style.display = 'block';
+      successEl.style.animation = 'fadeUp 0.5s cubic-bezier(.22,1,.36,1) both';
+    }, 1800);
+  }
+
+  // Bottom CTA form handler
+  function handleCtaSubmit(e) {
+    e.preventDefault();
+    const email = document.getElementById('cta-email').value;
+    // Scroll to main form and pre-fill email
+    document.getElementById('email').value = email;
+    document.getElementById('hero-form').scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => document.getElementById('biz-name').focus(), 600);
+  }
+
+  // Intersection Observer for subtle scroll reveals
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.step, .report-point, .pricing-card').forEach((el, i) => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(24px)';
+    el.style.transition = `opacity 0.6s cubic-bezier(.22,1,.36,1) ${i * 0.1}s, transform 0.6s cubic-bezier(.22,1,.36,1) ${i * 0.1}s`;
+    observer.observe(el);
+  });
+</script>
+</body>
+</html>
