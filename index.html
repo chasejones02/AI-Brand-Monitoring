@@ -1548,6 +1548,7 @@
     <div class="plan-tabs">
       <button class="plan-tab active" onclick="switchPlan('free')">Free</button>
       <button class="plan-tab" onclick="switchPlan('starter')">Starter <span class="plan-price">$29/mo</span></button>
+      <button class="plan-tab" onclick="switchPlan('growth')">Growth <span class="plan-price">$49/mo</span></button>
       <button class="plan-tab" onclick="switchPlan('agency')">Agency <span class="plan-price">$149/mo</span></button>
     </div>
 
@@ -1695,6 +1696,125 @@
               <span class="query-badge not-found">Not found</span>
               <span class="query-platform-tag">All platforms</span>
             </div>
+          </div>
+        </div>
+
+        <!-- ══ GROWTH plan content ══ -->
+        <div class="plan-content" data-plan="growth" style="display:none">
+          <div class="report-preview-header">
+            <div>
+              <div class="report-biz-name">Maple Street Bakery</div>
+              <div class="report-date">Report generated · March 2026</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:.5rem;">
+              <span style="font-size:.65rem;font-weight:600;background:rgba(240,165,0,.1);color:var(--accent);border:1px solid rgba(240,165,0,.25);border-radius:4px;padding:.1rem .45rem;letter-spacing:.06em;text-transform:uppercase;">Daily</span>
+              <div style="display:flex;align-items:center;gap:.35rem;font-size:.72rem;color:var(--green);font-family:'JetBrains Mono',monospace;"><div class="scan-dot active"></div>Live</div>
+            </div>
+          </div>
+          <div class="score-display">
+            <div class="score-label">AI Visibility Score</div>
+            <div class="score-number">78</div>
+            <div class="score-max">out of 100</div>
+          </div>
+          <div class="platform-scores">
+            <div class="platform-score-row">
+              <span class="ps-name">ChatGPT</span>
+              <div class="ps-bar-wrap"><div class="ps-bar" style="--w:82%"></div></div>
+              <span class="ps-val">82</span>
+            </div>
+            <div class="platform-score-row">
+              <span class="ps-name">Claude</span>
+              <div class="ps-bar-wrap"><div class="ps-bar" style="--w:90%"></div></div>
+              <span class="ps-val">90</span>
+            </div>
+            <div class="platform-score-row">
+              <span class="ps-name">Perplexity</span>
+              <div class="ps-bar-wrap"><div class="ps-bar mid" style="--w:71%"></div></div>
+              <span class="ps-val">71</span>
+            </div>
+            <div class="platform-score-row">
+              <span class="ps-name">Gemini</span>
+              <div class="ps-bar-wrap"><div class="ps-bar low" style="--w:28%"></div></div>
+              <span class="ps-val">28</span>
+            </div>
+          </div>
+          <div class="report-divider"></div>
+          <div class="report-section-label">30-Day Trend</div>
+          <div class="trend-bars">
+            <div class="trend-col">
+              <div class="trend-bar" style="height:22px"></div>
+              <div class="trend-lbl">wk 1</div>
+            </div>
+            <div class="trend-col">
+              <div class="trend-bar" style="height:30px"></div>
+              <div class="trend-lbl">wk 2</div>
+            </div>
+            <div class="trend-col">
+              <div class="trend-bar" style="height:28px"></div>
+              <div class="trend-lbl">wk 3</div>
+            </div>
+            <div class="trend-col">
+              <div class="trend-bar" style="height:36px"></div>
+              <div class="trend-lbl">wk 4</div>
+            </div>
+            <div class="trend-col">
+              <div class="trend-bar current" style="height:44px"></div>
+              <div class="trend-lbl">today</div>
+            </div>
+          </div>
+          <div class="trend-delta up">↑ +18 pts over 30 days</div>
+          <div class="report-divider"></div>
+          <div class="report-section-label">Competitor Radar</div>
+          <div class="comp-row">
+            <span class="comp-name">Sweet Things Co.</span>
+            <div class="comp-bar-wrap"><div class="comp-bar" style="width:91%"></div></div>
+            <span class="comp-val">91</span>
+          </div>
+          <div class="comp-row">
+            <span class="comp-name">Harbor Cakes</span>
+            <div class="comp-bar-wrap"><div class="comp-bar" style="width:84%"></div></div>
+            <span class="comp-val">84</span>
+          </div>
+          <div class="comp-row">
+            <span class="comp-name">Flour + Co.</span>
+            <div class="comp-bar-wrap"><div class="comp-bar" style="width:62%"></div></div>
+            <span class="comp-val">62</span>
+          </div>
+          <div class="report-divider"></div>
+          <div class="report-section-label">Query Breakdown</div>
+          <div class="query-item">
+            <div class="query-text">"best bakery near downtown for custom cakes"</div>
+            <div class="query-meta">
+              <span class="query-badge mentioned">Mentioned #2</span>
+              <span class="query-platform-tag">ChatGPT · Claude · Perplexity</span>
+            </div>
+          </div>
+          <div class="query-item">
+            <div class="query-text">"where to buy artisan sourdough in [city]"</div>
+            <div class="query-meta">
+              <span class="query-badge mentioned">Mentioned #1</span>
+              <span class="query-platform-tag">Claude · Gemini</span>
+            </div>
+          </div>
+          <div class="query-item">
+            <div class="query-text">"bakeries open Sunday with vegan options"</div>
+            <div class="query-meta">
+              <span class="query-badge not-found">Not found</span>
+              <span class="query-platform-tag">All platforms</span>
+            </div>
+          </div>
+          <div class="query-item">
+            <div class="query-text">"best place to order a wedding cake in [city]"</div>
+            <div class="query-meta">
+              <span class="query-badge mentioned">Mentioned #3</span>
+              <span class="query-platform-tag">ChatGPT · Perplexity</span>
+            </div>
+          </div>
+          <div class="report-divider"></div>
+          <div class="report-section-label">Email Digest Preview</div>
+          <div class="query-item" style="border-color:rgba(240,165,0,.15);">
+            <div style="font-size:.68rem;font-weight:600;color:var(--accent);margin-bottom:.4rem;letter-spacing:.04em;">Weekly summary — March 11, 2026</div>
+            <div style="font-size:.73rem;color:var(--text-muted);line-height:1.55;">Score up <span style="color:var(--green);font-family:'JetBrains Mono',monospace;">+3 pts</span> this week. You moved from #3 → #2 on ChatGPT for your top query. Sweet Things Co. gained ground on Gemini — worth watching.</div>
           </div>
         </div>
 
@@ -1924,6 +2044,46 @@
             <div>
               <div class="rp-title">Query-by-query breakdown</div>
               <div class="rp-desc">See mention rank, sentiment, and AI responses for every query you're tracking.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- GROWTH features -->
+        <div class="report-points plan-features" data-plan="growth" style="display:none">
+          <div class="report-point">
+            <div class="rp-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div>
+              <div class="rp-title">Daily automated scans</div>
+              <div class="rp-desc">Catch ranking changes the same day they happen — not a week later. Stay ahead of competitors as AI models update.</div>
+            </div>
+          </div>
+          <div class="report-point">
+            <div class="rp-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M23 6l-9.5 9.5-5-5L1 18"/><path d="M17 6h6v6"/></svg>
+            </div>
+            <div>
+              <div class="rp-title">30-day trend graphs</div>
+              <div class="rp-desc">Track your score day by day. See exactly when something changed — and what might have caused it.</div>
+            </div>
+          </div>
+          <div class="report-point">
+            <div class="rp-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8.56 2.75c4.37 6.03 6.02 9.42 8.03 17.72m2.54-15.38c-3.72 4.35-8.94 5.66-16.88 5.85m19.5 1.9c-3.5-.93-6.63-.82-8.94 0-2.58.92-5.01 2.86-7.44 6.32"/></svg>
+            </div>
+            <div>
+              <div class="rp-title">Competitor radar</div>
+              <div class="rp-desc">15 queries tracked across all 4 AI platforms — see who's stealing your recommendations and by how much.</div>
+            </div>
+          </div>
+          <div class="report-point">
+            <div class="rp-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </div>
+            <div>
+              <div class="rp-title">Email digest reports</div>
+              <div class="rp-desc">Weekly summaries delivered to your inbox. Know your score, movement, and top changes without logging in.</div>
             </div>
           </div>
         </div>
