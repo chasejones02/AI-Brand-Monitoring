@@ -981,6 +981,44 @@
     .log-change.neg { color: var(--red); }
     .log-change.neutral { color: var(--text-dim); }
 
+    /* ─── Recommendation items ───────────────────────────── */
+    .rec-item {
+      display: flex;
+      gap: 0.65rem;
+      align-items: flex-start;
+      background: var(--surface-2);
+      border-radius: 8px;
+      padding: 0.7rem 0.85rem;
+      margin-bottom: 0.55rem;
+      border-left: 2px solid transparent;
+    }
+    .rec-high { border-left-color: var(--red); }
+    .rec-med  { border-left-color: #f97316; }
+    .rec-priority {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.15rem 0.4rem;
+      border-radius: 3px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .rec-high .rec-priority { background: rgba(239,68,68,0.1); color: var(--red); }
+    .rec-med  .rec-priority { background: rgba(249,115,22,0.1); color: #f97316; }
+    .rec-title {
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.3rem;
+    }
+    .rec-detail {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
     /* ─── Pricing ───────────────────────────────────────── */
     .pricing-section { padding: 5rem 0; }
     .pricing-grid {
@@ -1774,6 +1812,29 @@
             <div class="api-usage-bar-wrap"><div class="api-usage-bar" style="width:25%"></div></div>
             <span class="api-usage-val">5 / 20</span>
           </div>
+          <div class="report-divider"></div>
+          <div class="report-section-label">Actionable Recommendations</div>
+          <div class="rec-item rec-high">
+            <div class="rec-priority">High</div>
+            <div class="rec-body">
+              <div class="rec-title">Boost your Google review count</div>
+              <div class="rec-detail">Your competitors have 3× more Google reviews — AI models use review volume as a trust signal. Ask recent customers for a review this week.</div>
+            </div>
+          </div>
+          <div class="rec-item rec-med">
+            <div class="rec-priority">Med</div>
+            <div class="rec-body">
+              <div class="rec-title">Add vegan menu options to your website</div>
+              <div class="rec-detail">You're invisible on "bakeries with vegan options" queries. A dedicated menu page could unlock 3 new query matches.</div>
+            </div>
+          </div>
+          <div class="rec-item rec-med">
+            <div class="rec-priority">Med</div>
+            <div class="rec-body">
+              <div class="rec-title">Claim and update your Yelp listing</div>
+              <div class="rec-detail">Perplexity surfaces Yelp data heavily. An incomplete listing is hurting your rank on 2 of your top queries.</div>
+            </div>
+          </div>
         </div>
 
         <!-- Blur mask: Free plan only -->
@@ -1898,6 +1959,15 @@
           </div>
           <div class="report-point">
             <div class="rp-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <div>
+              <div class="rp-title">Actionable recommendations engine</div>
+              <div class="rp-desc">"Your competitors have 3× more Google reviews — here's how to fix that." AI-generated steps tied directly to what's costing you rankings.</div>
+            </div>
+          </div>
+          <div class="report-point">
+            <div class="rp-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
             </div>
             <div>
@@ -2004,11 +2074,15 @@
         <ul class="pricing-features">
           <li>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-            50 queries tracked
+            30 queries tracked
           </li>
           <li>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
             Multi-brand (up to 20 profiles)
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Actionable recommendations engine
           </li>
           <li>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
