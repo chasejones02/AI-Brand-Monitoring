@@ -185,6 +185,8 @@
     .hero {
       min-height: 100vh;
       padding-top: 6rem;
+      padding-left: max(2rem, calc((100% - 1160px) / 2));
+      padding-right: max(2rem, calc((100% - 1160px) / 2));
       display: grid;
       grid-template-columns: 1fr 420px;
       gap: 3rem;
@@ -1006,7 +1008,7 @@
   <div class="hero-glow"></div>
   <div class="container" style="display:contents">
 
-    <div class="hero-left container" style="padding-right:1rem">
+    <div class="hero-left" style="padding-right:1rem">
       <div class="eyebrow anim-1">
         <span class="eyebrow-dot"></span>
         AI Visibility Intelligence
@@ -1577,21 +1579,42 @@
     setTimeout(() => document.getElementById('biz-name').focus(), 600);
   }
 
-  // Intersection Observer for subtle scroll reveals
-  const observer = new IntersectionObserver((entries) => {
+  // Scroll-reveal: fade + rise as elements enter the viewport
+  const revealObserver = new IntersectionObserver((entries) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
         entry.target.style.opacity = '1';
         entry.target.style.transform = 'translateY(0)';
+        revealObserver.unobserve(entry.target);
       }
     });
-  }, { threshold: 0.1 });
+  }, { threshold: 0.1, rootMargin: '0px 0px -36px 0px' });
 
-  document.querySelectorAll('.step, .report-point, .pricing-card').forEach((el, i) => {
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(24px)';
-    el.style.transition = `opacity 0.6s cubic-bezier(.22,1,.36,1) ${i * 0.1}s, transform 0.6s cubic-bezier(.22,1,.36,1) ${i * 0.1}s`;
-    observer.observe(el);
+  // Groups of selectors with optional per-item stagger
+  const revealGroups = [
+    { sel: '.ticker-wrap',           stagger: 0 },
+    { sel: '.section-label',         stagger: 0 },
+    { sel: '.section h2',            stagger: 0.08 },
+    { sel: '.section-sub',           stagger: 0.14 },
+    { sel: '.steps-grid',            stagger: 0 },
+    { sel: '.step',                  stagger: 0.12 },
+    { sel: '.report-preview',        stagger: 0 },
+    { sel: '.report-point',          stagger: 0.1 },
+    { sel: '.pricing-card',          stagger: 0.1 },
+    { sel: '.cta-section h2',        stagger: 0 },
+    { sel: '.cta-section > .container > p', stagger: 0.08 },
+    { sel: '.cta-form',              stagger: 0.14 },
+  ];
+
+  revealGroups.forEach(({ sel, stagger }) => {
+    document.querySelectorAll(sel).forEach((el, i) => {
+      if (el.closest('.hero')) return; // hero elements use CSS load animations
+      const delay = i * stagger;
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(22px)';
+      el.style.transition = `opacity 0.65s cubic-bezier(.22,1,.36,1) ${delay}s, transform 0.65s cubic-bezier(.22,1,.36,1) ${delay}s`;
+      revealObserver.observe(el);
+    });
   });
 </script>
 </body>
