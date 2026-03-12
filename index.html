@@ -353,6 +353,117 @@
       box-shadow: 0 0 0 3px var(--accent-dim);
     }
 
+    /* ─── Query Inputs ──────────────────────────────────── */
+    .query-section-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.45rem;
+    }
+    .query-section-label span {
+      font-size: 0.775rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .query-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--text-dim);
+    }
+    .query-explainer {
+      background: var(--bg);
+      border: 1px solid var(--border-dim);
+      border-radius: 8px;
+      padding: 0.65rem 0.9rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+    .query-explainer strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+    .query-explainer .query-examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.5rem;
+    }
+    .query-example-chip {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 0.2rem 0.55rem;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      font-style: italic;
+    }
+    .query-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      margin-bottom: 0.6rem;
+    }
+    .query-row {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .query-row input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 0.85rem;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.875rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .query-row input::placeholder { color: var(--text-dim); }
+    .query-row input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+    .query-remove {
+      width: 26px; height: 26px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-dim);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      transition: border-color 0.2s, color 0.2s;
+      font-size: 0.9rem;
+      line-height: 1;
+    }
+    .query-remove:hover { border-color: var(--red); color: var(--red); }
+    .btn-add-query {
+      background: transparent;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      width: 100%;
+      padding: 0.55rem;
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      transition: border-color 0.2s, color 0.2s;
+      margin-bottom: 1rem;
+    }
+    .btn-add-query:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-add-query:disabled { opacity: 0.35; cursor: not-allowed; }
+
     .btn-primary {
       width: 100%;
       background: var(--accent);
@@ -1055,7 +1166,7 @@
             <p>One-time scan. No credit card. Results delivered to your inbox.</p>
           </div>
 
-          <form id="report-form" onsubmit="handleSubmit(event)">
+          <form id="report-form" onsubmit="handleStep1(event)">
             <div class="form-group">
               <label for="biz-name">Business Name</label>
               <input
@@ -1080,10 +1191,9 @@
               />
             </div>
 
-            <button type="submit" class="btn-primary" id="submit-btn">
-              <span id="btn-text">Generate My Free Report</span>
-              <div class="spinner" id="btn-spinner"></div>
-              <svg id="btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            <button type="submit" class="btn-primary">
+              Generate My Free Report
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </button>
           </form>
 
@@ -1124,6 +1234,57 @@
               <span class="scan-status pending">queued</span>
             </div>
           </div>
+        </div>
+
+        <!-- Step 2: Query entry -->
+        <div id="form-queries" style="display:none">
+          <div class="form-header">
+            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">
+              <button type="button" onclick="showStep1()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:0;display:flex;align-items:center;gap:0.3rem;font-size:0.78rem;font-family:'Outfit',sans-serif;transition:color 0.2s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5"/><path d="m12 5-7 7 7 7"/></svg>
+                Back
+              </button>
+            </div>
+            <h2>What should AI find you for?</h2>
+            <p>Enter the search phrases your customers actually use — not your business name, but the queries that <em>should</em> lead to you.</p>
+          </div>
+
+          <div class="query-explainer">
+            Think of it as: <strong>if someone asked ChatGPT to find a business like yours, what would they type?</strong>
+            <div class="query-examples">
+              <span class="query-example-chip">"best pizza in Austin"</span>
+              <span class="query-example-chip">"affordable accountant Denver"</span>
+              <span class="query-example-chip">"top CRM for small teams"</span>
+              <span class="query-example-chip">"emergency plumber near me"</span>
+            </div>
+          </div>
+
+          <div class="query-section-label" style="margin-top:0.75rem">
+            <span>Your queries</span>
+            <span class="query-count" id="query-count">2 / 10</span>
+          </div>
+
+          <div class="query-list" id="query-list" style="margin-top:0.45rem">
+            <div class="query-row">
+              <input type="text" name="queries[]" placeholder="e.g. best [your service] in [your city]" />
+            </div>
+            <div class="query-row">
+              <input type="text" name="queries[]" placeholder="e.g. affordable [your service] near me" />
+            </div>
+          </div>
+
+          <button type="button" class="btn-add-query" id="btn-add-query" onclick="addQuery()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Add another query
+          </button>
+
+          <button type="button" class="btn-primary" id="run-btn" onclick="handleStep2()">
+            <span id="run-btn-text">Run My Scan</span>
+            <div class="spinner" id="run-spinner"></div>
+            <svg id="run-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </button>
+
+          <p style="font-size:0.72rem;color:var(--text-dim);text-align:center;margin-top:0.75rem;">You can add up to 10 queries. More queries = more complete picture.</p>
         </div>
 
         <!-- Success state -->
@@ -1216,8 +1377,8 @@
         <div class="step-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </div>
-        <h3>Enter your business</h3>
-        <p>Tell us your business name and email. That's it. We handle the rest.</p>
+        <h3>Enter your business &amp; queries</h3>
+        <p>Tell us your business name and the search phrases your customers use — like <em>"best accountant in Denver"</em>. We handle the rest.</p>
       </div>
 
       <div class="step">
@@ -1480,6 +1641,86 @@
 </footer>
 
 <script>
+  // ── 2-step form flow ─────────────────────────────────────
+  const MAX_QUERIES = 10;
+
+  function showStep1() {
+    document.getElementById('form-default').style.display = 'block';
+    document.getElementById('form-queries').style.display = 'none';
+  }
+
+  function handleStep1(e) {
+    e.preventDefault();
+    document.getElementById('form-default').style.display = 'none';
+    const qs = document.getElementById('form-queries');
+    qs.style.display = 'block';
+    qs.style.animation = 'fadeUp 0.4s cubic-bezier(.22,1,.36,1) both';
+    // Focus first query input
+    setTimeout(() => {
+      const first = document.querySelector('#query-list .query-row input');
+      if (first) first.focus();
+    }, 100);
+  }
+
+  function handleStep2() {
+    const queries = [...document.querySelectorAll('#query-list .query-row input')]
+      .map(i => i.value.trim()).filter(Boolean);
+
+    const btn = document.getElementById('run-btn');
+    const btnText = document.getElementById('run-btn-text');
+    const spinner = document.getElementById('run-spinner');
+    const arrow = document.getElementById('run-arrow');
+
+    btn.disabled = true;
+    btnText.textContent = 'Queuing scan...';
+    spinner.style.display = 'block';
+    arrow.style.display = 'none';
+    btn.style.opacity = '0.8';
+
+    setTimeout(() => {
+      const bizName = document.getElementById('biz-name').value;
+      document.getElementById('form-queries').style.display = 'none';
+      document.getElementById('submitted-biz').textContent = '"' + bizName + '"';
+      const successEl = document.getElementById('form-success');
+      successEl.style.display = 'block';
+      successEl.style.animation = 'fadeUp 0.5s cubic-bezier(.22,1,.36,1) both';
+    }, 1800);
+  }
+
+  // ── Query add/remove ──────────────────────────────────────
+  function updateQueryCount() {
+    const rows = document.querySelectorAll('#query-list .query-row');
+    document.getElementById('query-count').textContent = rows.length + ' / ' + MAX_QUERIES;
+    document.getElementById('btn-add-query').disabled = rows.length >= MAX_QUERIES;
+    rows.forEach(row => {
+      const btn = row.querySelector('.query-remove');
+      if (btn) btn.style.display = rows.length > 2 ? 'grid' : 'none';
+    });
+  }
+
+  function addQuery() {
+    const list = document.getElementById('query-list');
+    if (list.querySelectorAll('.query-row').length >= MAX_QUERIES) return;
+    const row = document.createElement('div');
+    row.className = 'query-row';
+    row.innerHTML = `
+      <input type="text" name="queries[]" placeholder="Enter a search phrase..." style="animation:fadeUp 0.3s cubic-bezier(.22,1,.36,1) both" />
+      <button type="button" class="query-remove" onclick="removeQuery(this)" title="Remove">×</button>
+    `;
+    list.appendChild(row);
+    row.querySelector('input').focus();
+    updateQueryCount();
+  }
+
+  function removeQuery(btn) {
+    const list = document.getElementById('query-list');
+    if (list.querySelectorAll('.query-row').length <= 2) return;
+    btn.closest('.query-row').remove();
+    updateQueryCount();
+  }
+
+  updateQueryCount();
+
   // Duplicate ticker for seamless loop
   const ticker = document.getElementById('ticker');
   ticker.innerHTML += ticker.innerHTML;
