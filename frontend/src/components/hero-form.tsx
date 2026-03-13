@@ -10,6 +10,9 @@
  */
 
 import { useState, useRef, forwardRef } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
+import { createBusiness, triggerScan } from '../lib/api'
 import { ScanPreview } from './scan-preview'
 
 const MAX_QUERIES = 10
@@ -17,11 +20,14 @@ const MAX_QUERIES = 10
 type FormStep = 'input' | 'queries' | 'success'
 
 export const HeroForm = forwardRef<HTMLDivElement>(function HeroForm(_, ref) {
+  const navigate = useNavigate()
   const [step, setStep] = useState<FormStep>('input')
   const [bizName, setBizName] = useState('')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [queries, setQueries] = useState(['', ''])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState('')
   const firstQueryRef = useRef<HTMLInputElement>(null)
 
   // Expose email setter for CTA prefill
@@ -33,13 +39,42 @@ export const HeroForm = forwardRef<HTMLDivElement>(function HeroForm(_, ref) {
     setTimeout(() => firstQueryRef.current?.focus(), 100)
   }
 
-  function handleStep2() {
+  async function handleStep2() {
+    const filledQueries = queries.filter(q => q.trim().length >= 3)
+    if (filledQueries.length === 0) {
+      setError('Add at least one query (3+ characters).')
+      return
+    }
+
     setIsSubmitting(true)
-    // Simulate API call
-    setTimeout(() => {
+    setError('')
+
+    try {
+      // Sign up with Supabase
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: '' } },
+      })
+
+      if (signUpError) throw signUpError
+
+      // If email confirmation is required, show success without redirecting
+      if (!data.session) {
+        setStep('success')
+        return
+      }
+
+      // Create business + trigger scan
+      const { business_id } = await createBusiness({ name: bizName, queries: filledQueries })
+      const { scan_id } = await triggerScan(business_id)
+
+      navigate(`/dashboard?scanId=${scan_id}`)
+    } catch (err: any) {
+      setError(err.message ?? 'Something went wrong. Please try again.')
+    } finally {
       setIsSubmitting(false)
-      setStep('success')
-    }, 1800)
+    }
   }
 
   function addQuery() {
@@ -96,6 +131,21 @@ export const HeroForm = forwardRef<HTMLDivElement>(function HeroForm(_, ref) {
                   autoComplete="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="password">Password</label>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  placeholder="At least 8 characters"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
                 />
               </div>
 
@@ -188,6 +238,12 @@ export const HeroForm = forwardRef<HTMLDivElement>(function HeroForm(_, ref) {
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
               Add another query
             </button>
+
+            {error && (
+              <p style={{ fontSize: '0.8rem', color: 'var(--red)', marginBottom: '0.25rem', textAlign: 'center' }}>
+                {error}
+              </p>
+            )}
 
             <button
               type="button"

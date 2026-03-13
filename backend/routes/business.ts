@@ -9,7 +9,7 @@ const CreateBusinessSchema = z.object({
   name: z.string().min(1).max(200),
   website: z.string().url().optional().or(z.literal('')),
   industry: z.string().optional(),
-  queries: z.array(z.string().min(3).max(500)).min(1).max(5),
+  queries: z.array(z.string().min(3).max(500)).min(1).max(10),
 })
 
 // POST /api/business — create business + queries in one shot (onboarding)
