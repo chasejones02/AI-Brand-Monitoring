@@ -22,7 +22,7 @@ async function queryOpenAI(prompt: string): Promise<string> {
   if (!openai) throw new Error('OpenAI API key not configured')
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
+    model: 'gpt-5-mini',
     messages: [{ role: 'user', content: prompt }],
     max_tokens: 500,
     temperature: 0.7,
@@ -81,9 +81,13 @@ export async function runQueryOnPlatforms(
   })
 }
 
+function isRealKey(key: string | undefined): boolean {
+  return !!key && !key.includes('REPLACE') && key.length > 20
+}
+
 export function getAvailablePlatforms(): Platform[] {
   const platforms: Platform[] = []
-  if (process.env.OPENAI_API_KEY) platforms.push('openai')
-  if (process.env.ANTHROPIC_API_KEY) platforms.push('anthropic')
+  if (isRealKey(process.env.OPENAI_API_KEY)) platforms.push('openai')
+  if (isRealKey(process.env.ANTHROPIC_API_KEY)) platforms.push('anthropic')
   return platforms
 }

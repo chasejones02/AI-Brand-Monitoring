@@ -28,6 +28,7 @@ export function Nav({ onCtaClick }: NavProps) {
           <li><a href="#how-it-works">How it works</a></li>
           <li><a href="#report">Sample report</a></li>
           <li><a href="#pricing">Pricing</a></li>
+          <li><a href="/auth">Sign in</a></li>
         </ul>
 
         <button className="btn-nav" onClick={onCtaClick}>
