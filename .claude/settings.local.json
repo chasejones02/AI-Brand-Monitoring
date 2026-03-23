@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(python3 -c \":*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(ls -la /c/Users/jones/OneDrive/Documents/GitHub/AI-Brand-Monitoring/frontend/*.ts*)",
+      "Bash(grep -E \"\\\\.tsx$\")",
+      "Bash(find /c/Users/jones/OneDrive/Documents/GitHub/AI-Brand-Monitoring -name *.env* -o -name .env*)",
+      "Bash(grep -r \"gemini\\\\|perplexity\" /c/Users/jones/OneDrive/Documents/GitHub/AI-Brand-Monitoring/backend --include=*.ts --include=*.js)"
     ]
   }
 }
