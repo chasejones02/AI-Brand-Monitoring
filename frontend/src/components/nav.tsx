@@ -13,7 +13,7 @@ export function Nav({ onCtaClick }: NavProps) {
       <div className="container nav-inner">
         <a href="#" className="logo">
           <div className="logo-mark">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
               <rect x="1" y="8" width="3" height="7" fill="#000" rx="1" />
               <rect x="6" y="5" width="3" height="10" fill="#000" rx="1" />
               <rect x="11" y="2" width="3" height="13" fill="#000" rx="1" />

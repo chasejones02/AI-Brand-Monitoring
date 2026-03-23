@@ -122,7 +122,7 @@ function FreeContent() {
           <div className="report-biz-name">Maple Street Bakery</div>
           <div className="report-date">Report generated · March 2026</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '.4rem', fontSize: '.72rem', color: 'var(--green)', fontFamily: "'JetBrains Mono',monospace" }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem', fontSize: '.82rem', color: 'var(--green)', fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>
           <div className="scan-dot active"></div>
           Complete
         </div>
@@ -141,8 +141,8 @@ function PaidHeader({ badge }: { badge: string }) {
         <div className="report-date">Report generated · March 2026</div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
-        <span style={{ fontSize: '.65rem', fontWeight: 600, background: 'rgba(240,165,0,.1)', color: 'var(--accent)', border: '1px solid rgba(240,165,0,.25)', borderRadius: '4px', padding: '.1rem .45rem', letterSpacing: '.06em', textTransform: 'uppercase' }}>{badge}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '.35rem', fontSize: '.72rem', color: 'var(--green)', fontFamily: "'JetBrains Mono',monospace" }}><div className="scan-dot active"></div>Live</div>
+        <span style={{ fontSize: '.75rem', fontWeight: 700, background: 'rgba(240,165,0,.1)', color: 'var(--accent)', border: '1px solid rgba(240,165,0,.3)', borderRadius: '5px', padding: '.2rem .6rem', letterSpacing: '.06em', textTransform: 'uppercase' }}>{badge}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', fontSize: '.82rem', color: 'var(--green)', fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}><div className="scan-dot active"></div>Live</div>
       </div>
     </div>
   )
@@ -190,8 +190,8 @@ function GrowthContent() {
       <div className="report-divider"></div>
       <div className="report-section-label">Email Digest Preview</div>
       <div className="query-item" style={{ borderColor: 'rgba(240,165,0,.15)' }}>
-        <div style={{ fontSize: '.68rem', fontWeight: 600, color: 'var(--accent)', marginBottom: '.4rem', letterSpacing: '.04em' }}>Weekly summary — March 11, 2026</div>
-        <div style={{ fontSize: '.73rem', color: 'var(--text-muted)', lineHeight: 1.55 }}>Score up <span style={{ color: 'var(--green)', fontFamily: "'JetBrains Mono',monospace" }}>+3 pts</span> this week. You moved from #3 → #2 on ChatGPT for your top query. Sweet Things Co. gained ground on Gemini — worth watching.</div>
+        <div style={{ fontSize: '.8rem', fontWeight: 700, color: 'var(--accent)', marginBottom: '.5rem', letterSpacing: '.04em', textTransform: 'uppercase' }}>Weekly summary — March 11, 2026</div>
+        <div style={{ fontSize: '.88rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>Score up <span style={{ color: 'var(--green)', fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>+3 pts</span> this week. You moved from #3 → #2 on ChatGPT for your top query. Sweet Things Co. gained ground on Gemini — worth watching.</div>
       </div>
     </>
   )
@@ -208,13 +208,13 @@ function AgencyContent() {
           </div>
           <div className="report-date">Daily scan · March 11, 2026</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '.35rem', fontSize: '.72rem', color: 'var(--green)', fontFamily: "'JetBrains Mono',monospace" }}><div className="scan-dot active"></div>Live</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', fontSize: '.82rem', color: 'var(--green)', fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}><div className="scan-dot active"></div>Live</div>
       </div>
       <div className="profile-chips">
         <span className="profile-chip active-chip">Maple Street Bakery</span>
         <span className="profile-chip">Harbor Cakes</span>
         <span className="profile-chip">Flour + Co.</span>
-        <span className="profile-chip" style={{ color: 'var(--text-dim)' }}>+17 more</span>
+        <span className="profile-chip" style={{ color: 'var(--text-muted)' }}>+17 more</span>
       </div>
       <ScoreDisplay />
       <PlatformScores />
@@ -385,7 +385,7 @@ interface ReportPreviewProps {
 }
 
 export function ReportPreview({ onScrollToForm }: ReportPreviewProps) {
-  const [activePlan, setActivePlan] = useState<Plan>('free')
+  const [activePlan, setActivePlan] = useState<Plan>('agency')
   const previewRef = useRef<HTMLDivElement>(null)
 
   function switchPlan(plan: Plan) {
