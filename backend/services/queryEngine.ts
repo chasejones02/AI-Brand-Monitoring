@@ -22,7 +22,7 @@ async function queryOpenAI(prompt: string): Promise<string> {
   if (!openai) throw new Error('OpenAI API key not configured')
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-5-mini',
+    model: 'gpt-4o-mini',
     messages: [{ role: 'user', content: prompt }],
     max_tokens: 500,
     temperature: 0.7,
