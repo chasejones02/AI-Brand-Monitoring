@@ -30,9 +30,6 @@ export const HeroForm = forwardRef<HTMLDivElement>(function HeroForm(_, ref) {
   const [error, setError] = useState('')
   const firstQueryRef = useRef<HTMLInputElement>(null)
 
-  // Expose email setter for CTA prefill
-  const emailRef = useRef<HTMLInputElement>(null)
-
   function handleStep1(e: React.FormEvent) {
     e.preventDefault()
     setStep('queries')
@@ -124,7 +121,6 @@ export const HeroForm = forwardRef<HTMLDivElement>(function HeroForm(_, ref) {
                 <input
                   type="email"
                   id="email"
-                  ref={emailRef}
                   name="email"
                   placeholder="you@yourbusiness.com"
                   required
