@@ -81,6 +81,83 @@ export async function runQueryOnPlatforms(
   })
 }
 
+export type MentionAnalysis = {
+  mentioned: boolean
+  variant_used: string | null       // exact text used in response, e.g. "Google Chrome" when searching "Chrome"
+  position_index: number | null     // 1 = first brand mentioned, 2 = second, etc.
+  sentiment: 'positive' | 'neutral' | 'negative' | null
+}
+
+// Uses OpenAI to determine if a business is mentioned in a raw AI response,
+// handling name variations, abbreviations, and parent brands automatically.
+export async function analyzeMention(
+  rawResponse: string,
+  businessName: string
+): Promise<MentionAnalysis> {
+  if (!openai) return fallbackMentionAnalysis(rawResponse, businessName)
+
+  const userPrompt = `Business to find: "${businessName}"
+
+AI response to analyze:
+"""
+${rawResponse}
+"""
+
+Does this response mention "${businessName}" or any common variation of it (abbreviations, alternative spellings, parent brand names, compound names like "Google Chrome" for "Chrome")?
+
+Return ONLY valid JSON, no markdown:
+{
+  "mentioned": true or false,
+  "variant_used": "the exact text from the response, or null",
+  "position_index": 1-indexed position among all brands/products listed (or null if not mentioned),
+  "sentiment": "positive", "neutral", or "negative" based on how the business is portrayed (or null if not mentioned)
+}`
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: userPrompt }],
+      max_tokens: 150,
+      temperature: 0,
+      response_format: { type: 'json_object' },
+    })
+    const content = response.choices[0]?.message?.content ?? '{}'
+    const parsed = JSON.parse(content)
+
+    return {
+      mentioned: Boolean(parsed.mentioned),
+      variant_used: parsed.variant_used ?? null,
+      position_index: typeof parsed.position_index === 'number' ? parsed.position_index : null,
+      sentiment: (['positive', 'neutral', 'negative'] as const).includes(parsed.sentiment)
+        ? parsed.sentiment
+        : parsed.mentioned ? 'neutral' : null,
+    }
+  } catch (err) {
+    console.error('analyzeMention failed, falling back to string match:', err)
+    return fallbackMentionAnalysis(rawResponse, businessName)
+  }
+}
+
+function fallbackMentionAnalysis(response: string, businessName: string): MentionAnalysis {
+  const lower = response.toLowerCase()
+  const nameLower = businessName.toLowerCase()
+  const mentioned = lower.includes(nameLower)
+
+  let position_index: number | null = null
+  if (mentioned) {
+    const sentences = response.split(/[.!?\n]+/).filter(s => s.trim().length > 0)
+    const idx = sentences.findIndex(s => s.toLowerCase().includes(nameLower))
+    position_index = idx >= 0 ? idx + 1 : 1
+  }
+
+  return {
+    mentioned,
+    variant_used: mentioned ? businessName : null,
+    position_index,
+    sentiment: mentioned ? 'neutral' : null,
+  }
+}
+
 function isRealKey(key: string | undefined): boolean {
   return !!key && !key.includes('REPLACE') && key.length > 20
 }

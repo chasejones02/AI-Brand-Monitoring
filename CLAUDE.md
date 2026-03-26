@@ -133,6 +133,17 @@ ai-brand-monitor/
 - Respect rate limits on all AI APIs — use exponential backoff
 - Log API costs per user for margin tracking
 
+### Two-Pass Scoring (implemented)
+
+Every scan uses a two-step process per query result:
+
+1. **Query pass** — send the user's query to the AI platform (OpenAI, Anthropic, etc.) and capture the raw response
+2. **Analysis pass** — send a second `gpt-4o-mini` call at `temperature: 0` asking it to detect whether the business is mentioned, including name variations, abbreviations, parent brands, and compound names (e.g. "Google Chrome" counts as a mention of "Chrome")
+
+The analysis pass returns structured JSON: `mentioned`, `variant_used`, `position_index`, `sentiment`. This replaces the old regex substring match, which was too brittle for real business names.
+
+If the analysis call fails, `fallbackMentionAnalysis()` in `queryEngine.ts` kicks in automatically using the old string-match logic.
+
 ---
 
 ## Scoring Algorithm (v1 — keep simple)
@@ -140,12 +151,20 @@ ai-brand-monitor/
 ```
 AI Visibility Score = (mention_score + position_score + sentiment_score) / max_possible * 100
 
-mention_score:   +10 per platform that mentions the business
+mention_score:   +10 if business is mentioned (via AI analysis, not regex)
 position_score:  +5 if mentioned first, +3 if top 3, +1 if mentioned at all
 sentiment_score: +3 positive, +1 neutral, -2 negative
+Max per result:  18 points
 ```
 
-Normalize across all target queries. This will evolve — don't over-engineer v1.
+Score ranges:
+- 0–20:   Not Visible — AI almost never mentions this business for these queries
+- 21–40:  Rarely Visible — occasional mentions, not in top results
+- 41–60:  Partially Visible — appearing sometimes, mixed positioning
+- 61–80:  Visible — regularly mentioned, often in top 3
+- 81–100: Highly Visible — consistently first or second, positive framing
+
+Normalize across all target queries × all platforms. This will evolve — don't over-engineer v1.
 
 ---
 

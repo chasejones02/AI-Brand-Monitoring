@@ -2,8 +2,8 @@ import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import { requireAuth } from '../middleware/auth.js'
 import { supabase } from '../services/supabase.js'
-import { runQueryOnPlatforms, getAvailablePlatforms } from '../services/queryEngine.js'
-import { parseAIResponse, scoreResult, calculateVisibilityScore } from '../services/scorer.js'
+import { runQueryOnPlatforms, getAvailablePlatforms, analyzeMention } from '../services/queryEngine.js'
+import { scoreResult, calculateVisibilityScore } from '../services/scorer.js'
 
 const router = Router()
 
@@ -95,18 +95,23 @@ async function runScan(
         continue
       }
 
-      const parsed = parseAIResponse(pr.raw_response, businessName)
-      const scores = scoreResult(parsed)
+      const analysis = await analyzeMention(pr.raw_response, businessName)
+      const scores = scoreResult({
+        mentioned: analysis.mentioned,
+        mention_position: analysis.position_index,
+        sentiment: analysis.sentiment,
+        competitors_mentioned: [],
+      })
 
       allResults.push({
         scan_id: scanId,
         query_id: query.id,
         platform: pr.platform,
         raw_response: pr.raw_response,
-        mentioned: parsed.mentioned,
-        mention_position: parsed.mention_position,
-        sentiment: parsed.sentiment,
-        competitors_mentioned: parsed.competitors_mentioned,
+        mentioned: analysis.mentioned,
+        mention_position: analysis.position_index,
+        sentiment: analysis.sentiment,
+        competitors_mentioned: [],
         ...scores,
       })
     }
