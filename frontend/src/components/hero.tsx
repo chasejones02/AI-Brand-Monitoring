@@ -1,9 +1,9 @@
 /**
  * Hero — Left side of the hero section.
- * Static content: eyebrow badge, headline, subtitle, platform chips.
+ * Static content: eyebrow badge, headline, subtitle, platform chips, CTA button.
  */
 
-export function Hero() {
+export function Hero({ onCtaClick }: { onCtaClick: () => void }) {
   return (
     <div className="hero-left" style={{ paddingRight: '1rem' }}>
       <div className="eyebrow anim-1">
@@ -38,6 +38,16 @@ export function Hero() {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12,2 22,20 2,20" /></svg>
           Gemini
         </div>
+      </div>
+
+      <div className="hero-cta anim-5">
+        <button className="btn-hero-cta" onClick={onCtaClick}>
+          Generate My Free Report
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
+          </svg>
+        </button>
+        <span className="hero-cta-note">Free · No credit card · 60 seconds</span>
       </div>
     </div>
   )
