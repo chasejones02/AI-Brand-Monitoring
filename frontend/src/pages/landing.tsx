@@ -1,13 +1,14 @@
 /**
  * LandingPage — Composes all landing page sections in order.
  *
- * Owns the hero form ref for scroll-to-form from nav/CTA.
- * Initializes scroll-reveal animations on mount.
+ * Hero: left = headline/chips/CTA, right = auto-playing DemoPlayer.
+ * Signup section sits below the ticker with the full HeroForm.
  */
 
 import { useRef } from 'react'
 import { Nav } from '../components/nav'
 import { Hero } from '../components/hero'
+import { DemoPlayer } from '../components/demo-player'
 import { HeroForm } from '../components/hero-form'
 import { Ticker } from '../components/ticker'
 import { HowItWorks } from '../components/how-it-works'
@@ -18,22 +19,22 @@ import { Footer } from '../components/footer'
 import { useScrollReveal } from '../hooks/use-scroll-reveal'
 
 export function LandingPage() {
-  const heroFormRef = useRef<HTMLDivElement>(null)
+  const signupSectionRef = useRef<HTMLElement>(null)
 
   useScrollReveal()
 
   function scrollToForm() {
-    heroFormRef.current?.scrollIntoView({ behavior: 'smooth' })
+    signupSectionRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
   function handleCtaSubmit(email: string) {
-    // Pre-fill the email field and scroll to form
-    const emailInput = document.getElementById('email') as HTMLInputElement | null
-    if (emailInput) emailInput.value = email
     scrollToForm()
     setTimeout(() => {
-      const bizInput = document.getElementById('biz-name') as HTMLInputElement | null
-      bizInput?.focus()
+      const emailInput = document.getElementById('email') as HTMLInputElement | null
+      if (emailInput) {
+        emailInput.value = email
+        emailInput.focus()
+      }
     }, 600)
   }
 
@@ -44,12 +45,39 @@ export function LandingPage() {
       <section className="hero">
         <div className="hero-glow"></div>
         <div className="container" style={{ display: 'contents' }}>
-          <Hero />
-          <HeroForm ref={heroFormRef} />
+          <Hero onCtaClick={scrollToForm} />
+          <DemoPlayer onCtaClick={scrollToForm} />
         </div>
       </section>
 
       <Ticker />
+
+      {/* Signup section */}
+      <section className="signup-section" id="get-report" ref={signupSectionRef}>
+        <div className="signup-inner">
+          <div className="signup-pitch reveal">
+            <p className="section-label">Free Report</p>
+            <h2>
+              Find out if AI chatbots<br />
+              <em>mention your business</em>
+            </h2>
+            <p>
+              Enter your email and a few search phrases your customers actually use.
+              We'll scan ChatGPT and Claude and return a full visibility report — no credit card needed.
+            </p>
+            <ul className="signup-benefits">
+              <li>AI Visibility Score from 0–100</li>
+              <li>Query-by-query breakdown per platform</li>
+              <li>Sentiment analysis on every mention</li>
+              <li>Results in under 60 seconds</li>
+            </ul>
+          </div>
+          <div className="reveal">
+            <HeroForm />
+          </div>
+        </div>
+      </section>
+
       <HowItWorks />
       <ReportPreview onScrollToForm={scrollToForm} />
       <Pricing />
