@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { z } from 'zod'
-import { requireAuth } from '../middleware/auth.js'
+import { requireAuth, requireSubscription } from '../middleware/auth.js'
 import { supabase } from '../services/supabase.js'
 import { runQueryOnPlatforms, getAvailablePlatforms, analyzeMention } from '../services/queryEngine.js'
 import { scoreResult, calculateVisibilityScore } from '../services/scorer.js'
@@ -13,7 +13,7 @@ const ScanRequestSchema = z.object({
 
 // POST /api/scan
 // Triggers a full scan for a business across all configured AI platforms
-router.post('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.post('/', requireAuth, requireSubscription, async (req: Request, res: Response): Promise<void> => {
   const parsed = ScanRequestSchema.safeParse(req.body)
   if (!parsed.success) {
     res.status(400).json({ data: null, error: parsed.error.flatten() })

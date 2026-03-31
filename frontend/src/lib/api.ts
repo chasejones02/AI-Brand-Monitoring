@@ -50,3 +50,11 @@ export async function getBusinesses() {
   const { data } = await authFetch('/api/business')
   return data
 }
+
+export async function createCheckoutSession(tier: 'starter' | 'growth' | 'agency'): Promise<{ url: string }> {
+  const { data } = await authFetch('/api/stripe/create-checkout', {
+    method: 'POST',
+    body: JSON.stringify({ tier }),
+  })
+  return data
+}
