@@ -7,7 +7,8 @@
       "Bash(grep -E \"\\\\.tsx$\")",
       "Bash(find /c/Users/jones/OneDrive/Documents/GitHub/AI-Brand-Monitoring -name *.env* -o -name .env*)",
       "Bash(grep -r \"gemini\\\\|perplexity\" /c/Users/jones/OneDrive/Documents/GitHub/AI-Brand-Monitoring/backend --include=*.ts --include=*.js)",
-      "Bash(find /c/Users/jones/OneDrive/Documents/GitHub/AI-Brand-Monitoring -type f -name *.env*)"
+      "Bash(find /c/Users/jones/OneDrive/Documents/GitHub/AI-Brand-Monitoring -type f -name *.env*)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }

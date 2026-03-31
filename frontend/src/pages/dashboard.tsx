@@ -122,12 +122,25 @@ export default function DashboardPage() {
 
   // ── Error ─────────────────────────────────────────────────────────────────
   if (error) {
+    const isSubscriptionError = error.toLowerCase().includes('subscription')
     return (
       <div style={s.page}>
         <DashboardNav email={user?.email} onSignOut={signOut} />
         <div style={s.emptyState}>
-          <p style={{ ...s.emptyTitle, color: 'var(--red)' }}>Error loading results</p>
-          <p style={s.emptyText}>{error}</p>
+          {isSubscriptionError ? (
+            <>
+              <p style={{ ...s.emptyTitle }}>Upgrade to run scans</p>
+              <p style={s.emptyText}>An active subscription is required to scan AI platforms for your business.</p>
+              <a href="/#pricing" style={{ ...s.backLink, display: 'inline-block', background: 'var(--accent)', color: '#000', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 600, textDecoration: 'none', marginBottom: '0.75rem' }}>
+                View pricing →
+              </a>
+            </>
+          ) : (
+            <>
+              <p style={{ ...s.emptyTitle, color: 'var(--red)' }}>Error loading results</p>
+              <p style={s.emptyText}>{error}</p>
+            </>
+          )}
         </div>
       </div>
     )
