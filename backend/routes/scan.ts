@@ -96,11 +96,13 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
     return
   }
 
+  const isFree = profile?.subscription_status !== 'active'
+
   // Return the scan ID immediately so frontend can poll
   res.status(202).json({ data: { scan_id: scan.id }, error: null })
 
   // Run the scan asynchronously (fire and forget)
-  runScan(scan.id, business.name, queries).catch(err => {
+  runScan(scan.id, business.name, queries, isFree).catch(err => {
     console.error(`Scan ${scan.id} failed:`, err)
   })
 })
@@ -108,9 +110,21 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
 async function runScan(
   scanId: string,
   businessName: string,
-  queries: { id: string; query_text: string }[]
+  queries: { id: string; query_text: string }[],
+  isFree: boolean = false
 ) {
-  const platforms = getAvailablePlatforms()
+  try {
+  let platforms = getAvailablePlatforms()
+
+  // Free scans use Perplexity only — it has real-time web search, which is
+  // essential for finding small/local businesses. OpenAI has no web access and
+  // will almost never mention a business not in its training data, which would
+  // unfairly drag down the score. Fall back to all platforms if Perplexity
+  // isn't configured.
+  if (isFree) {
+    const perplexityOnly = platforms.filter(p => p === 'perplexity')
+    if (perplexityOnly.length > 0) platforms = perplexityOnly
+  }
 
   if (platforms.length === 0) {
     await supabase
@@ -177,6 +191,13 @@ async function runScan(
       completed_at: new Date().toISOString(),
     })
     .eq('id', scanId)
+  } catch (err) {
+    console.error(`Scan ${scanId} unhandled error:`, err)
+    await supabase
+      .from('scans')
+      .update({ status: 'failed', completed_at: new Date().toISOString() })
+      .eq('id', scanId)
+  }
 }
 
 export default router
