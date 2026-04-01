@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { z } from 'zod'
-import { requireAuth, requireSubscription } from '../middleware/auth.js'
+import { requireAuth } from '../middleware/auth.js'
 import { supabase } from '../services/supabase.js'
 import { runQueryOnPlatforms, getAvailablePlatforms, analyzeMention } from '../services/queryEngine.js'
 import { scoreResult, calculateVisibilityScore } from '../services/scorer.js'
@@ -13,7 +13,7 @@ const ScanRequestSchema = z.object({
 
 // POST /api/scan
 // Triggers a full scan for a business across all configured AI platforms
-router.post('/', requireAuth, requireSubscription, async (req: Request, res: Response): Promise<void> => {
+router.post('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
   const parsed = ScanRequestSchema.safeParse(req.body)
   if (!parsed.success) {
     res.status(400).json({ data: null, error: parsed.error.flatten() })
@@ -22,6 +22,42 @@ router.post('/', requireAuth, requireSubscription, async (req: Request, res: Res
 
   const { business_id } = parsed.data
   const userId = req.userId!
+
+  // Check subscription — free users get one scan, active subscribers get unlimited
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('subscription_status')
+    .eq('id', userId)
+    .single()
+
+  if (profile?.subscription_status !== 'active') {
+    // Count all completed/running scans across all this user's businesses
+    const { data: userBusinesses } = await supabase
+      .from('businesses')
+      .select('id')
+      .eq('user_id', userId)
+
+    const businessIds = (userBusinesses ?? []).map((b: { id: string }) => b.id)
+
+    let priorScanCount = 0
+    if (businessIds.length > 0) {
+      const { count } = await supabase
+        .from('scans')
+        .select('id', { count: 'exact', head: true })
+        .in('business_id', businessIds)
+        .in('status', ['completed', 'running'])
+      priorScanCount = count ?? 0
+    }
+
+    if (priorScanCount >= 1) {
+      res.status(403).json({
+        data: null,
+        error: 'Active subscription required',
+        code: 'subscription_required',
+      })
+      return
+    }
+  }
 
   // Verify the business belongs to this user
   const { data: business, error: bizError } = await supabase
@@ -95,7 +131,14 @@ async function runScan(
         continue
       }
 
+      if (!pr.raw_response.trim()) {
+        console.warn(`Platform ${pr.platform} returned empty response for query ${query.id}`)
+        continue
+      }
+
       const analysis = await analyzeMention(pr.raw_response, businessName)
+      console.log(`[scan ${scanId}] ${pr.platform} | query "${query.query_text.slice(0, 60)}" | mentioned=${analysis.mentioned} variant="${analysis.variant_used}" pos=${analysis.position_index} sentiment=${analysis.sentiment}`)
+
       const scores = scoreResult({
         mentioned: analysis.mentioned,
         mention_position: analysis.position_index,
