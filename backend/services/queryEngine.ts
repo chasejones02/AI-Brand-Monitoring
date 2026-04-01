@@ -10,7 +10,16 @@ const anthropic = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null
 
-export type Platform = 'openai' | 'anthropic'
+// Perplexity uses an OpenAI-compatible API but searches the web in real-time,
+// making it the best platform for finding local/small businesses by name.
+const perplexity = process.env.PERPLEXITY_API_KEY
+  ? new OpenAI({
+      apiKey: process.env.PERPLEXITY_API_KEY,
+      baseURL: 'https://api.perplexity.ai',
+    })
+  : null
+
+export type Platform = 'openai' | 'anthropic' | 'perplexity'
 
 export type QueryResult = {
   platform: Platform
@@ -23,6 +32,19 @@ async function queryOpenAI(prompt: string): Promise<string> {
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: 500,
+    temperature: 0.7,
+  })
+
+  return response.choices[0]?.message?.content ?? ''
+}
+
+async function queryPerplexity(prompt: string): Promise<string> {
+  if (!perplexity) throw new Error('Perplexity API key not configured')
+
+  const response = await perplexity.chat.completions.create({
+    model: 'llama-3.1-sonar-small-128k-online',
     messages: [{ role: 'user', content: prompt }],
     max_tokens: 500,
     temperature: 0.7,
@@ -45,11 +67,10 @@ async function queryAnthropic(prompt: string): Promise<string> {
   return block.text
 }
 
-// Wraps a query with context to make it realistic
+// Send the user's query as-is — adding extra instructions changes how the AI responds
+// compared to a real user typing the same query, which defeats the purpose of the scan.
 function buildPrompt(queryText: string): string {
-  return `${queryText}
-
-Please provide a helpful, informative response listing relevant businesses, services, or options. Be specific and include business names where appropriate.`
+  return queryText
 }
 
 export async function runQueryOnPlatforms(
@@ -65,6 +86,9 @@ export async function runQueryOnPlatforms(
         return { platform, raw_response }
       } else if (platform === 'anthropic') {
         const raw_response = await queryAnthropic(prompt)
+        return { platform, raw_response }
+      } else if (platform === 'perplexity') {
+        const raw_response = await queryPerplexity(prompt)
         return { platform, raw_response }
       }
       throw new Error(`Unknown platform: ${platform}`)
@@ -117,7 +141,7 @@ Return ONLY valid JSON, no markdown:
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: userPrompt }],
-      max_tokens: 150,
+      max_tokens: 300,
       temperature: 0,
       response_format: { type: 'json_object' },
     })
@@ -166,5 +190,6 @@ export function getAvailablePlatforms(): Platform[] {
   const platforms: Platform[] = []
   if (isRealKey(process.env.OPENAI_API_KEY)) platforms.push('openai')
   if (isRealKey(process.env.ANTHROPIC_API_KEY)) platforms.push('anthropic')
+  if (isRealKey(process.env.PERPLEXITY_API_KEY)) platforms.push('perplexity')
   return platforms
 }

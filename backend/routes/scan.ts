@@ -131,7 +131,14 @@ async function runScan(
         continue
       }
 
+      if (!pr.raw_response.trim()) {
+        console.warn(`Platform ${pr.platform} returned empty response for query ${query.id}`)
+        continue
+      }
+
       const analysis = await analyzeMention(pr.raw_response, businessName)
+      console.log(`[scan ${scanId}] ${pr.platform} | query "${query.query_text.slice(0, 60)}" | mentioned=${analysis.mentioned} variant="${analysis.variant_used}" pos=${analysis.position_index} sentiment=${analysis.sentiment}`)
+
       const scores = scoreResult({
         mentioned: analysis.mentioned,
         mention_position: analysis.position_index,
