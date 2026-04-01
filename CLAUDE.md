@@ -1,4 +1,8 @@
-# CLAUDE.md — AI Brand Monitor
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+---
 
 ## Project Overview
 
@@ -14,14 +18,36 @@ AI Brand Monitor is a SaaS tool that tracks how businesses appear in AI-generate
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React + TypeScript + Vite + Tailwind CSS + shadcn/ui |
-| Backend | Node.js or Python (FastAPI) |
-| Database | Supabase (Postgres) |
-| AI Queries | OpenAI API, Anthropic API, Google Gemini API, Perplexity API |
-| Job Scheduler | Cron jobs via Railway or Vercel |
+| Frontend | React 19 + TypeScript + Vite + Tailwind CSS v4 |
+| Backend | Node.js + Express + TypeScript |
+| Database | Supabase (Postgres + Auth + RLS) |
+| AI Queries | OpenAI API, Anthropic API, Perplexity API |
 | Payments | Stripe |
 | Hosting | Vercel (frontend) + Railway/Render (backend) |
-| Auth | Supabase Auth or Clerk |
+| Auth | Supabase Auth |
+
+---
+
+## Quick Reference Commands
+
+```bash
+# Frontend dev (http://localhost:5173)
+cd frontend && npm run dev
+
+# Backend dev (http://localhost:3001, hot reload via tsx)
+cd backend && npm run dev
+
+# Build frontend for production
+cd frontend && npm run build
+
+# Build backend
+cd backend && npm run build
+
+# Lint frontend
+cd frontend && npm run lint
+```
+
+No test runner is configured yet.
 
 ---
 
@@ -38,11 +64,11 @@ For complex multi-component UIs (dashboards, multi-page flows, anything needing 
 This product targets busy business owners who want clarity, not complexity. The aesthetic should be:
 
 - **Tone:** Clean, confident, and editorial — not playful, not corporate. Think "Bloomberg Terminal meets a well-designed indie SaaS." Data-forward but never cluttered.
-- **Typography:** Use distinctive, characterful fonts. Never use Inter, Roboto, Arial, or system fonts. Pair a sharp display font (e.g., Instrument Serif, Playfair Display, Fraunces) with a clean sans-serif body font (e.g., Satoshi, General Sans, Outfit). Vary choices across pages — don't converge on one pairing everywhere.
-- **Color:** Dark-mode-first with sharp accent colors. Avoid purple gradients on white backgrounds and all other generic "AI slop" patterns. Use CSS variables for theming. One dominant color + one accent is better than 5 evenly distributed colors.
+- **Typography:** Use distinctive, characterful fonts. Never use Inter, Roboto, Arial, or system fonts. Pair a sharp display font (e.g., Instrument Serif, Playfair Display, Fraunces) with a clean sans-serif body font (e.g., Satoshi, General Sans, Outfit). Vary choices across pages — don't converge on one pairing everywhere. The app currently uses `Outfit`.
+- **Color:** Dark-mode-first with sharp accent colors. Avoid purple gradients on white backgrounds and all other generic "AI slop" patterns. Use CSS variables for theming (`--bg`, `--surface`, `--accent`, `--green`, `--red`, `--text` etc. in `globals.css`). Current accent is `#f0a500` (orange). One dominant color + one accent is better than 5 evenly distributed colors.
 - **Layout:** Asymmetry is welcome. Use generous whitespace. The dashboard should feel spacious, not cramped. Grid-breaking elements and overlapping cards are encouraged where they improve hierarchy.
 - **Motion:** Staggered reveals on page load, smooth transitions between states, subtle hover effects. Don't overdo micro-interactions — focus on a few high-impact moments. Prefer CSS animations for HTML; use Framer Motion for React.
-- **Backgrounds & texture:** Add depth with noise textures, subtle gradients, or geometric patterns. Never default to flat solid white or flat solid dark backgrounds.
+- **Backgrounds & texture:** Add depth with noise textures, subtle gradients, or geometric patterns. Never default to flat solid white or flat solid dark backgrounds. The body currently uses a `::before` noise texture overlay.
 
 ### What to NEVER do in frontend
 
@@ -55,73 +81,114 @@ This product targets busy business owners who want clarity, not complexity. The 
 
 ---
 
-## Project Structure
+## Architecture
+
+### Project Structure
 
 ```
 ai-brand-monitor/
-├── CLAUDE.md                  # This file
-├── frontend/                  # React + Vite app
-│   ├── src/
-│   │   ├── components/        # Reusable UI components
-│   │   ├── pages/             # Route-level pages
-│   │   ├── hooks/             # Custom React hooks
-│   │   ├── lib/               # Utilities, API clients
-│   │   ├── styles/            # Global styles, CSS variables
-│   │   └── App.tsx
-│   ├── index.html
-│   ├── tailwind.config.ts
-│   └── package.json
-├── backend/                   # API server
-│   ├── routes/                # API route handlers
-│   ├── services/              # Business logic (query engine, scoring, etc.)
-│   ├── jobs/                  # Scheduled query jobs
-│   ├── models/                # Database models
-│   └── server.ts (or main.py)
-├── shared/                    # Shared types/constants
-└── scripts/                   # Build, deploy, seed scripts
+├── frontend/src/
+│   ├── App.tsx                    # React Router setup + ProtectedRoute
+│   ├── pages/
+│   │   ├── landing.tsx            # Marketing landing page
+│   │   ├── auth.tsx               # Login/signup split-panel
+│   │   ├── dashboard.tsx          # Scan results with polling
+│   │   └── success.tsx            # Post-checkout confirmation
+│   ├── components/                # Section components for landing page
+│   │   ├── hero-form.tsx          # Main signup + scan trigger form
+│   │   ├── report-preview.tsx     # Mock report preview
+│   │   └── pricing.tsx            # Pricing tier cards
+│   ├── contexts/auth-context.tsx  # Supabase session state
+│   ├── hooks/use-scroll-reveal.ts # IntersectionObserver fade-up
+│   ├── lib/
+│   │   ├── api.ts                 # Authenticated fetch wrappers for all endpoints
+│   │   └── supabase.ts            # Supabase client init (VITE_SUPABASE_*)
+│   └── styles/globals.css         # All CSS: variables, animations, layout
+├── backend/
+│   ├── server.ts                  # Express app, routes, CORS
+│   ├── middleware/auth.ts         # requireAuth + requireSubscription
+│   ├── routes/
+│   │   ├── scan.ts                # POST /api/scan
+│   │   ├── business.ts            # POST/GET /api/business
+│   │   ├── results.ts             # GET /api/results/:scanId, /business/:id
+│   │   └── stripe.ts              # POST /api/stripe/*
+│   └── services/
+│       ├── queryEngine.ts         # All AI platform calls + mention analysis
+│       ├── scorer.ts              # Scoring algorithm
+│       └── supabase.ts            # Supabase admin client + TypeScript types
+└── supabase/migrations/
+    └── 20260313000000_initial_schema.sql
 ```
 
----
+### Frontend Routes
 
-## Key Features & Build Phases
+```
+/                       → LandingPage (public)
+/auth                   → AuthPage (redirects to /dashboard if logged in)
+/dashboard?scanId=<id>  → DashboardPage (protected)
+/success                → SuccessPage (post-Stripe checkout)
+```
 
-### Phase 1 — MVP (Current Focus)
-- User signup/auth (Supabase Auth or Clerk)
-- Business name + 5 target query input form
-- Query engine: sends prompts to ChatGPT + one other AI platform
-- Results page: mention detection, position, sentiment, competitors
-- Basic AI Visibility Score (0–100)
-- Stripe checkout — single $29/mo tier
+`DashboardPage` reads `scanId` from the URL query param and polls `GET /api/results/:scanId` every 3 seconds until `status === 'completed'`.
 
-**Ship trigger:** A stranger can sign up, pay, enter their business, and get a useful report with zero manual intervention.
+### API Routes
 
-### Phase 2 — Real Product
-- All 4 AI platforms (ChatGPT, Claude, Gemini, Perplexity)
-- Automated recurring scans (weekly/daily)
-- Historical tracking + trend graphs
-- Competitor radar
-- Email reports
-- Multi-tier pricing
+```
+GET  /health
+POST /api/business            → create business + queries (requireAuth)
+GET  /api/business            → list user's businesses with queries (requireAuth)
+POST /api/scan                → trigger scan (requireAuth)
+GET  /api/results/:scanId     → poll scan status + results (requireAuth)
+GET  /api/results/business/:id → scan history for a business (requireAuth)
+POST /api/stripe/create-checkout
+POST /api/stripe/webhook
+```
 
-### Phase 3 — Growth Engine
-- Actionable recommendations engine
-- AI optimization guides
-- White-label / agency features
-- Embeddable "AI Visibility Badge"
-- API access
+All responses follow `{ data, error }` shape.
 
----
+### Database Schema (key tables)
 
-## Coding Conventions
+**profiles** — extends `auth.users`; holds `subscription_status` ('free'|'active'|'canceled'|'past_due'), `subscription_tier`, `stripe_customer_id`. Auto-created by trigger on signup.
 
-- **TypeScript** everywhere (frontend and backend if Node)
-- **Functional components** with hooks — no class components
-- **Named exports** for components, default exports only for pages
-- **Error boundaries** around major sections of the dashboard
-- **API responses** follow a consistent shape: `{ data, error, meta }`
-- **Environment variables** for all API keys — never hardcode secrets
-- File names: `kebab-case` for files, `PascalCase` for components
-- Keep components small — if a component exceeds ~150 lines, break it up
+**businesses** → **queries** → **scans** → **scan_results** — cascade deletes all the way down.
+
+**scan_results** stores one row per `(scan_id, query_id, platform)` with `raw_response`, `mentioned`, `mention_position`, `sentiment`, `mention_score`, `position_score`, `sentiment_score`.
+
+RLS is enabled on all tables. Backend uses `SUPABASE_SERVICE_ROLE_KEY` (bypasses RLS) for write operations during scan execution.
+
+### Scan Data Flow
+
+```
+1. hero-form.tsx: POST /api/business → business_id
+2. hero-form.tsx: POST /api/scan { business_id } → scan_id (202, async)
+3. Redirect to /dashboard?scanId=<scan_id>
+4. dashboard.tsx polls GET /api/results/:scanId every 3s
+
+Backend async (runScan):
+  For each query:
+    → runQueryOnPlatforms() — Promise.allSettled across all platforms
+    → analyzeMention() — gpt-4o-mini JSON analysis (falls back to string match)
+    → scoreResult() — mention + position + sentiment scores
+  → calculateVisibilityScore() — weighted average across all results
+  → scan.status = 'completed'
+```
+
+### Platform Strategy
+
+`getAvailablePlatforms()` checks env keys with `isRealKey()` (non-placeholder, length > 20).
+
+**Free scans:** Perplexity only. OpenAI lacks web search and won't mention small local businesses, which would unfairly deflate the score. Falls back to all platforms if Perplexity isn't configured.
+
+**Paid scans:** All configured platforms. Currently: OpenAI (`gpt-4o-mini`) + Perplexity (`sonar` with system prompt). Anthropic key is placeholder — activate by replacing `REPLACE_ME` in `.env`.
+
+Perplexity uses the OpenAI SDK with `baseURL: 'https://api.perplexity.ai'` and a system message instructing it to name specific businesses. `max_tokens: 1024` (higher than OpenAI/Anthropic at 500 to avoid mid-list truncation).
+
+### Authentication Flow
+
+1. Supabase Auth issues JWT on login/signup
+2. Frontend stores session in Supabase SDK (not localStorage)
+3. `authFetch()` in `lib/api.ts` reads the session and injects `Authorization: Bearer <token>`
+4. `requireAuth` middleware verifies JWT, attaches `req.userId`
 
 ---
 
@@ -137,12 +204,12 @@ ai-brand-monitor/
 
 Every scan uses a two-step process per query result:
 
-1. **Query pass** — send the user's query to the AI platform (OpenAI, Anthropic, etc.) and capture the raw response
-2. **Analysis pass** — send a second `gpt-4o-mini` call at `temperature: 0` asking it to detect whether the business is mentioned, including name variations, abbreviations, parent brands, and compound names (e.g. "Google Chrome" counts as a mention of "Chrome")
+1. **Query pass** — send the user's query to the AI platform (OpenAI, Anthropic, Perplexity) and capture the raw response. The query is sent verbatim — no prompt injection — to simulate a real user search.
+2. **Analysis pass** — send a second `gpt-4o-mini` call at `temperature: 0` asking it to detect whether the business is mentioned, including name variations, abbreviations, parent brands, and compound names (e.g. "Google Chrome" counts as a mention of "Chrome").
 
 The analysis pass returns structured JSON: `mentioned`, `variant_used`, `position_index`, `sentiment`. This replaces the old regex substring match, which was too brittle for real business names.
 
-If the analysis call fails, `fallbackMentionAnalysis()` in `queryEngine.ts` kicks in automatically using the old string-match logic.
+If the analysis call fails, `fallbackMentionAnalysis()` in `queryEngine.ts` kicks in automatically using string-match logic (less accurate — watch for the `console.warn`).
 
 ---
 
@@ -168,6 +235,47 @@ Normalize across all target queries × all platforms. This will evolve — don't
 
 ---
 
+## Coding Conventions
+
+- **TypeScript** everywhere (frontend and backend)
+- **Functional components** with hooks — no class components
+- **Named exports** for components, default exports only for pages
+- **Error boundaries** around major sections of the dashboard
+- **API responses** follow a consistent shape: `{ data, error }`
+- File names: `kebab-case` for files, `PascalCase` for components
+- Keep components small — if a component exceeds ~150 lines, break it up
+
+---
+
+## Key Features & Build Phases
+
+### Phase 1 — MVP (Current Focus)
+- User signup/auth (Supabase Auth)
+- Business name + target query input form
+- Query engine: Perplexity (free) + OpenAI & Perplexity (paid)
+- Results page: mention detection, position, sentiment
+- Basic AI Visibility Score (0–100)
+- Stripe checkout — 3 tiers ($29/$49/$149)
+
+**Ship trigger:** A stranger can sign up, pay, enter their business, and get a useful report with zero manual intervention.
+
+### Phase 2 — Real Product
+- All 4 AI platforms (ChatGPT, Claude, Gemini, Perplexity)
+- Automated recurring scans (weekly/daily)
+- Historical tracking + trend graphs
+- Competitor radar
+- Email reports
+- Multi-tier pricing enforcement
+
+### Phase 3 — Growth Engine
+- Actionable recommendations engine
+- AI optimization guides
+- White-label / agency features
+- Embeddable "AI Visibility Badge"
+- API access
+
+---
+
 ## User Preferences & Corrections Log
 
 **This section is a living document.** Any time the user provides feedback, corrections, or style preferences during development, Claude MUST update this section immediately by editing this file. Before starting any task, Claude should re-read this section to avoid repeating past mistakes.
@@ -180,36 +288,6 @@ Normalize across all target queries × all platforms. This will evolve — don't
 ### Active Preferences
 
 _No preferences recorded yet. Entries will be added as the user provides feedback._
-
-<!-- 
-TEMPLATE FOR NEW ENTRIES:
-
-### [YYYY-MM-DD] — Short description
-- **What happened:** Claude did X
-- **What the user wants instead:** Y
-- **Applies to:** frontend / backend / design / general
--->
-
----
-
-## Quick Reference Commands
-
-```bash
-# Frontend dev
-cd frontend && npm run dev
-
-# Backend dev
-cd backend && npm run dev   # or: uvicorn main:app --reload
-
-# Build frontend for production
-cd frontend && npm run build
-
-# Run scheduled query jobs manually
-cd backend && npm run jobs:run
-
-# Database migrations
-cd backend && npx supabase db push
-```
 
 ---
 
