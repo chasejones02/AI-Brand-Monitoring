@@ -45,8 +45,15 @@ async function queryPerplexity(prompt: string): Promise<string> {
 
   const response = await perplexity.chat.completions.create({
     model: 'sonar',
-    messages: [{ role: 'user', content: prompt }],
-    max_tokens: 500,
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are a helpful assistant with real-time web search. When answering questions about local businesses, services, or products, always include specific, named businesses in your response. Be thorough and list as many relevant businesses as you can find.',
+      },
+      { role: 'user', content: prompt },
+    ],
+    max_tokens: 1024,
     temperature: 0.7,
   })
 
@@ -118,7 +125,10 @@ export async function analyzeMention(
   rawResponse: string,
   businessName: string
 ): Promise<MentionAnalysis> {
-  if (!openai) return fallbackMentionAnalysis(rawResponse, businessName)
+  if (!openai) {
+    console.warn('analyzeMention: OpenAI not configured, falling back to string match — results will be less accurate')
+    return fallbackMentionAnalysis(rawResponse, businessName)
+  }
 
   const userPrompt = `Business to find: "${businessName}"
 
