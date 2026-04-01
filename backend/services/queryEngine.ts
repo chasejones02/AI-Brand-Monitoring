@@ -44,7 +44,7 @@ async function queryPerplexity(prompt: string): Promise<string> {
   if (!perplexity) throw new Error('Perplexity API key not configured')
 
   const response = await perplexity.chat.completions.create({
-    model: 'llama-3.1-sonar-small-128k-online',
+    model: 'sonar',
     messages: [{ role: 'user', content: prompt }],
     max_tokens: 500,
     temperature: 0.7,
