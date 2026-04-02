@@ -9,6 +9,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/auth-context'
+import { createBusiness, triggerScan } from '../lib/api'
 
 type Mode = 'login' | 'signup' | 'reset' | 'new-password'
 
@@ -41,6 +42,23 @@ export default function AuthPage() {
     })
     return () => subscription.unsubscribe()
   }, [])
+
+  async function navigateAfterAuth() {
+    const pendingRaw = sessionStorage.getItem('pending_scan')
+    if (pendingRaw) {
+      sessionStorage.removeItem('pending_scan')
+      try {
+        const { bizName, queries } = JSON.parse(pendingRaw)
+        const { business_id } = await createBusiness({ name: bizName, queries })
+        const { scan_id } = await triggerScan(business_id)
+        navigate(`/dashboard?scanId=${scan_id}`)
+        return
+      } catch {
+        // fall through to dashboard if scan creation fails
+      }
+    }
+    navigate('/dashboard')
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -77,11 +95,11 @@ export default function AuthPage() {
           return
         }
         // Session available immediately (email confirmation disabled)
-        navigate('/dashboard')
+        await navigateAfterAuth()
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
         if (signInError) throw signInError
-        navigate('/dashboard')
+        await navigateAfterAuth()
       }
     } catch (err: any) {
       setError(err.message ?? 'Something went wrong')
