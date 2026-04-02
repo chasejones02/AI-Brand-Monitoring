@@ -11,9 +11,9 @@
  */
 
 import { useEffect, useState, useCallback } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
-import { getScanResults } from '../lib/api'
+import { getScanResults, getBusinesses, getBusinessScans } from '../lib/api'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -74,11 +74,13 @@ function sentimentIcon(sentiment: string | null) {
 export default function DashboardPage() {
   const { user, signOut } = useAuth()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const scanId = searchParams.get('scanId')
 
   const [scan, setScan] = useState<ScanData | null>(null)
   const [error, setError] = useState('')
   const [pollCount, setPollCount] = useState(0)
+  const [resolveState, setResolveState] = useState<'loading' | 'empty' | 'done'>(scanId ? 'done' : 'loading')
 
   const isRunning = !scan || scan.status === 'pending' || scan.status === 'running'
 
@@ -106,15 +108,55 @@ export default function DashboardPage() {
     return () => clearTimeout(timer)
   }, [isRunning, pollCount, fetchScan])
 
-  // ── No scanId ─────────────────────────────────────────────────────────────
+  // When no scanId in URL, find the user's most recent scan and navigate to it
+  useEffect(() => {
+    if (scanId) return
+    let cancelled = false
+    async function resolve() {
+      try {
+        const businesses = await getBusinesses()
+        if (cancelled) return
+        if (!businesses?.length) { setResolveState('empty'); return }
+        const { scans } = await getBusinessScans(businesses[0].id)
+        if (cancelled) return
+        if (!scans?.length) { setResolveState('empty'); return }
+        navigate(`/dashboard?scanId=${scans[0].id}`, { replace: true })
+      } catch {
+        setResolveState('empty')
+      }
+    }
+    resolve()
+    return () => { cancelled = true }
+  }, [scanId, navigate])
+
+  // ── No scanId — resolving most recent scan ────────────────────────────────
   if (!scanId) {
+    if (resolveState === 'loading') {
+      return (
+        <div style={s.page}>
+          <DashboardNav email={user?.email} onSignOut={signOut} />
+          <div style={s.runningState}>
+            <div style={s.pulseRing} />
+            <div style={s.pulseRingInner} />
+            <div style={s.runningIcon}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </div>
+            <h2 style={s.runningTitle}>Loading your report…</h2>
+          </div>
+        </div>
+      )
+    }
     return (
       <div style={s.page}>
         <DashboardNav email={user?.email} onSignOut={signOut} />
         <div style={s.emptyState}>
-          <p style={s.emptyTitle}>No scan selected</p>
-          <p style={s.emptyText}>Go back to the homepage to run your first scan.</p>
-          <Link to="/" style={s.backLink}>← Back to homepage</Link>
+          <p style={s.emptyTitle}>No scans yet</p>
+          <p style={s.emptyText}>Run your first scan to see how AI platforms are talking about your business.</p>
+          <Link to="/#hero-form" style={{ ...s.backLink, display: 'inline-block', background: 'var(--accent)', color: '#000', padding: '0.75rem 1.5rem', borderRadius: '8px', fontWeight: 600, textDecoration: 'none' }}>
+            Run your first scan →
+          </Link>
         </div>
       </div>
     )

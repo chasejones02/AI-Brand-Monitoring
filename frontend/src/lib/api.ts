@@ -51,6 +51,14 @@ export async function getBusinesses() {
   return data
 }
 
+export async function getBusinessScans(businessId: string): Promise<{
+  business: { id: string; name: string }
+  scans: Array<{ id: string; status: string; visibility_score: number | null; started_at: string }>
+}> {
+  const { data } = await authFetch(`/api/results/business/${businessId}`)
+  return data
+}
+
 export async function createCheckoutSession(tier: 'starter' | 'growth' | 'agency'): Promise<{ url: string }> {
   const { data } = await authFetch('/api/stripe/create-checkout', {
     method: 'POST',
