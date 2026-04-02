@@ -1,6 +1,6 @@
 # AI Brand Monitor — Roadmap
 
-> Last audited: 2026-04-01. Keep this file updated as items are completed.
+> Last audited: 2026-04-02. Keep this file updated as items are completed.
 
 ---
 
@@ -17,9 +17,11 @@ The core loop (sign up → business entry → scan → results → pay) works en
 - [ ] Surface an error state + retry button in the dashboard UI
 - **Files:** `backend/routes/scan.ts`, `frontend/src/pages/dashboard.tsx`
 
-### 2. Password reset
-- [ ] Add "Forgot password?" link on auth page
-- [ ] Wire up `supabase.auth.resetPasswordForEmail()`
+### 2. Password reset ✓
+- [x] Add "Forgot password?" link on auth page
+- [x] Wire up `supabase.auth.resetPasswordForEmail()`
+- [x] Handle `PASSWORD_RECOVERY` event to show new-password form
+- [x] Custom branded email template (`supabase/templates/reset-password.html`)
 - **Files:** `frontend/src/pages/auth.tsx`
 
 ### 3. Fix dashboard polling on terminal errors
