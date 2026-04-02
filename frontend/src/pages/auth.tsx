@@ -1,32 +1,46 @@
 /**
- * Auth page — Login / Signup
+ * Auth page — Login / Signup / Password Reset
  *
  * Design: split-panel, editorial dark. Left panel is brand/copy,
  * right panel is the form. Collapses to single column on mobile.
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/auth-context'
 
-type Mode = 'login' | 'signup'
+type Mode = 'login' | 'signup' | 'reset' | 'new-password'
 
 export default function AuthPage() {
   const { session } = useAuth()
   const navigate = useNavigate()
+  const isRecovery = useRef(false)
   const [mode, setMode] = useState<Mode>('signup')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
   const [fullName, setFullName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [checkEmail, setCheckEmail] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
 
-  // Redirect if already logged in
+  // Redirect if already logged in — but not during password recovery
   useEffect(() => {
-    if (session) navigate('/dashboard', { replace: true })
+    if (session && !isRecovery.current) navigate('/dashboard', { replace: true })
   }, [session, navigate])
+
+  // Handle Supabase password recovery redirect
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        isRecovery.current = true
+        setMode('new-password')
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -34,6 +48,22 @@ export default function AuthPage() {
     setLoading(true)
 
     try {
+      if (mode === 'reset') {
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth`,
+        })
+        if (resetError) throw resetError
+        setResetSent(true)
+        return
+      }
+
+      if (mode === 'new-password') {
+        const { error: updateError } = await supabase.auth.updateUser({ password: newPassword })
+        if (updateError) throw updateError
+        navigate('/dashboard', { replace: true })
+        return
+      }
+
       if (mode === 'signup') {
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
@@ -60,6 +90,7 @@ export default function AuthPage() {
     }
   }
 
+  // Check-email screen after signup (email confirmation enabled)
   if (checkEmail) {
     return (
       <div style={styles.page}>
@@ -80,6 +111,33 @@ export default function AuthPage() {
             style={styles.switchBtn}
           >
             Back to login
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Reset-sent screen after requesting a password reset
+  if (resetSent) {
+    return (
+      <div style={styles.page}>
+        <div style={styles.checkEmailBox}>
+          <div style={styles.checkIcon}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+          </div>
+          <h2 style={styles.checkTitle}>Check your inbox</h2>
+          <p style={styles.checkText}>
+            We sent a password reset link to <strong style={{ color: 'var(--accent)' }}>{email}</strong>.<br />
+            Click it to set a new password.
+          </p>
+          <button
+            onClick={() => { setResetSent(false); setMode('login') }}
+            style={styles.switchBtn}
+          >
+            Back to sign in
           </button>
         </div>
       </div>
@@ -130,21 +188,39 @@ export default function AuthPage() {
       {/* Right panel — form */}
       <div style={styles.rightPanel}>
         <div style={styles.formCard}>
-          {/* Mode toggle */}
-          <div style={styles.modeToggle}>
-            {(['signup', 'login'] as Mode[]).map(m => (
-              <button
-                key={m}
-                onClick={() => { setMode(m); setError('') }}
-                style={{
-                  ...styles.modeBtn,
-                  ...(mode === m ? styles.modeBtnActive : {}),
-                }}
-              >
-                {m === 'signup' ? 'Create account' : 'Sign in'}
-              </button>
-            ))}
-          </div>
+          {/* Mode toggle — hidden for reset/new-password flows */}
+          {(mode === 'login' || mode === 'signup') && (
+            <div style={styles.modeToggle}>
+              {(['signup', 'login'] as Mode[]).map(m => (
+                <button
+                  key={m}
+                  onClick={() => { setMode(m); setError('') }}
+                  style={{
+                    ...styles.modeBtn,
+                    ...(mode === m ? styles.modeBtnActive : {}),
+                  }}
+                >
+                  {m === 'signup' ? 'Create account' : 'Sign in'}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Reset mode heading */}
+          {mode === 'reset' && (
+            <div style={styles.resetHeader}>
+              <h2 style={styles.resetTitle}>Reset your password</h2>
+              <p style={styles.resetSub}>Enter your email and we'll send you a reset link.</p>
+            </div>
+          )}
+
+          {/* New-password mode heading */}
+          {mode === 'new-password' && (
+            <div style={styles.resetHeader}>
+              <h2 style={styles.resetTitle}>Set a new password</h2>
+              <p style={styles.resetSub}>Choose a strong password for your account.</p>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} style={styles.form}>
             {mode === 'signup' && (
@@ -162,32 +238,61 @@ export default function AuthPage() {
               </div>
             )}
 
-            <div style={styles.field}>
-              <label style={styles.label}>Email</label>
-              <input
-                type="email"
-                placeholder="you@yourbusiness.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-                style={styles.input}
-                autoComplete="email"
-              />
-            </div>
+            {mode !== 'new-password' && (
+              <div style={styles.field}>
+                <label style={styles.label}>Email</label>
+                <input
+                  type="email"
+                  placeholder="you@yourbusiness.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  required
+                  style={styles.input}
+                  autoComplete="email"
+                />
+              </div>
+            )}
 
-            <div style={styles.field}>
-              <label style={styles.label}>Password</label>
-              <input
-                type="password"
-                placeholder={mode === 'signup' ? 'At least 8 characters' : '••••••••'}
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                minLength={mode === 'signup' ? 8 : 1}
-                style={styles.input}
-                autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-              />
-            </div>
+            {(mode === 'login' || mode === 'signup') && (
+              <div style={styles.field}>
+                <label style={styles.label}>Password</label>
+                <input
+                  type="password"
+                  placeholder={mode === 'signup' ? 'At least 8 characters' : '••••••••'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  minLength={mode === 'signup' ? 8 : 1}
+                  style={styles.input}
+                  autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                />
+                {mode === 'login' && (
+                  <button
+                    type="button"
+                    onClick={() => { setMode('reset'); setError('') }}
+                    style={styles.forgotLink}
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
+            )}
+
+            {mode === 'new-password' && (
+              <div style={styles.field}>
+                <label style={styles.label}>New Password</label>
+                <input
+                  type="password"
+                  placeholder="At least 8 characters"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  style={styles.input}
+                  autoComplete="new-password"
+                />
+              </div>
+            )}
 
             {error && (
               <div style={styles.errorBox}>
@@ -204,19 +309,34 @@ export default function AuthPage() {
               {loading ? (
                 <span style={styles.loadingRow}>
                   <span style={styles.spinner} />
-                  {mode === 'signup' ? 'Creating account...' : 'Signing in...'}
+                  {mode === 'signup' ? 'Creating account...' : mode === 'reset' ? 'Sending link...' : mode === 'new-password' ? 'Saving...' : 'Signing in...'}
                 </span>
               ) : (
-                mode === 'signup' ? 'Create account & continue' : 'Sign in to dashboard'
+                mode === 'signup' ? 'Create account & continue'
+                : mode === 'reset' ? 'Send reset link'
+                : mode === 'new-password' ? 'Set new password'
+                : 'Sign in to dashboard'
               )}
             </button>
+
+            {mode === 'reset' && (
+              <button
+                type="button"
+                onClick={() => { setMode('login'); setError('') }}
+                style={styles.backLink}
+              >
+                ← Back to sign in
+              </button>
+            )}
           </form>
 
-          <p style={styles.termsText}>
-            By creating an account you agree to our{' '}
-            <a href="#" style={styles.termsLink}>Terms</a> and{' '}
-            <a href="#" style={styles.termsLink}>Privacy Policy</a>.
-          </p>
+          {(mode === 'login' || mode === 'signup') && (
+            <p style={styles.termsText}>
+              By creating an account you agree to our{' '}
+              <a href="#" style={styles.termsLink}>Terms</a> and{' '}
+              <a href="#" style={styles.termsLink}>Privacy Policy</a>.
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -355,6 +475,21 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text)',
     boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
   },
+  resetHeader: {
+    marginBottom: '2rem',
+  },
+  resetTitle: {
+    fontFamily: "'Instrument Serif', serif",
+    fontSize: '1.75rem',
+    fontWeight: 400,
+    color: 'var(--text)',
+    marginBottom: '0.4rem',
+  },
+  resetSub: {
+    fontSize: '0.875rem',
+    color: 'var(--text-muted)',
+    lineHeight: 1.5,
+  },
   form: {
     display: 'flex',
     flexDirection: 'column',
@@ -382,6 +517,29 @@ const styles: Record<string, React.CSSProperties> = {
     outline: 'none',
     transition: 'border-color 0.2s',
     width: '100%',
+  },
+  forgotLink: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--text-muted)',
+    fontSize: '0.8rem',
+    fontFamily: "'Outfit', sans-serif",
+    cursor: 'pointer',
+    padding: '0',
+    textAlign: 'right',
+    alignSelf: 'flex-end',
+    transition: 'color 0.2s',
+  },
+  backLink: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--text-muted)',
+    fontSize: '0.85rem',
+    fontFamily: "'Outfit', sans-serif",
+    cursor: 'pointer',
+    padding: '0',
+    textAlign: 'center',
+    transition: 'color 0.2s',
   },
   errorBox: {
     display: 'flex',
@@ -438,7 +596,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-muted)',
     textDecoration: 'underline',
   },
-  // Check email state
+  // Check email / reset-sent state
   checkEmailBox: {
     maxWidth: '420px',
     margin: '15vh auto 0',
