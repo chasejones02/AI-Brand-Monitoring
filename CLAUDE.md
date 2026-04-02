@@ -299,3 +299,4 @@ _No preferences recorded yet. Entries will be added as the user provides feedbac
 4. Ship working code. Don't over-abstract early. Inline is fine until patterns emerge.
 5. The MVP ship trigger is: a stranger can sign up, pay, enter queries, and get a report. Build toward that and nothing else until it's done.
 6. When in doubt about design choices, lean toward bold and opinionated over safe and generic.
+7. **Before starting any task, check `ROADMAP.md` in the repo root.** It contains the prioritized list of non-negotiable fixes that must be completed before launch. Do not build new features if unchecked items remain in the Non-Negotiables section.
