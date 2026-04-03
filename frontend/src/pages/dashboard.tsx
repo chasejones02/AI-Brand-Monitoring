@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
 import {
   getBusinesses,
@@ -113,6 +113,7 @@ function formatScanLabel(scan: ScanSummary): string {
 export default function DashboardPage() {
   const { user, signOut } = useAuth()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
 
   const [appState, setAppState] = useState<AppState>('loading')
   const [businesses, setBusinesses] = useState<BusinessWithQueries[]>([])
@@ -127,7 +128,7 @@ export default function DashboardPage() {
   const [globalError, setGlobalError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const isRunning = !!(activeScanId && (!scan || scan.status === 'pending' || scan.status === 'running'))
+  const isRunning = !!(activeScanId && !scanError && (!scan || scan.status === 'pending' || scan.status === 'running'))
 
   // ── Initial load ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -268,6 +269,10 @@ export default function DashboardPage() {
       setPollCount(0)
       setMode('results')
     } catch (err: any) {
+      if (err.message?.toLowerCase().includes('subscription')) {
+        navigate('/pricing')
+        return
+      }
       setScanError(err.message ?? 'Failed to start scan')
     } finally {
       setIsSubmitting(false)
