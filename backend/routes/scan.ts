@@ -113,6 +113,14 @@ async function runScan(
   queries: { id: string; query_text: string }[],
   isFree: boolean = false
 ) {
+  const timeout = setTimeout(async () => {
+    console.error(`Scan ${scanId} timed out after 5 minutes`)
+    await supabase
+      .from('scans')
+      .update({ status: 'failed', completed_at: new Date().toISOString() })
+      .eq('id', scanId)
+  }, 5 * 60 * 1000)
+
   try {
   let platforms = getAvailablePlatforms()
 
@@ -183,6 +191,7 @@ async function runScan(
   const visibility_score = calculateVisibilityScore(allResults)
 
   // Mark scan complete
+  clearTimeout(timeout)
   await supabase
     .from('scans')
     .update({
@@ -192,6 +201,7 @@ async function runScan(
     })
     .eq('id', scanId)
   } catch (err) {
+    clearTimeout(timeout)
     console.error(`Scan ${scanId} unhandled error:`, err)
     await supabase
       .from('scans')
