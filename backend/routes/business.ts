@@ -51,6 +51,58 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
   res.status(201).json({ data: { business_id: business.id }, error: null })
 })
 
+// PUT /api/business/:id — replace active queries for a business
+const UpdateQueriesSchema = z.object({
+  queries: z.array(z.string().min(3).max(500)).min(1).max(10),
+})
+
+router.put('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  const businessId = req.params.id
+  const userId = req.userId!
+
+  const { data: business, error: fetchError } = await supabase
+    .from('businesses')
+    .select('id')
+    .eq('id', businessId)
+    .eq('user_id', userId)
+    .single()
+
+  if (fetchError || !business) {
+    res.status(404).json({ data: null, error: 'Business not found' })
+    return
+  }
+
+  const parsed = UpdateQueriesSchema.safeParse(req.body)
+  if (!parsed.success) {
+    res.status(400).json({ data: null, error: parsed.error.flatten() })
+    return
+  }
+
+  const { queries } = parsed.data
+
+  // Deactivate old queries
+  const { error: deactivateError } = await supabase
+    .from('queries')
+    .update({ is_active: false })
+    .eq('business_id', businessId)
+
+  if (deactivateError) {
+    res.status(500).json({ data: null, error: 'Failed to update queries' })
+    return
+  }
+
+  // Insert new active queries
+  const queryRows = queries.map(query_text => ({ business_id: businessId, query_text, is_active: true }))
+  const { error: insertError } = await supabase.from('queries').insert(queryRows)
+
+  if (insertError) {
+    res.status(500).json({ data: null, error: 'Failed to save new queries' })
+    return
+  }
+
+  res.json({ data: { business_id: businessId }, error: null })
+})
+
 // GET /api/business — list user's businesses
 router.get('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
   const userId = req.userId!

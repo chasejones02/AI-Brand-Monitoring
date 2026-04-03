@@ -1,6 +1,6 @@
 # AI Brand Monitor — Roadmap
 
-> Last audited: 2026-04-02. Keep this file updated as items are completed.
+> Last audited: 2026-04-03. Keep this file updated as items are completed.
 
 ---
 
@@ -12,9 +12,9 @@ The core loop (sign up → business entry → scan → results → pay) works en
 
 ## Non-Negotiables (fix before launch)
 
-### 1. Stuck scan recovery
-- [ ] Add a 5-minute timeout that flips `status` to `failed` if a scan never completes
-- [ ] Surface an error state + retry button in the dashboard UI
+### 1. Stuck scan recovery ✓
+- [x] Add a 5-minute timeout that flips `status` to `failed` if a scan never completes
+- [x] Surface an error state + retry button in the dashboard UI
 - **Files:** `backend/routes/scan.ts`, `frontend/src/pages/dashboard.tsx`
 
 ### 2. Password reset ✓
