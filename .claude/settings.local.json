@@ -9,7 +9,8 @@
       "Bash(grep -r \"gemini\\\\|perplexity\" /c/Users/jones/OneDrive/Documents/GitHub/AI-Brand-Monitoring/backend --include=*.ts --include=*.js)",
       "Bash(find /c/Users/jones/OneDrive/Documents/GitHub/AI-Brand-Monitoring -type f -name *.env*)",
       "WebFetch(domain:github.com)",
-      "Bash(xargs ls:*)"
+      "Bash(xargs ls:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

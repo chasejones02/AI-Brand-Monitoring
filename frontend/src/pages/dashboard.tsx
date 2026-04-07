@@ -7,7 +7,7 @@
  *   main     → has businesses; sub-modes: results | new-scan | no-scans
  */
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
 import {
@@ -128,7 +128,16 @@ export default function DashboardPage() {
   const [globalError, setGlobalError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const isRunning = !!(activeScanId && !scanError && (!scan || scan.status === 'pending' || scan.status === 'running'))
+  const MAX_POLLS = 120 // ~6 minutes at 3s intervals — defense-in-depth beyond backend timeout
+  const isTerminalStatus = scan?.status === 'completed' || scan?.status === 'failed'
+  const isRunning = !!(
+    activeScanId &&
+    !scanError &&
+    !isTerminalStatus &&
+    pollCount < MAX_POLLS &&
+    (!scan || scan.status === 'pending' || scan.status === 'running')
+  )
+  const pollTimedOut = !!(activeScanId && !isTerminalStatus && !scanError && pollCount >= MAX_POLLS)
 
   // ── Initial load ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -167,11 +176,17 @@ export default function DashboardPage() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Fetch + poll ──────────────────────────────────────────────────────────
+  const activeScanIdRef = useRef<string | null>(null)
+  useEffect(() => { activeScanIdRef.current = activeScanId }, [activeScanId])
+
   const fetchScan = useCallback(async (scanId: string) => {
     try {
       const data = await getScanResults(scanId)
+      // Guard against late responses after the user moved to a different scan
+      if (activeScanIdRef.current !== scanId) return
       setScan(data)
       if (data.status === 'completed' || data.status === 'failed') {
+        setScanError('')
         setScanHistory(prev =>
           prev.map(s =>
             s.id === scanId
@@ -181,7 +196,12 @@ export default function DashboardPage() {
         )
       }
     } catch (err: any) {
+      if (activeScanIdRef.current !== scanId) return
       setScanError(err.message ?? 'Failed to load results')
+      // Mark the history entry as failed so the dropdown label reflects reality
+      setScanHistory(prev =>
+        prev.map(s => (s.id === scanId ? { ...s, status: 'failed' as const } : s))
+      )
     }
   }, [])
 
@@ -230,6 +250,47 @@ export default function DashboardPage() {
   function handleScanSelect(scanId: string) {
     setActiveScanId(scanId)
     setMode('results')
+  }
+
+  // ── Retry scan (re-run same business without touching queries) ─────────────
+  async function handleRetryScan() {
+    if (!activeBusiness || isSubmitting) return
+    setIsSubmitting(true)
+    // Clear ALL scan state BEFORE kicking off the new scan so no stale polling
+    // races can hit the old scanId while the trigger request is in flight.
+    setActiveScanId(null)
+    setScan(null)
+    setScanError('')
+    setPollCount(0)
+    try {
+      const { scan_id } = await triggerScan(activeBusiness.id)
+      // Refresh history from the server so any orphaned/stale scans
+      // the backend reaped are reflected in the UI (not just our new one).
+      try {
+        const histData = await getBusinessHistory(activeBusiness.id)
+        setScanHistory(histData?.scans ?? [])
+      } catch {
+        // Non-fatal — fall back to optimistic prepend
+        setScanHistory(prev => [{
+          id: scan_id,
+          status: 'running',
+          visibility_score: null,
+          triggered_by: 'manual',
+          started_at: new Date().toISOString(),
+          completed_at: null,
+        }, ...prev])
+      }
+      setActiveScanId(scan_id)
+      setMode('results')
+    } catch (err: any) {
+      if (err.message?.toLowerCase().includes('subscription')) {
+        navigate('/pricing')
+        return
+      }
+      setScanError(err.message ?? 'Failed to start scan')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   // ── New scan submit ────────────────────────────────────────────────────────
@@ -398,8 +459,11 @@ export default function DashboardPage() {
           scan={scan}
           scanError={scanError}
           isRunning={isRunning}
+          pollTimedOut={pollTimedOut}
           activeScanId={activeScanId}
           onNewScan={() => setMode('new-scan')}
+          onRetry={handleRetryScan}
+          isRetrying={isSubmitting}
         />
       )}
     </div>
@@ -730,14 +794,20 @@ function ScanResultsView({
   scan,
   scanError,
   isRunning,
+  pollTimedOut,
   activeScanId,
   onNewScan,
+  onRetry,
+  isRetrying,
 }: {
   scan: ScanData | null
   scanError: string
   isRunning: boolean
+  pollTimedOut: boolean
   activeScanId: string | null
   onNewScan: () => void
+  onRetry: () => void
+  isRetrying: boolean
 }) {
   if (scanError) {
     const isSub = scanError.toLowerCase().includes('subscription')
@@ -747,21 +817,39 @@ function ScanResultsView({
           <>
             <p style={s.emptyTitle}>Upgrade to run scans</p>
             <p style={s.emptyText}>
-              An active subscription is required to scan AI platforms for your business.
+              You've used your free scan. Subscribe to run unlimited scans across
+              ChatGPT, Claude, and Perplexity.
             </p>
-            <a
-              href="/#pricing"
+            <Link
+              to="/pricing"
               style={{ ...s.primaryBtn, textDecoration: 'none', display: 'inline-block', textAlign: 'center' as const }}
             >
               View pricing →
-            </a>
+            </Link>
           </>
         ) : (
           <>
             <p style={{ ...s.emptyTitle, color: 'var(--red)' }}>Error loading results</p>
             <p style={s.emptyText}>{scanError}</p>
+            <button onClick={onRetry} disabled={isRetrying} style={s.primaryBtn}>
+              {isRetrying ? 'Starting…' : 'Try again →'}
+            </button>
           </>
         )}
+      </div>
+    )
+  }
+
+  if (pollTimedOut) {
+    return (
+      <div style={s.emptyState}>
+        <p style={{ ...s.emptyTitle, color: 'var(--red)' }}>Scan timed out</p>
+        <p style={s.emptyText}>
+          This scan is taking longer than expected. You can start a new one.
+        </p>
+        <button onClick={onRetry} disabled={isRetrying} style={s.primaryBtn}>
+          {isRetrying ? 'Starting…' : 'Run new scan →'}
+        </button>
       </div>
     )
   }
@@ -818,11 +906,24 @@ function ScanResultsView({
   }
 
   if (scan.status === 'failed') {
+    const failedAt = scan.completed_at
+      ? new Date(scan.completed_at).toLocaleString('en-US', {
+          month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+        })
+      : null
     return (
       <div style={s.emptyState}>
         <p style={{ ...s.emptyTitle, color: 'var(--red)' }}>Scan failed</p>
-        <p style={s.emptyText}>Something went wrong. Please try running a new scan.</p>
-        <button onClick={onNewScan} style={s.primaryBtn}>Try again →</button>
+        <p style={s.emptyText}>
+          This scan didn't complete{failedAt ? ` (${failedAt})` : ''}. This can happen
+          if an AI platform is temporarily unavailable.
+        </p>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button onClick={onRetry} disabled={isRetrying} style={s.primaryBtn}>
+            {isRetrying ? 'Starting…' : 'Retry scan →'}
+          </button>
+          <button onClick={onNewScan} style={s.secondaryBtn}>Edit queries</button>
+        </div>
       </div>
     )
   }

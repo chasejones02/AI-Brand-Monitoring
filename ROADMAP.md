@@ -24,10 +24,12 @@ The core loop (sign up → business entry → scan → results → pay) works en
 - [x] Custom branded email template (`supabase/templates/reset-password.html`)
 - **Files:** `frontend/src/pages/auth.tsx`
 
-### 3. Fix dashboard polling on terminal errors
-- [ ] Stop the 3s polling loop on terminal error states (e.g. `subscription_required`, `failed`)
-- [ ] Show appropriate error UI instead of infinite spinner
-- **Files:** `frontend/src/pages/dashboard.tsx` (~line 85–107)
+### 3. Fix dashboard polling on terminal errors ✓
+- [x] Stop the 3s polling loop on terminal error states (e.g. `subscription_required`, `failed`)
+- [x] Show appropriate error UI instead of infinite spinner
+- [x] Reap orphaned `running` scans on backend startup so crashes don't leave users stuck
+- [x] Paywall counts only `completed` scans so stuck rows don't consume a free scan
+- **Files:** `frontend/src/pages/dashboard.tsx`, `backend/server.ts`, `backend/routes/scan.ts`
 
 ### 4. Stripe webhook idempotency
 - [ ] Store processed Stripe event IDs in DB
