@@ -41,11 +41,14 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
 
     let priorScanCount = 0
     if (businessIds.length > 0) {
+      // Only completed scans count toward the free-tier limit. A stuck
+      // `running` row (e.g. from a crashed backend) must not permanently
+      // block the user from retrying.
       const { count } = await supabase
         .from('scans')
         .select('id', { count: 'exact', head: true })
         .in('business_id', businessIds)
-        .in('status', ['completed', 'running'])
+        .eq('status', 'completed')
       priorScanCount = count ?? 0
     }
 
