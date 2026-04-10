@@ -30,7 +30,7 @@ export function useScrollReveal() {
           if (entry.isIntersecting) {
             const el = entry.target as HTMLElement
             el.style.opacity = '1'
-            el.style.transform = 'translateY(0)'
+            el.style.transform = 'translateY(0) scale(1)'
             observer.unobserve(el)
           }
         })
@@ -44,7 +44,7 @@ export function useScrollReveal() {
         if (el.closest('.hero')) return
         const delay = i * stagger
         el.style.opacity = '0'
-        el.style.transform = 'translateY(22px)'
+        el.style.transform = 'translateY(22px) scale(0.97)'
         el.style.transition = `opacity 0.65s cubic-bezier(.22,1,.36,1) ${delay}s, transform 0.65s cubic-bezier(.22,1,.36,1) ${delay}s`
         observer.observe(el)
       })

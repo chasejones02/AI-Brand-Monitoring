@@ -141,7 +141,7 @@ function PaidHeader({ badge }: { badge: string }) {
         <div className="report-date">Report generated · March 2026</div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
-        <span style={{ fontSize: '.75rem', fontWeight: 700, background: 'rgba(240,165,0,.1)', color: 'var(--accent)', border: '1px solid rgba(240,165,0,.3)', borderRadius: '5px', padding: '.2rem .6rem', letterSpacing: '.06em', textTransform: 'uppercase' }}>{badge}</span>
+        <span style={{ fontSize: '.75rem', fontWeight: 700, background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid rgba(201,143,10,.22)', borderRadius: '4px', padding: '.2rem .6rem', letterSpacing: '.06em', textTransform: 'uppercase' }}>{badge}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', fontSize: '.82rem', color: 'var(--green)', fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}><div className="scan-dot active"></div>Live</div>
       </div>
     </div>
@@ -189,7 +189,7 @@ function GrowthContent() {
       <QueryBreakdown extra />
       <div className="report-divider"></div>
       <div className="report-section-label">Email Digest Preview</div>
-      <div className="query-item" style={{ borderColor: 'rgba(240,165,0,.15)' }}>
+      <div className="query-item" style={{ borderColor: 'rgba(201,143,10,.12)' }}>
         <div style={{ fontSize: '.8rem', fontWeight: 700, color: 'var(--accent)', marginBottom: '.5rem', letterSpacing: '.04em', textTransform: 'uppercase' }}>Weekly summary — March 11, 2026</div>
         <div style={{ fontSize: '.88rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>Score up <span style={{ color: 'var(--green)', fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>+3 pts</span> this week. You moved from #3 → #2 on ChatGPT for your top query. Sweet Things Co. gained ground on Gemini — worth watching.</div>
       </div>

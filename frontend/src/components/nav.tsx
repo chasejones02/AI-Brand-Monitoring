@@ -31,6 +31,7 @@ export function Nav({ onCtaClick }: NavProps) {
           <li><a href="/auth">Sign in</a></li>
         </ul>
 
+
         <button className="btn-nav" onClick={onCtaClick}>
           Get Free Report
         </button>

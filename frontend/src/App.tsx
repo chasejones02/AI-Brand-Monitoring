@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/auth-context'
 import { LandingPage } from './pages/landing'
@@ -5,6 +6,7 @@ import AuthPage from './pages/auth'
 import DashboardPage from './pages/dashboard'
 import SuccessPage from './pages/success'
 import PricingPage from './pages/pricing'
+import { EyeballIntro } from './components/eyeball-intro'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth()
@@ -34,9 +36,16 @@ function AppRoutes() {
 }
 
 export default function App() {
+  const [introShown, setIntroShown] = useState(false)
+
+  function handleIntroComplete() {
+    setIntroShown(true)
+  }
+
   return (
     <BrowserRouter>
       <AuthProvider>
+        {!introShown && <EyeballIntro onComplete={handleIntroComplete} />}
         <AppRoutes />
       </AuthProvider>
     </BrowserRouter>

@@ -18,8 +18,6 @@ export default function SuccessPage() {
 
   return (
     <div style={s.page}>
-      {/* Radial glow */}
-      <div style={s.glow} />
 
       <div style={{ ...s.card, opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(16px)', transition: 'opacity 0.6s ease, transform 0.6s ease' }}>
 
@@ -77,23 +75,13 @@ const s: Record<string, React.CSSProperties> = {
     position: 'relative',
     overflow: 'hidden',
   },
-  glow: {
-    position: 'absolute',
-    top: '30%',
-    left: '50%',
-    transform: 'translate(-50%, -50%)',
-    width: '600px',
-    height: '400px',
-    background: 'radial-gradient(ellipse, rgba(34,197,94,0.06) 0%, transparent 70%)',
-    pointerEvents: 'none',
-  },
   card: {
     position: 'relative',
     maxWidth: '480px',
     width: '100%',
     background: 'var(--surface)',
     border: '1px solid var(--border)',
-    borderRadius: '16px',
+    borderRadius: '8px',
     padding: '3rem 2.5rem',
     display: 'flex',
     flexDirection: 'column',
@@ -123,7 +111,6 @@ const s: Record<string, React.CSSProperties> = {
     inset: 0,
     borderRadius: '50%',
     border: '1px solid rgba(34,197,94,0.2)',
-    animation: 'glow-pulse 2.5s ease-in-out infinite',
   },
   iconInner: {
     width: '56px',

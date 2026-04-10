@@ -177,12 +177,6 @@ export default function AuthPage() {
           </div>
         </div>
 
-        {/* Decorative grid lines */}
-        <div style={styles.gridLines} aria-hidden="true">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} style={{ ...styles.gridLine, top: `${i * 18}%` }} />
-          ))}
-        </div>
       </div>
 
       {/* Right panel — form */}
@@ -425,20 +419,6 @@ const styles: Record<string, React.CSSProperties> = {
     textTransform: 'uppercase',
     letterSpacing: '0.08em',
   },
-  gridLines: {
-    position: 'absolute',
-    inset: 0,
-    pointerEvents: 'none',
-    zIndex: 0,
-  },
-  gridLine: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: '1px',
-    background: 'var(--border-dim)',
-    opacity: 0.6,
-  },
   rightPanel: {
     flex: '1 1 45%',
     display: 'flex',
@@ -454,7 +434,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     background: 'var(--surface)',
     border: '1px solid var(--border)',
-    borderRadius: 'var(--radius)',
+    borderRadius: '6px',
     padding: '3px',
     marginBottom: '2rem',
   },
@@ -462,7 +442,7 @@ const styles: Record<string, React.CSSProperties> = {
     flex: 1,
     padding: '0.55rem 1rem',
     border: 'none',
-    borderRadius: '7px',
+    borderRadius: '4px',
     background: 'transparent',
     color: 'var(--text-muted)',
     fontSize: '0.875rem',
@@ -473,7 +453,6 @@ const styles: Record<string, React.CSSProperties> = {
   modeBtnActive: {
     background: 'var(--surface-2)',
     color: 'var(--text)',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
   },
   resetHeader: {
     marginBottom: '2rem',
@@ -606,8 +585,8 @@ const styles: Record<string, React.CSSProperties> = {
   checkIcon: {
     width: '56px',
     height: '56px',
-    background: 'rgba(240,165,0,0.08)',
-    border: '1px solid rgba(240,165,0,0.2)',
+    background: 'transparent',
+    border: '1px solid var(--border)',
     borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',

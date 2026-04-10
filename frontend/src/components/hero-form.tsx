@@ -279,9 +279,9 @@ export function HeroForm() {
           <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
             <p style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>While you wait — see what our paid plans include:</p>
             <div style={{ display: 'flex', gap: '.5rem', marginTop: '.75rem', flexWrap: 'wrap' }}>
-              <div style={{ background: 'var(--accent-dim)', border: '1px solid rgba(240,165,0,.15)', borderRadius: '6px', padding: '.35rem .7rem', fontSize: '.75rem', color: 'var(--accent)' }}>Weekly scans</div>
-              <div style={{ background: 'var(--accent-dim)', border: '1px solid rgba(240,165,0,.15)', borderRadius: '6px', padding: '.35rem .7rem', fontSize: '.75rem', color: 'var(--accent)' }}>Competitor radar</div>
-              <div style={{ background: 'var(--accent-dim)', border: '1px solid rgba(240,165,0,.15)', borderRadius: '6px', padding: '.35rem .7rem', fontSize: '.75rem', color: 'var(--accent)' }}>Trend graphs</div>
+              <div style={{ background: 'var(--accent-dim)', border: '1px solid rgba(201,143,10,.12)', borderRadius: '6px', padding: '.35rem .7rem', fontSize: '.75rem', color: 'var(--accent)' }}>Weekly scans</div>
+              <div style={{ background: 'var(--accent-dim)', border: '1px solid rgba(201,143,10,.12)', borderRadius: '6px', padding: '.35rem .7rem', fontSize: '.75rem', color: 'var(--accent)' }}>Competitor radar</div>
+              <div style={{ background: 'var(--accent-dim)', border: '1px solid rgba(201,143,10,.12)', borderRadius: '6px', padding: '.35rem .7rem', fontSize: '.75rem', color: 'var(--accent)' }}>Trend graphs</div>
             </div>
           </div>
         </div>
