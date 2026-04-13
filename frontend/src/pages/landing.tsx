@@ -5,7 +5,7 @@
  * Signup section sits below the ticker with the full HeroForm.
  */
 
-import { useRef, useEffect, useState } from 'react'
+import { useRef } from 'react'
 import { Nav } from '../components/nav'
 import { Hero } from '../components/hero'
 import { DemoPlayer } from '../components/demo-player'
@@ -20,14 +20,8 @@ import { useScrollReveal } from '../hooks/use-scroll-reveal'
 
 export function LandingPage() {
   const signupSectionRef = useRef<HTMLElement>(null)
-  const [loaderHidden, setLoaderHidden] = useState(false)
 
   useScrollReveal()
-
-  useEffect(() => {
-    const timer = setTimeout(() => setLoaderHidden(true), 900)
-    return () => clearTimeout(timer)
-  }, [])
 
   function scrollToForm() {
     signupSectionRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -46,23 +40,6 @@ export function LandingPage() {
 
   return (
     <>
-      {/* Page loader */}
-      <div className={`page-loader${loaderHidden ? ' hidden' : ''}`}>
-        <div className="loader-ring-wrap">
-          <svg width="96" height="96" viewBox="0 0 96 96">
-            <circle className="loader-ring-track" cx="48" cy="48" r="42" />
-            <circle className="loader-ring-fill" cx="48" cy="48" r="42" />
-          </svg>
-          <div className="loader-pct">
-            <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
-              <rect x="1" y="8" width="3" height="7" fill="rgba(201,143,10,0.9)" rx="1" />
-              <rect x="6" y="5" width="3" height="10" fill="rgba(201,143,10,0.9)" rx="1" />
-              <rect x="11" y="2" width="3" height="13" fill="rgba(201,143,10,0.9)" rx="1" />
-            </svg>
-          </div>
-        </div>
-      </div>
-
       <Nav onCtaClick={scrollToForm} />
 
       <section className="hero">
