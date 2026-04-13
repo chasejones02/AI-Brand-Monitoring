@@ -5,14 +5,13 @@ interface Props {
 }
 
 /**
- * Intro animation (~2.9s total):
- *  1. FADE IN  — letters appear with glow already present    (900ms)
- *  2. HOLD     — subtle glow pulsation                       (1200ms)
- *  3. FADE OUT — letters + overlay dissolve into the page    (800ms)
+ * Intro animation (~4s total):
+ *  1. SVG PATH DRAW — "VISAION" letters draw in with stroke animation  (2.8s)
+ *  2. FILL REVEAL   — letters fill with color after drawing completes  (0.6s)
+ *  3. FADE OUT       — overlay dissolves into the page                 (0.6s)
  */
 export function EyeballIntro({ onComplete }: Props) {
   const overlayRef = useRef<HTMLDivElement>(null)
-  const textRef    = useRef<HTMLDivElement>(null)
   const cbRef      = useRef(onComplete)
   cbRef.current    = onComplete
 
@@ -20,66 +19,41 @@ export function EyeballIntro({ onComplete }: Props) {
 
   useEffect(() => {
     const overlay = overlayRef.current
-    const textEl  = textRef.current
-    if (!overlay || !textEl) return
+    if (!overlay) return
 
-    const T_IN   = 900
-    const T_HOLD = 1200
-    const T_FADE = 800
+    const T_DRAW = 4200
+    const T_FILL = 600
+    const T_FADE = 600
 
-    const p1 = T_IN
-    const p2 = p1 + T_HOLD
-    const p3 = p2 + T_FADE
-
-    function eio(t: number) { return t < 0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2 }
-
-    // Glow is constant — shadow is always the same base intensity.
-    // Only the outer layer pulses very subtly.
-    function setGlow(opacity: number, elapsed: number) {
-      const pulse = 1 + Math.sin(elapsed / 700) * 0.06   // ±6% on outer layer only
-      textEl.style.textShadow = [
-        `0 0 18px rgba(255,255,255,${0.7  * opacity})`,
-        `0 0 55px rgba(255,255,255,${0.22 * opacity * pulse})`,
-      ].join(',')
-    }
-
-    let startTime = -1
-    let rafId: number
-
-    function tick(now: number) {
-      if (startTime < 0) startTime = now
-      const elapsed = now - startTime
-
-      if (elapsed < p1) {
-        // ── FADE IN ───────────────────────────────────────────────
-        const t = eio(elapsed / T_IN)
-        textEl.style.opacity = String(t)
-        setGlow(t, elapsed)
-
-      } else if (elapsed < p2) {
-        // ── HOLD (subtle pulse) ───────────────────────────────────
-        textEl.style.opacity = '1'
-        setGlow(1, elapsed)
-
-      } else if (elapsed < p3) {
-        // ── FADE OUT ──────────────────────────────────────────────
-        const t = 1 - eio((elapsed - p2) / T_FADE)
-        textEl.style.opacity  = String(t)
-        overlay.style.opacity = String(t)
-        setGlow(t, elapsed)
-
-      } else {
-        overlay.style.opacity = '0'
-        setIsDone(true)
-        cbRef.current()
-        return
+    // After drawing completes, trigger fill reveal
+    const fillTimer = setTimeout(() => {
+      const textEl = overlay.querySelector('.intro-svg-text') as SVGTextElement | null
+      if (textEl) {
+        textEl.style.transition = `fill ${T_FILL}ms ease-out, filter ${T_FILL}ms ease-out`
+        textEl.style.fill = '#ffffff'
+        textEl.style.filter = 'drop-shadow(0 0 30px rgba(201,143,10,0.5)) drop-shadow(0 0 60px rgba(201,143,10,0.2))'
       }
+    }, T_DRAW)
 
-      rafId = requestAnimationFrame(tick)
+    // After fill, fade out the overlay
+    const fadeTimer = setTimeout(() => {
+      if (overlay) {
+        overlay.style.transition = `opacity ${T_FADE}ms ease-out`
+        overlay.style.opacity = '0'
+      }
+    }, T_DRAW + T_FILL)
+
+    // After fade, remove and call onComplete
+    const doneTimer = setTimeout(() => {
+      setIsDone(true)
+      cbRef.current()
+    }, T_DRAW + T_FILL + T_FADE)
+
+    return () => {
+      clearTimeout(fillTimer)
+      clearTimeout(fadeTimer)
+      clearTimeout(doneTimer)
     }
-
-    rafId = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(rafId)
   }, [])
 
   if (isDone) return null
@@ -93,18 +67,61 @@ export function EyeballIntro({ onComplete }: Props) {
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
-      <div ref={textRef} style={{ opacity: 0, pointerEvents: 'none' }}>
-        <span style={{
-          fontSize:      'clamp(52px, 8vw, 100px)',
-          fontWeight:    700,
-          color:         '#ffffff',
-          letterSpacing: '0.25em',
-          fontFamily:    'Outfit, sans-serif',
-          textTransform: 'uppercase',
-        }}>
+      <svg
+        width="1200"
+        height="300"
+        viewBox="0 0 900 200"
+        style={{ maxWidth: '90vw' }}
+      >
+        <defs>
+          <linearGradient id="introPathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#c98f0a" />
+            <stop offset="50%" stopColor="#f5c842" />
+            <stop offset="100%" stopColor="#c98f0a" />
+          </linearGradient>
+        </defs>
+
+        <text
+          className="intro-svg-text"
+          x="50%"
+          y="50%"
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill="#080b10"
+          stroke="url(#introPathGradient)"
+          strokeWidth="2"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          fontSize="120"
+          fontWeight="700"
+          fontFamily="Outfit, sans-serif"
+          letterSpacing="0.25em"
+          paintOrder="stroke"
+          strokeDasharray="1200"
+          strokeDashoffset="1200"
+          style={{ textTransform: 'uppercase' } as React.CSSProperties}
+        >
           Visaion
-        </span>
-      </div>
+          <animate
+            attributeName="stroke-dashoffset"
+            values="1200;0"
+            dur="4.2s"
+            repeatCount="1"
+            fill="freeze"
+            calcMode="spline"
+            keySplines="0.25 0.1 0.25 1"
+          />
+          <animate
+            attributeName="stroke-width"
+            values="1.5;2.5;2"
+            dur="4.2s"
+            repeatCount="1"
+            fill="freeze"
+            calcMode="spline"
+            keySplines="0.4 0 0.2 1;0.4 0 0.2 1"
+          />
+        </text>
+      </svg>
     </div>
   )
 }
