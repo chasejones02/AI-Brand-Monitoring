@@ -9,6 +9,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/auth-context'
+import { GlowCard } from '../components/ui/spotlight-card'
 
 type Mode = 'login' | 'signup' | 'reset' | 'new-password'
 
@@ -181,7 +182,7 @@ export default function AuthPage() {
 
       {/* Right panel — form */}
       <div style={styles.rightPanel}>
-        <div style={styles.formCard}>
+        <GlowCard customSize radius={16} className="!block !p-8" style={{ width: '100%', maxWidth: '400px' }}>
           {/* Mode toggle — hidden for reset/new-password flows */}
           {(mode === 'login' || mode === 'signup') && (
             <div style={styles.modeToggle}>
@@ -331,7 +332,7 @@ export default function AuthPage() {
               <a href="#" style={styles.termsLink}>Privacy Policy</a>.
             </p>
           )}
-        </div>
+        </GlowCard>
       </div>
     </div>
   )

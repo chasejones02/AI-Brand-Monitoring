@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { createCheckoutSession } from '../lib/api'
 import { useAuth } from '../contexts/auth-context'
+import { GlowCard } from './ui/spotlight-card'
 
 const check = (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -64,7 +65,7 @@ export function Pricing() {
 
         <div className="pricing-grid">
           {/* Starter */}
-          <div className="pricing-card">
+          <GlowCard customSize radius={20} className="pricing-card !block">
             <div className="pricing-tier">Starter</div>
             <div className="pricing-price">
               <span className="pricing-dollar">$</span>
@@ -86,10 +87,10 @@ export function Pricing() {
             >
               {loading === 'starter' ? 'Redirecting…' : 'Start 7-day free trial'}
             </button>
-          </div>
+          </GlowCard>
 
           {/* Growth */}
-          <div className="pricing-card featured">
+          <GlowCard customSize radius={20} className="pricing-card featured !block">
             <div className="pricing-tag">Most popular</div>
             <div className="pricing-tier">Growth</div>
             <div className="pricing-price">
@@ -113,10 +114,10 @@ export function Pricing() {
             >
               {loading === 'growth' ? 'Redirecting…' : 'Start 7-day free trial'}
             </button>
-          </div>
+          </GlowCard>
 
           {/* Agency */}
-          <div className="pricing-card">
+          <GlowCard customSize radius={20} className="pricing-card !block">
             <div className="pricing-tier">Agency</div>
             <div className="pricing-price">
               <span className="pricing-dollar">$</span>
@@ -139,7 +140,7 @@ export function Pricing() {
             >
               {loading === 'agency' ? 'Redirecting…' : 'Contact sales'}
             </button>
-          </div>
+          </GlowCard>
         </div>
       </div>
     </section>
