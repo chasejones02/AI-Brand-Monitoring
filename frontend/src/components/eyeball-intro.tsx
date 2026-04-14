@@ -32,8 +32,8 @@ class TextScramble {
     for (let i = 0; i < length; i++) {
       const from = oldText[i] || ''
       const to = newText[i] || ''
-      const start = Math.floor(Math.random() * 40)
-      const end = start + Math.floor(Math.random() * 40)
+      const start = Math.floor(Math.random() * 12)
+      const end = start + Math.floor(Math.random() * 18)
       this.queue.push({ from, to, start, end })
     }
 
@@ -101,7 +101,7 @@ export function EyeballIntro({ onComplete }: Props) {
     if (!overlay || !svgEl || !scrambleEl) return
 
     const T_DRAW = 3000
-    const T_HOLD = 150
+    const T_HOLD = 60
     const T_FADE = 400
 
     const timers: ReturnType<typeof setTimeout>[] = []
@@ -129,7 +129,7 @@ export function EyeballIntro({ onComplete }: Props) {
               cbRef.current()
             }, T_FADE)
           })
-        }, 200)
+        }, 80)
       })
     }, T_DRAW + T_HOLD))
 
