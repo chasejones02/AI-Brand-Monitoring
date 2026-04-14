@@ -6,6 +6,7 @@ import AuthPage from './pages/auth'
 import DashboardPage from './pages/dashboard'
 import SuccessPage from './pages/success'
 import PricingPage from './pages/pricing'
+import AnalyzePage from './pages/analyze'
 import { EyeballIntro } from './components/eyeball-intro'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -19,6 +20,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/analyze" element={<AnalyzePage />} />
       <Route path="/auth" element={<AuthPage />} />
       <Route
         path="/dashboard"

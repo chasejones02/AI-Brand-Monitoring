@@ -20,6 +20,7 @@ type DemoRec = {
 
 type DemoBusiness = {
   name: string
+  location: string
   query: string
   score: number
   tier: string
@@ -31,6 +32,7 @@ type DemoBusiness = {
 const BUSINESSES: DemoBusiness[] = [
   {
     name: 'Coastal Coffee Co.',
+    location: 'San Diego, USA',
     query: 'best coffee shop in San Diego',
     score: 74,
     tier: 'Visible',
@@ -48,6 +50,7 @@ const BUSINESSES: DemoBusiness[] = [
   },
   {
     name: 'Apex Roofing Solutions',
+    location: 'Phoenix, AZ',
     query: 'roofing contractor Phoenix AZ',
     score: 29,
     tier: 'Rarely Visible',
@@ -65,6 +68,7 @@ const BUSINESSES: DemoBusiness[] = [
   },
   {
     name: 'Luma Skin Studio',
+    location: 'Austin, TX',
     query: 'top facial treatment studio Austin',
     score: 91,
     tier: 'Highly Visible',
@@ -82,6 +86,7 @@ const BUSINESSES: DemoBusiness[] = [
   },
   {
     name: 'Greenfield Tax Advisors',
+    location: 'Denver, CO',
     query: 'small business accountant Denver',
     score: 11,
     tier: 'Not Visible',
@@ -99,6 +104,7 @@ const BUSINESSES: DemoBusiness[] = [
   },
   {
     name: 'Blue Ridge Adventure Co.',
+    location: 'Asheville, NC',
     query: 'kayak rentals Asheville NC',
     score: 57,
     tier: 'Partially Visible',
@@ -124,7 +130,7 @@ export function DemoPlayer({ onCtaClick }: { onCtaClick: () => void }) {
   const [bizIdx, setBizIdx] = useState(0)
   const [currentBiz, setCurrentBiz] = useState<DemoBusiness>(BUSINESSES[0])
   const [bizChars, setBizChars] = useState(0)
-  const [queryChars, setQueryChars] = useState(0)
+  const [locChars, setLocChars] = useState(0)
   const [phase, setPhase] = useState<Phase>('input')
   const [score, setScore] = useState(0)
   const [platformsIn, setPlatformsIn] = useState(false)
@@ -152,7 +158,7 @@ export function DemoPlayer({ onCtaClick }: { onCtaClick: () => void }) {
       setBizIdx(idx)
       setCurrentBiz(biz)
       setBizChars(0)
-      setQueryChars(0)
+      setLocChars(0)
       setPhase('input')
       setScore(0)
       setPlatformsIn(false)
@@ -163,14 +169,14 @@ export function DemoPlayer({ onCtaClick }: { onCtaClick: () => void }) {
         q(() => setBizChars(c => c + 1), i * 50)
       }
 
-      // Pause 500ms then type query: 40ms per char
+      // Pause 500ms then type location: 45ms per char
       const qStart = biz.name.length * 50 + 500
-      for (let i = 1; i <= biz.query.length; i++) {
-        q(() => setQueryChars(c => c + 1), qStart + i * 40)
+      for (let i = 1; i <= biz.location.length; i++) {
+        q(() => setLocChars(c => c + 1), qStart + i * 45)
       }
 
       // Pause 800ms then show button clicking
-      const clickAt = qStart + biz.query.length * 40 + 800
+      const clickAt = qStart + biz.location.length * 45 + 800
       q(() => setPhase('clicking'), clickAt)
 
       // 700ms later → results screen
@@ -202,7 +208,7 @@ export function DemoPlayer({ onCtaClick }: { onCtaClick: () => void }) {
 
   const bizDone = bizChars >= currentBiz.name.length
   const showBizCursor = phase === 'input' && !bizDone
-  const showQueryCursor = phase === 'input' && bizDone && queryChars < currentBiz.query.length
+  const showLocCursor = phase === 'input' && bizDone && locChars < currentBiz.location.length
 
   // SVG arc for score
   const R = 34
@@ -244,15 +250,15 @@ export function DemoPlayer({ onCtaClick }: { onCtaClick: () => void }) {
           </div>
 
           <div className={`demo-field${!bizDone ? ' demo-field-dim' : ''}`}>
-            <div className="demo-field-label">What should AI find you for?</div>
+            <div className="demo-field-label">Location (City, Country)</div>
             <div className="demo-input-mock">
-              {queryChars > 0 ? (
+              {locChars > 0 ? (
                 <>
-                  <span>{currentBiz.query.slice(0, queryChars)}</span>
-                  {showQueryCursor && <span className="demo-cursor" />}
+                  <span>{currentBiz.location.slice(0, locChars)}</span>
+                  {showLocCursor && <span className="demo-cursor" />}
                 </>
               ) : bizDone ? (
-                <span className="demo-mock-placeholder">best coffee shop in San Diego</span>
+                <span className="demo-mock-placeholder">San Diego, USA</span>
               ) : null}
             </div>
           </div>
@@ -262,7 +268,7 @@ export function DemoPlayer({ onCtaClick }: { onCtaClick: () => void }) {
             tabIndex={-1}
             style={{ marginTop: '0.5rem' }}
           >
-            {phase === 'clicking' ? 'Generating report...' : 'Generate My Report'}
+            {phase === 'clicking' ? 'Analyzing...' : 'Analyze My Brand'}
             {phase === 'clicking' ? (
               <div className="spinner" />
             ) : (
@@ -351,6 +357,9 @@ export function DemoPlayer({ onCtaClick }: { onCtaClick: () => void }) {
               <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
             </svg>
           </button>
+          <p style={{ fontSize: '.72rem', color: 'var(--text-dim)', textAlign: 'center', marginTop: '.75rem' }}>
+            Example report · auto-cycles through demo businesses
+          </p>
         </div>
       )}
     </div>

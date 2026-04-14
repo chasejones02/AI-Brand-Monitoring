@@ -1,17 +1,17 @@
 /**
- * Nav — Fixed top navigation bar.
- * Logo + nav links + CTA button that scrolls to the hero form.
+ * Nav — Fixed top navigation.
+ * Logo + Pricing + How it works + Sign in. CTA routes to /analyze.
  */
 
-interface NavProps {
-  onCtaClick: () => void
-}
+import { Link, useNavigate } from 'react-router-dom'
 
-export function Nav({ onCtaClick }: NavProps) {
+export function Nav() {
+  const navigate = useNavigate()
+
   return (
     <nav>
       <div className="container nav-inner">
-        <a href="#" className="logo">
+        <Link to="/" className="logo">
           <div className="logo-mark">
             <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
               <rect x="1" y="8" width="3" height="7" fill="#000" rx="1" />
@@ -22,18 +22,16 @@ export function Nav({ onCtaClick }: NavProps) {
           <span className="logo-text">
             Vis<span className="logo-ai">ai</span>on
           </span>
-        </a>
+        </Link>
 
         <ul className="nav-links">
-          <li><a href="#how-it-works">How it works</a></li>
-          <li><a href="#report">Sample report</a></li>
-          <li><a href="#pricing">Pricing</a></li>
-          <li><a href="/auth">Sign in</a></li>
+          <li><Link to="/pricing">Pricing</Link></li>
+          <li><Link to="/analyze">How it works</Link></li>
+          <li><Link to="/auth">Sign in</Link></li>
         </ul>
 
-
-        <button className="btn-nav" onClick={onCtaClick}>
-          Get Free Report
+        <button className="btn-nav" onClick={() => navigate('/analyze')}>
+          Check Your Visibility
         </button>
       </div>
     </nav>

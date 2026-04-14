@@ -34,6 +34,22 @@ export function CtaSection({ onSubmit }: CtaSectionProps) {
           <button type="submit" className="btn-cta">Get Free Report →</button>
         </form>
         <p style={{ fontSize: '.75rem', color: 'var(--text-dim)' }}>No credit card required. Takes 60 seconds.</p>
+
+        <p
+          style={{
+            marginTop: '3rem',
+            fontSize: '0.85rem',
+            letterSpacing: '0.24em',
+            textTransform: 'uppercase',
+            color: 'var(--text-dim)',
+            fontWeight: 500,
+          }}
+        >
+          See your brand.{' '}
+          <span style={{ color: 'var(--accent)', fontStyle: 'italic', textTransform: 'none', letterSpacing: '0.02em', fontFamily: "'Instrument Serif', serif", fontSize: '1.1rem' }}>
+            Visaion.
+          </span>
+        </p>
       </div>
     </section>
   )
