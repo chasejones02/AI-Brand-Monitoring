@@ -176,12 +176,26 @@
       position: fixed;
       top: 0; left: 0; right: 0;
       z-index: 100;
-      padding: 1.1rem 0;
-      background: rgba(8,11,16,0.55);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
+      padding: 1.25rem 0;
+      background: transparent;
       animation: fadeIn 0.4s ease both;
     }
+    /* Whisper-thin top gradient sits behind the nav row only — subtle enough
+       to preserve transparency, strong enough to guarantee link legibility
+       over a bright/animated background. */
+    nav::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(
+        to bottom,
+        rgba(8, 11, 16, 0.35) 0%,
+        rgba(8, 11, 16, 0.15) 55%,
+        transparent 100%
+      );
+    }
+    .nav-inner { position: relative; z-index: 1; }
     .nav-inner {
       display: flex;
       align-items: center;
@@ -206,8 +220,9 @@
       font-family: 'Outfit', sans-serif;
       font-weight: 800;
       font-size: 1.5rem;
-      color: var(--text);
+      color: #ffffff;
       letter-spacing: -0.03em;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
     }
     .logo-ai {
       color: var(--accent);
@@ -220,13 +235,15 @@
       list-style: none;
     }
     .nav-links a {
-      color: var(--text-muted);
+      color: #ffffff;
       text-decoration: none;
       font-size: 0.925rem;
       font-weight: 500;
       letter-spacing: 0.01em;
-      transition: color 0.25s;
+      transition: color 0.25s, opacity 0.25s;
       position: relative;
+      opacity: 0.92;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     }
     .nav-links a::after {
       content: '';
@@ -239,27 +256,29 @@
       transition: transform 0.3s ease-out;
       border-radius: 2px;
     }
-    .nav-links a:hover { color: var(--accent); }
+    .nav-links a:hover { color: var(--accent); opacity: 1; }
     .nav-links a:hover::after { transform: scaleX(1); }
 
     .btn-nav {
       background: transparent;
-      color: var(--text);
+      color: #ffffff;
       font-family: 'Outfit', sans-serif;
       font-weight: 600;
       font-size: 0.875rem;
-      border: 1px solid rgba(201,143,10,0.45);
+      border: 1px solid rgba(255, 255, 255, 0.45);
       border-radius: 9999px;
-      padding: 0.5rem 1.35rem;
+      padding: 0.55rem 1.4rem;
       cursor: pointer;
       letter-spacing: 0.01em;
       transition: all 0.25s ease;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
     }
     .btn-nav:hover {
       background: var(--accent);
       color: #000;
       border-color: var(--accent);
       box-shadow: 0 0 18px rgba(201,143,10,0.35);
+      text-shadow: none;
     }
 
     /* ─── Hero ──────────────────────────────────────────── */
@@ -1955,6 +1974,23 @@
       position: relative;
       z-index: 1;
     }
+    /* Soft radial scrim sits behind the hero text only, lifting contrast
+       against the animated eye without darkening the whole viewport. */
+    .hero-compact::before {
+      content: '';
+      position: absolute;
+      inset: -8% -12%;
+      z-index: -1;
+      background: radial-gradient(
+        ellipse at center,
+        rgba(8, 11, 16, 0.72) 0%,
+        rgba(8, 11, 16, 0.55) 35%,
+        rgba(8, 11, 16, 0.25) 60%,
+        transparent 80%
+      );
+      pointer-events: none;
+      filter: blur(6px);
+    }
     .hero-eye-wrap {
       display: flex;
       justify-content: center;
@@ -1989,10 +2025,15 @@
       font-family: 'Instrument Serif', serif;
       font-weight: 400;
       font-size: clamp(3rem, 7vw, 5.5rem);
-      line-height: 1.06;
-      letter-spacing: -0.02em;
-      color: var(--text);
+      line-height: 1.12;
+      letter-spacing: -0.015em;
+      color: #eef2f8;
       margin-bottom: 1.5rem;
+      text-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.45),
+        0 4px 20px rgba(0, 0, 0, 0.55);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
     .hero-compact-title em {
       color: var(--accent);
@@ -2029,22 +2070,24 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 0.65rem 1rem;
-      background: rgba(13,17,23,0.55);
-      border: 1px solid rgba(201,143,10,0.18);
+      background: rgba(10, 13, 19, 0.78);
+      border: 1px solid rgba(201,143,10,0.22);
       border-radius: 14px;
-      padding: 0.9rem 1.25rem;
+      padding: 0.95rem 1.3rem;
       max-width: 820px;
       margin: 0 auto;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      font-size: 0.9rem;
+      letter-spacing: 0.005em;
+      color: #c8d2df;
+      backdrop-filter: blur(14px) saturate(110%);
+      -webkit-backdrop-filter: blur(14px) saturate(110%);
+      box-shadow: 0 8px 28px -12px rgba(0, 0, 0, 0.6);
     }
     .hero-quote {
       display: inline-flex;
       align-items: baseline;
       gap: 0.45rem;
-      line-height: 1.5;
+      line-height: 1.6;
     }
     .hero-quote-src {
       color: var(--accent);
