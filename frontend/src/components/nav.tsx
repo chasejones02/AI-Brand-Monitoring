@@ -25,6 +25,7 @@ export function Nav() {
         </Link>
 
         <ul className="nav-links">
+          <li><Link to="/">Home</Link></li>
           <li><Link to="/pricing">Pricing</Link></li>
           <li><Link to="/analyze">How it works</Link></li>
           <li><Link to="/auth">Sign in</Link></li>

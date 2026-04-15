@@ -1,12 +1,7 @@
 /**
- * LandingPage — Minimal editorial layout.
- * Fixed, viewport-centered eye stays put while the hero copy, quotes,
- * and feature cards scroll up and overlay it.
- *
- * 1. Nav  2. Fixed centered eye
- * 3. Full-viewport spacer (eye alone above the fold)
- * 4. Hero text + CTA + quote strip (scrolls over eye)
- * 5. Feature strip  6. Footer
+ * LandingPage — Full-bleed golden eye background with hero overlay.
+ * The eye image covers the viewport as a background.
+ * Hero text, CTA, quote strip, feature cards, and footer layer on top.
  */
 
 import { useNavigate } from 'react-router-dom'
@@ -25,13 +20,18 @@ export function LandingPage() {
     <>
       <Nav />
 
-      <div className="hero-eye-fixed" aria-hidden>
-        <img src="/eye.png" alt="" className="hero-eye-img anim-1" />
+      {/* Full-bleed eye background */}
+      <div className="landing-eye-bg" aria-hidden>
+        <img
+          src="/ai_brand_monitor_landing_page (2).png"
+          alt=""
+          className="landing-eye-bg-img"
+        />
+        <div className="landing-eye-bg-overlay" />
       </div>
 
       <main>
-        <section className="hero-section">
-          <div className="hero-eye-spacer" aria-hidden />
+        <section className="landing-hero-section">
           <div className="container">
             <Hero onCtaClick={() => navigate('/analyze')} />
           </div>

@@ -91,6 +91,24 @@
       from { stroke-dashoffset: 100; opacity: 0; }
       to   { stroke-dashoffset: 0; opacity: 1; }
     }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50%      { transform: translateY(-10px); }
+    }
+
+    /* ─── Shader Background ─────────────────────────────── */
+    .shader-bg-wrap {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: 0.35;
+    }
+    .shader-bg-wrap canvas {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+    }
 
     .anim-1 { animation: fadeUp 0.5s cubic-bezier(.22,1,.36,1) 0.05s both; }
     .anim-2 { animation: fadeUp 0.5s cubic-bezier(.22,1,.36,1) 0.15s both; }
@@ -1873,22 +1891,43 @@
 
     main { position: relative; z-index: 1; }
 
+    /* ─── Landing eye background ──────────────────────── */
+    .landing-eye-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      overflow: hidden;
+    }
+    .landing-eye-bg-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 40%;
+      display: block;
+    }
+    .landing-eye-bg-overlay {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(to bottom,
+          rgba(8,11,16,0.25) 0%,
+          rgba(8,11,16,0.40) 35%,
+          rgba(8,11,16,0.80) 65%,
+          rgba(8,11,16,0.95) 85%,
+          #080b10 100%
+        );
+      pointer-events: none;
+    }
+
     /* ─── Hero (compact) ───────────────────────────────── */
-    .hero-section {
-      padding-top: 0;
+    .landing-hero-section {
+      padding-top: clamp(160px, 22vh, 260px);
       padding-bottom: 3rem;
       position: relative;
       overflow: visible;
-    }
-    .hero-section::before {
-      content: '';
-      position: absolute;
-      bottom: 0; left: 50%;
-      transform: translateX(-50%);
-      width: 900px; height: 420px;
-      background: radial-gradient(ellipse, rgba(201,143,10,0.14) 0%, transparent 62%);
-      pointer-events: none;
-      z-index: 0;
+      min-height: 70vh;
+      display: flex;
+      align-items: center;
     }
     .hero-compact {
       text-align: center;
@@ -1907,45 +1946,34 @@
       height: auto;
       filter: drop-shadow(0 0 28px rgba(201,143,10,0.2));
     }
-    /* Eye pinned horizontally centered, seated in the top quarter of
-       the viewport. PNG already has real alpha so no blend-mode hack. */
-    .hero-eye-fixed {
+    /* Viewport-wide orange spotlight that tracks the pointer.
+       Subtle enough to read as atmosphere, not a flashlight. */
+    .cursor-glow {
       position: fixed;
-      top: clamp(80px, 9vh, 120px);
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 0;
+      inset: 0;
+      z-index: 1;
       pointer-events: none;
-      display: flex;
-      justify-content: center;
+      opacity: 0;
+      transition: opacity 260ms ease;
+      background: radial-gradient(
+        520px circle at var(--cg-x, -9999px) var(--cg-y, -9999px),
+        rgba(240, 165, 0, 0.10) 0%,
+        rgba(240, 165, 0, 0.045) 28%,
+        transparent 62%
+      );
+      mix-blend-mode: screen;
+      will-change: background-position;
     }
-    .hero-eye-img {
-      /* Landscape PNG (1536×1024). Size by width; height follows. */
-      width: clamp(460px, 62vw, 880px);
-      height: auto;
-      max-width: 92vw;
-      display: block;
-      filter:
-        drop-shadow(0 0 90px rgba(201,143,10,0.3))
-        drop-shadow(0 0 30px rgba(245,200,66,0.22));
-      user-select: none;
-      pointer-events: none;
-    }
-    /* Full-viewport spacer so the eye is alone above the fold
-       before the hero copy scrolls up and overlays it. */
-    .hero-eye-spacer {
-      height: 100vh;
-      width: 100%;
-      pointer-events: none;
-    }
+
+    /* (Legacy hero-eye-fixed removed — now using .landing-eye-bg) */
     .hero-compact-title {
-      font-family: 'Outfit', sans-serif;
-      font-weight: 800;
-      font-size: clamp(2.5rem, 5.2vw, 4.3rem);
-      line-height: 1.04;
-      letter-spacing: -0.03em;
+      font-family: 'Instrument Serif', serif;
+      font-weight: 400;
+      font-size: clamp(3rem, 7vw, 5.5rem);
+      line-height: 1.06;
+      letter-spacing: -0.02em;
       color: var(--text);
-      margin-bottom: 1.25rem;
+      margin-bottom: 1.5rem;
     }
     .hero-compact-title em {
       color: var(--accent);
@@ -2017,6 +2045,7 @@
     .features-strip {
       padding: 1.5rem 0 3.5rem;
       position: relative;
+      background: transparent;
     }
     .features-inner {
       display: grid;
@@ -2263,7 +2292,263 @@
       .features-inner { grid-template-columns: 1fr; }
       .analysis-inner { grid-template-columns: 1fr; gap: 2.5rem; }
       .analysis-form-wrap { position: static; }
-      .hero-section { padding-top: 6rem; }
+      .landing-hero-section { padding-top: 8rem; min-height: 60vh; }
       .hero-quotes { font-size: 0.78rem; }
       .site-footer-inner { flex-direction: column-reverse; text-align: center; }
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       Premium Pricing Page
+       ───────────────────────────────────────────────────────── */
+
+    .pp-page {
+      min-height: 100vh;
+      background: var(--bg);
+      font-family: 'Outfit', sans-serif;
+      color: var(--text);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    .pp-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(13,17,23,0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .pp-logo {
+      font-family: 'Instrument Serif', serif;
+      font-size: 1.25rem;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .pp-logo-ai {
+      color: var(--accent);
+      font-style: italic;
+    }
+    .pp-back {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .pp-back:hover { color: var(--accent); }
+
+    .pp-header {
+      text-align: center;
+      padding: 4rem 2rem 2rem;
+      position: relative;
+      z-index: 1;
+    }
+    .pp-title {
+      font-family: 'Instrument Serif', serif;
+      font-weight: 400;
+      font-size: clamp(2.2rem, 5.5vw, 3.8rem);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+    }
+    .pp-subtitle {
+      font-size: 1.05rem;
+      color: var(--accent);
+      opacity: 0.85;
+      max-width: 440px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    .pp-banner {
+      max-width: 700px;
+      margin: 1rem auto;
+      padding: 0.75rem 1.25rem;
+      background: rgba(201,143,10,0.1);
+      border: 1px solid rgba(201,143,10,0.3);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      position: relative;
+      z-index: 1;
+    }
+    .pp-banner button {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .pp-banner-error {
+      background: rgba(239,68,68,0.1);
+      border-color: rgba(239,68,68,0.3);
+      color: var(--red);
+    }
+
+    .pp-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      max-width: 1040px;
+      margin: 2rem auto 0;
+      padding: 0 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .pp-card {
+      background: rgba(13,17,23,0.55);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(201,143,10,0.25);
+      border-radius: 18px;
+      padding: 2.25rem 2rem;
+      position: relative;
+      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+    }
+    .pp-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 0 32px rgba(201,143,10,0.15);
+      border-color: rgba(201,143,10,0.45);
+    }
+    .pp-card-featured {
+      background: rgba(201,143,10,0.06);
+      border-color: rgba(201,143,10,0.45);
+      box-shadow: 0 0 24px rgba(201,143,10,0.1);
+    }
+    .pp-card-featured:hover {
+      box-shadow: 0 0 40px rgba(201,143,10,0.3);
+      border-color: rgba(201,143,10,0.6);
+    }
+
+    .pp-badge {
+      position: absolute;
+      top: 1rem; right: 1rem;
+      background: var(--accent);
+      color: #000;
+      font-size: 0.6rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.6rem;
+      border-radius: 5px;
+    }
+
+    .pp-tier {
+      font-family: 'Outfit', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+    }
+
+    .pp-price {
+      display: flex;
+      align-items: baseline;
+      gap: 0.15rem;
+      margin-bottom: 0.5rem;
+    }
+    .pp-dollar {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .pp-amount {
+      font-family: 'Instrument Serif', serif;
+      font-size: 3.4rem;
+      color: var(--text);
+      line-height: 1;
+    }
+    .pp-period {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+    }
+
+    .pp-desc {
+      font-size: 0.9rem;
+      color: var(--accent);
+      opacity: 0.8;
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+
+    .pp-features {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+    }
+    .pp-features li {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    .pp-features li svg {
+      flex-shrink: 0;
+    }
+
+    .pp-btn {
+      width: 100%;
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid rgba(201,143,10,0.4);
+      border-radius: 9999px;
+      padding: 0.85rem;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 0.925rem;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+    .pp-btn:hover {
+      background: rgba(201,143,10,0.1);
+      border-color: var(--accent);
+      box-shadow: 0 0 18px rgba(201,143,10,0.2);
+    }
+    .pp-btn-featured {
+      background: var(--accent);
+      color: #000;
+      border-color: var(--accent);
+      box-shadow: 0 0 22px rgba(201,143,10,0.35);
+    }
+    .pp-btn-featured:hover {
+      opacity: 0.9;
+      box-shadow: 0 0 30px rgba(201,143,10,0.5);
+      transform: scale(1.02);
+    }
+    .pp-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .pp-footer {
+      text-align: center;
+      padding: 2.5rem 0 3rem;
+      position: relative;
+      z-index: 1;
+    }
+    .pp-contact {
+      font-size: 0.95rem;
+      color: var(--accent);
+      text-decoration: none;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+    .pp-contact:hover { opacity: 1; }
+
+    @media (max-width: 900px) {
+      .pp-grid { grid-template-columns: 1fr; max-width: 420px; }
     }
