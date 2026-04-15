@@ -10,7 +10,7 @@ import { useAuth } from '../contexts/auth-context'
 import { createBusiness } from '../lib/api'
 import { Nav } from '../components/nav'
 import { LoginForm } from '../components/ui/login-form'
-import { AnimatedShaderBackground } from '../components/ui/animated-shader-background'
+import { CyberneticGrid } from '../components/ui/cybernetic-grid'
 
 export default function AuthPage() {
   const { session } = useAuth()
@@ -95,8 +95,8 @@ export default function AuthPage() {
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', background: '#07090d' }}>
-      {/* Orange aurora shader — fixed, full viewport, non-interactive */}
-      <AnimatedShaderBackground />
+      {/* Cybernetic grid background */}
+      <CyberneticGrid />
 
       {/* Vignette + readability layer */}
       <div

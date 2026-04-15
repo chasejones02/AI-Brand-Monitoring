@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
 import { createCheckoutSession } from '../lib/api'
-import { AnimatedShaderBackground } from '../components/ui/animated-shader-background'
+import { CyberneticGrid } from '../components/ui/cybernetic-grid'
 
 const check = (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round">
@@ -45,10 +45,8 @@ export default function PricingPage() {
 
   return (
     <div className="pp-page">
-      {/* Shader background */}
-      <div className="shader-bg-wrap">
-        <AnimatedShaderBackground />
-      </div>
+      {/* Cybernetic grid background */}
+      <CyberneticGrid />
 
       {/* Nav */}
       <nav className="pp-nav">
