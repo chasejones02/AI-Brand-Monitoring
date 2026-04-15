@@ -1904,6 +1904,25 @@
       object-fit: cover;
       object-position: center 40%;
       display: block;
+      transform-origin: 50% 42%;
+      animation:
+        landing-eye-breathe 11s ease-in-out infinite,
+        landing-eye-sway 17s ease-in-out infinite;
+      will-change: transform;
+    }
+    @keyframes landing-eye-breathe {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      50%      { transform: scale(1.025) rotate(0.25deg); }
+    }
+    @keyframes landing-eye-sway {
+      0%   { translate: 0 0; }
+      25%  { translate: 16px -10px; }
+      50%  { translate: -12px 8px; }
+      75%  { translate: 14px 12px; }
+      100% { translate: 0 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .landing-eye-bg-img { animation: none; }
     }
     .landing-eye-bg-overlay {
       position: absolute;
