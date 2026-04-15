@@ -8,9 +8,10 @@ export function Hero({ onCtaClick }: { onCtaClick: () => void }) {
   return (
     <div className="hero-compact">
       <h1 className="hero-compact-title anim-2">
-        See how the world's<br />
-        AIs see <em>your brand</em>
+        Does AI see <em>your brand</em>?
       </h1>
+
+      <p className="hero-compact-sub anim-3">Find out now</p>
 
       <div className="hero-compact-cta anim-4">
         <button className="btn-primary hero-check-btn" onClick={onCtaClick}>
