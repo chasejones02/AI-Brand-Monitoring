@@ -94,7 +94,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', background: '#07090d' }}>
+    <div style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden' }}>
       {/* Cybernetic grid background */}
       <CyberneticGrid />
 

@@ -46,9 +46,9 @@ export function CyberneticGrid() {
         float t         = iTime * 0.16;
         float mouseDist = length(uv - mouse);
 
-        // gentle warp around cursor
-        float warp = sin(mouseDist * 14.0 - t * 3.0) * 0.05;
-        warp *= smoothstep(0.40, 0.0, mouseDist);
+        // gentle warp around cursor — tight, localized
+        float warp = sin(mouseDist * 24.0 - t * 3.0) * 0.022;
+        warp *= smoothstep(0.18, 0.0, mouseDist);
         uv += warp;
 
         // brand palette
@@ -58,24 +58,25 @@ export function CyberneticGrid() {
         vec3 warmGrey  = vec3(0.235, 0.220, 0.205);
 
         // base grid — dense, warm dark grey, very subtle
-        vec2 gridUv = abs(fract(uv * 10.0) - 0.5);
+        float gridFreq = 50.0;
+        vec2 gridUv = abs(fract(uv * gridFreq) - 0.5);
         float line  = pow(1.0 - min(gridUv.x, gridUv.y), 60.0);
         vec3 color = warmGrey * line * 0.60;
 
         // small amber dots at grid intersections — quiet cybernetic texture
-        vec2 cell = fract(uv * 10.0) - 0.5;
-        float node = smoothstep(0.07, 0.0, length(cell));
-        vec2 cellId = floor(uv * 10.0);
+        vec2 cell = fract(uv * gridFreq) - 0.5;
+        float node = smoothstep(0.12, 0.0, length(cell));
+        vec2 cellId = floor(uv * gridFreq);
         float pick = step(0.86, random(cellId));
         color += deepAmber * node * pick * 0.75;
 
         // cursor region: warm the grid to amber only near the mouse
-        float near = smoothstep(0.35, 0.0, mouseDist);
-        color += amber * line * near * 0.75;
+        float near = smoothstep(0.16, 0.0, mouseDist);
+        color += amber * line * near * 0.80;
 
         // soft amber glow around cursor
-        float glow = smoothstep(0.18, 0.0, mouseDist);
-        color += vec3(1.0, 0.72, 0.18) * glow * 0.35;
+        float glow = smoothstep(0.09, 0.0, mouseDist);
+        color += vec3(1.0, 0.72, 0.18) * glow * 0.40;
 
         // subtle film grain
         color += (random(uv + t * 0.1) - 0.5) * 0.025;

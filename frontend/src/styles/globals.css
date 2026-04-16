@@ -2369,7 +2369,7 @@
 
     .pp-page {
       min-height: 100vh;
-      background: var(--bg);
+      background: transparent;
       font-family: 'Outfit', sans-serif;
       color: var(--text);
       position: relative;
