@@ -4,10 +4,11 @@
  */
 
 import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
 import { createCheckoutSession } from '../lib/api'
 import { CyberneticGrid } from '../components/ui/cybernetic-grid'
+import { Nav } from '../components/nav'
 
 const check = (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round">
@@ -48,15 +49,7 @@ export default function PricingPage() {
       {/* Cybernetic grid background */}
       <CyberneticGrid />
 
-      {/* Nav */}
-      <nav className="pp-nav">
-        <Link to="/" className="pp-logo">
-          <span className="pp-logo-ai">AI</span> Brand Monitor
-        </Link>
-        <Link to={session ? '/dashboard' : '/'} className="pp-back">
-          ← Back
-        </Link>
-      </nav>
+      <Nav />
 
       {/* Header */}
       <header className="pp-header">

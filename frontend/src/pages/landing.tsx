@@ -7,6 +7,7 @@
 import { useNavigate } from 'react-router-dom'
 import { Nav } from '../components/nav'
 import { Hero } from '../components/hero'
+import { StakesSection } from '../components/stakes-section'
 import { FeaturesStrip } from '../components/features-strip'
 import { Footer } from '../components/footer'
 import { useScrollReveal } from '../hooks/use-scroll-reveal'
@@ -36,6 +37,8 @@ export function LandingPage() {
             <Hero onCtaClick={() => navigate('/analyze')} />
           </div>
         </section>
+
+        <StakesSection onCtaClick={() => navigate('/analyze')} />
 
         <FeaturesStrip />
       </main>

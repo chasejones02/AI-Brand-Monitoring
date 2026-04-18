@@ -1190,7 +1190,7 @@ const s: Record<string, React.CSSProperties> = {
     minWidth: 0,
   },
   navLogo: {
-    fontFamily: "'Instrument Serif', serif",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: '1.2rem',
     color: 'var(--text)',
     textDecoration: 'none',
@@ -1324,7 +1324,7 @@ const s: Record<string, React.CSSProperties> = {
     paddingBottom: '2rem',
   },
   formCardTitle: {
-    fontFamily: "'Instrument Serif', serif",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: 'clamp(1.8rem, 4vw, 2.8rem)',
     fontWeight: 400,
     color: 'var(--text)',
@@ -1467,7 +1467,7 @@ const s: Record<string, React.CSSProperties> = {
     padding: '2rem',
   },
   emptyTitle: {
-    fontFamily: "'Instrument Serif', serif",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: '1.8rem',
     fontWeight: 400,
     color: 'var(--text)',
@@ -1519,7 +1519,7 @@ const s: Record<string, React.CSSProperties> = {
     zIndex: 1,
   },
   runningTitle: {
-    fontFamily: "'Instrument Serif', serif",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: '2rem',
     fontWeight: 400,
     color: 'var(--text)',
@@ -1577,7 +1577,7 @@ const s: Record<string, React.CSSProperties> = {
     marginBottom: '0.6rem',
   },
   businessName: {
-    fontFamily: "'Instrument Serif', serif",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: 'clamp(2rem, 5vw, 3.2rem)',
     fontWeight: 400,
     lineHeight: 1.1,
@@ -1681,7 +1681,7 @@ const s: Record<string, React.CSSProperties> = {
     marginTop: '0.5rem',
   },
   sectionTitle: {
-    fontFamily: "'Instrument Serif', serif",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: '1.4rem',
     fontWeight: 400,
     color: 'var(--text)',

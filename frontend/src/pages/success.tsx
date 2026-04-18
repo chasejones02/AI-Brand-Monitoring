@@ -90,7 +90,7 @@ const s: Record<string, React.CSSProperties> = {
     gap: '0',
   },
   logo: {
-    fontFamily: "'Instrument Serif', serif",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: '1.1rem',
     color: 'var(--text)',
     textDecoration: 'none',
@@ -131,7 +131,7 @@ const s: Record<string, React.CSSProperties> = {
     marginBottom: '0.5rem',
   },
   heading: {
-    fontFamily: "'Instrument Serif', serif",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: '2.4rem',
     fontWeight: 400,
     color: 'var(--text)',
