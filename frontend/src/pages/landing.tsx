@@ -1,10 +1,13 @@
 /**
  * LandingPage — Full-bleed golden eye background with hero overlay.
- * The eye image covers the viewport as a background.
- * Hero text, CTA, quote strip, feature cards, and footer layer on top.
+ * The eye fades out via GSAP ScrollTrigger as the user scrolls past
+ * the stakes section, revealing a clean grid background underneath.
  */
 
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Nav } from '../components/nav'
 import { Hero } from '../components/hero'
 import { StakesSection } from '../components/stakes-section'
@@ -18,17 +21,45 @@ import { CtaSection } from '../components/cta-section'
 import { Footer } from '../components/footer'
 import { useScrollReveal } from '../hooks/use-scroll-reveal'
 
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger)
+}
+
 export function LandingPage() {
   const navigate = useNavigate()
+  const eyeBgRef = useRef<HTMLDivElement>(null)
+  const stakesRef = useRef<HTMLDivElement>(null)
 
   useScrollReveal()
+
+  useEffect(() => {
+    if (!eyeBgRef.current || !stakesRef.current) return
+
+    const ctx = gsap.context(() => {
+      gsap.to(eyeBgRef.current, {
+        opacity: 0,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: stakesRef.current,
+          start: 'top 60%',
+          end: 'bottom 20%',
+          scrub: 1,
+        },
+      })
+    })
+
+    return () => ctx.revert()
+  }, [])
 
   return (
     <>
       <Nav />
 
-      {/* Full-bleed eye background */}
-      <div className="landing-eye-bg" aria-hidden>
+      {/* Clean grid background — visible after eye fades */}
+      <div className="landing-clean-bg" aria-hidden />
+
+      {/* Full-bleed eye background — fades out on scroll */}
+      <div className="landing-eye-bg" ref={eyeBgRef} aria-hidden>
         <img
           src="/ai_brand_monitor_landing_page (2).png"
           alt=""
@@ -44,7 +75,9 @@ export function LandingPage() {
           </div>
         </section>
 
-        <StakesSection onCtaClick={() => navigate('/analyze')} />
+        <div ref={stakesRef}>
+          <StakesSection onCtaClick={() => navigate('/analyze')} />
+        </div>
 
         <FeaturesStrip />
 

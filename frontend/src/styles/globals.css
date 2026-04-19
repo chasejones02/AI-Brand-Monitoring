@@ -1925,6 +1925,35 @@
     main { position: relative; z-index: 1; }
 
     /* ─── Landing eye background ──────────────────────── */
+    /* Clean grid bg — sits behind the eye, revealed on scroll */
+    .landing-clean-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      background-color: #080b10;
+      background-size: 56px 56px;
+      background-image:
+        linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+      mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black 30%, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, black 30%, transparent 75%);
+    }
+    .landing-clean-bg::after {
+      content: '';
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(ellipse at center,
+        rgba(240, 165, 0, 0.06) 0%,
+        rgba(240, 165, 0, 0.02) 40%,
+        transparent 70%);
+      filter: blur(60px);
+      pointer-events: none;
+    }
+
     .landing-eye-bg {
       position: fixed;
       inset: 0;
