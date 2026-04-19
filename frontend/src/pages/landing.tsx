@@ -9,6 +9,12 @@ import { Nav } from '../components/nav'
 import { Hero } from '../components/hero'
 import { StakesSection } from '../components/stakes-section'
 import { FeaturesStrip } from '../components/features-strip'
+import { ScoreboardPreview } from '../components/scoreboard-preview'
+import { AudienceStrip } from '../components/audience-strip'
+import { Differentiator } from '../components/differentiator'
+import { TrustStrip } from '../components/trust-strip'
+import { FaqSection } from '../components/faq-section'
+import { CtaSection } from '../components/cta-section'
 import { Footer } from '../components/footer'
 import { useScrollReveal } from '../hooks/use-scroll-reveal'
 
@@ -41,6 +47,18 @@ export function LandingPage() {
         <StakesSection onCtaClick={() => navigate('/analyze')} />
 
         <FeaturesStrip />
+
+        <ScoreboardPreview onCtaClick={() => navigate('/analyze')} />
+
+        <AudienceStrip />
+
+        <Differentiator />
+
+        <TrustStrip />
+
+        <FaqSection />
+
+        <CtaSection onCtaClick={() => navigate('/analyze')} />
       </main>
 
       <Footer />
