@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/auth-context'
 import { createCheckoutSession } from '../lib/api'
 import { Nav } from '../components/nav'
 import { CrystalCursor } from '../components/crystal-cursor'
+import { TiltCard } from '../components/ui/tilt-card'
 
 const check = (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round">
@@ -69,7 +70,7 @@ export default function PricingPage() {
       {/* Cards */}
       <div className="pp-grid">
         {/* Starter */}
-        <div className="pp-card">
+        <TiltCard className="pp-card">
           <div className="pp-tier">Starter</div>
           <div className="pp-price">
             <span className="pp-dollar">$</span>
@@ -89,10 +90,10 @@ export default function PricingPage() {
           >
             {loading === 'starter' ? 'Redirecting…' : 'Start 7-day free trial'}
           </button>
-        </div>
+        </TiltCard>
 
         {/* Growth */}
-        <div className="pp-card pp-card-featured">
+        <TiltCard className="pp-card pp-card-featured">
           <div className="pp-badge">MOST POPULAR</div>
           <div className="pp-tier">Growth</div>
           <div className="pp-price">
@@ -116,10 +117,10 @@ export default function PricingPage() {
           >
             {loading === 'growth' ? 'Redirecting…' : 'Start 7-day free trial'}
           </button>
-        </div>
+        </TiltCard>
 
         {/* Agency */}
-        <div className="pp-card">
+        <TiltCard className="pp-card">
           <div className="pp-tier">Agency</div>
           <div className="pp-price">
             <span className="pp-dollar">$</span>
@@ -142,7 +143,7 @@ export default function PricingPage() {
           >
             {loading === 'agency' ? 'Redirecting…' : 'Contact sales'}
           </button>
-        </div>
+        </TiltCard>
       </div>
 
       {/* Footer link */}

@@ -400,6 +400,12 @@
       border-left: 2px solid var(--accent);
       border-radius: 20px;
       padding: 2.5rem;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .form-card:hover {
+      border-color: rgba(201,143,10,0.3);
+      border-left-color: var(--accent);
+      box-shadow: 0 12px 40px -16px rgba(201,143,10,0.35);
     }
 
     .form-header {
@@ -3136,6 +3142,12 @@
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
       box-shadow: 0 22px 60px -28px rgba(0,0,0,0.55);
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    .analyze-form:hover {
+      border-color: rgba(201,143,10,0.3);
+      border-left-color: var(--accent);
+      box-shadow: 0 12px 40px -16px rgba(201,143,10,0.35);
     }
     .analyze-title {
       font-family: 'Outfit', sans-serif;
@@ -3643,19 +3655,17 @@
     }
 
     .pp-card {
-      background: rgba(13,17,23,0.55);
+      background: rgba(13,17,23,0.6);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(201,143,10,0.25);
+      border: 1px solid rgba(255,255,255,0.06);
       border-radius: 18px;
       padding: 2.25rem 2rem;
       position: relative;
-      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
     }
     .pp-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 0 32px rgba(201,143,10,0.15);
-      border-color: rgba(201,143,10,0.45);
+      border-color: rgba(201,143,10,0.3);
+      box-shadow: 0 12px 40px -16px rgba(201,143,10,0.35);
     }
     .pp-card-featured {
       background: rgba(201,143,10,0.06);
@@ -3663,7 +3673,7 @@
       box-shadow: 0 0 24px rgba(201,143,10,0.1);
     }
     .pp-card-featured:hover {
-      box-shadow: 0 0 40px rgba(201,143,10,0.3);
+      box-shadow: 0 12px 40px -16px rgba(201,143,10,0.45);
       border-color: rgba(201,143,10,0.6);
     }
 

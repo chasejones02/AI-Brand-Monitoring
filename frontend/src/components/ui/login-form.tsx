@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { User, Lock, ArrowRight, Building2, MapPin, FileText } from 'lucide-react'
 
 /* ─── WebGL Shader ─────────────────────────────────── */
@@ -258,10 +258,11 @@ const glassCard: React.CSSProperties = {
   backdropFilter: 'blur(28px) saturate(140%)',
   WebkitBackdropFilter: 'blur(28px) saturate(140%)',
   borderRadius: '22px',
-  border: '1px solid rgba(255,255,255,0.14)',
+  border: '1px solid rgba(255,255,255,0.06)',
   boxShadow:
-    '0 24px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04) inset, 0 1px 0 rgba(255,255,255,0.18) inset, 0 0 120px rgba(201,143,10,0.08)',
+    '0 24px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04) inset, 0 1px 0 rgba(255,255,255,0.18) inset',
   backfaceVisibility: 'hidden',
+  transition: 'border-color 0.25s ease, box-shadow 0.25s ease',
 }
 
 /* ─── Submit Button ────────────────────────────────── */
@@ -334,6 +335,28 @@ export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, flipped, error
   const [bizLocation, setBizLocation] = useState('')
   const [bizDesc, setBizDesc] = useState('')
   const [bizLoading, setBizLoading] = useState(false)
+  const tiltRef = useRef<HTMLDivElement>(null)
+  const [tilt, setTilt] = useState({ x: 0, y: 0 })
+  const [hovered, setHovered] = useState(false)
+
+  const handleTiltMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const el = tiltRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    const maxTilt = 6
+    setTilt({
+      x: ((cy - e.clientY) / (rect.height / 2)) * maxTilt,
+      y: ((e.clientX - cx) / (rect.width / 2)) * maxTilt,
+    })
+    setHovered(true)
+  }, [])
+
+  const handleTiltLeave = useCallback(() => {
+    setTilt({ x: 0, y: 0 })
+    setHovered(false)
+  }, [])
 
   const handleAuth = (e: React.FormEvent) => {
     e.preventDefault()
@@ -349,7 +372,20 @@ export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, flipped, error
   }
 
   return (
-    <div style={{ width: '100%', maxWidth: '420px', perspective: '1200px' }}>
+    <div
+      ref={tiltRef}
+      onMouseMove={handleTiltMove}
+      onMouseLeave={handleTiltLeave}
+      style={{
+        width: '100%',
+        maxWidth: '420px',
+        perspective: '1200px',
+        transform: `perspective(800px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+        transformStyle: 'preserve-3d',
+        willChange: 'transform',
+        transition: 'transform 0.4s cubic-bezier(.22, 1, .36, 1)',
+      }}
+    >
       <div
         style={{
           position: 'relative',
@@ -360,7 +396,13 @@ export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, flipped, error
         }}
       >
         {/* ── FRONT: Auth ── */}
-        <div style={glassCard}>
+        <div style={{
+          ...glassCard,
+          borderColor: hovered ? 'rgba(201,143,10,0.3)' : undefined,
+          boxShadow: hovered
+            ? '0 12px 40px -16px rgba(201,143,10,0.35), 0 0 0 1px rgba(255,255,255,0.04) inset, 0 1px 0 rgba(255,255,255,0.18) inset'
+            : glassCard.boxShadow,
+        }}>
           {/* Mode toggle */}
           <div
             style={{
@@ -472,6 +514,10 @@ export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, flipped, error
         <div
           style={{
             ...glassCard,
+            borderColor: hovered ? 'rgba(201,143,10,0.3)' : undefined,
+            boxShadow: hovered
+              ? '0 12px 40px -16px rgba(201,143,10,0.35), 0 0 0 1px rgba(255,255,255,0.04) inset, 0 1px 0 rgba(255,255,255,0.18) inset'
+              : glassCard.boxShadow,
             position: 'absolute',
             top: 0,
             left: 0,

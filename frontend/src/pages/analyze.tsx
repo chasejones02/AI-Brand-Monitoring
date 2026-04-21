@@ -10,6 +10,7 @@ import { DemoPlayer } from '../components/demo-player'
 import { HeroForm } from '../components/hero-form'
 import { Footer } from '../components/footer'
 import { CrystalCursor } from '../components/crystal-cursor'
+import { TiltCard } from '../components/ui/tilt-card'
 import { useScrollReveal } from '../hooks/use-scroll-reveal'
 
 export default function AnalyzePage() {
@@ -48,16 +49,18 @@ export default function AnalyzePage() {
 
         <section className="analysis-section" id="start">
           <div className="container analysis-inner">
-            <div className="analysis-demo reveal">
+            <TiltCard className="analysis-demo reveal">
               <div className="analysis-demo-label">
                 <span className="analysis-demo-dot" />
                 See how it works
               </div>
               <DemoPlayer onCtaClick={scrollToForm} />
-            </div>
+            </TiltCard>
 
             <div className="analysis-form-wrap reveal" ref={formRef}>
-              <HeroForm />
+              <TiltCard>
+                <HeroForm />
+              </TiltCard>
             </div>
           </div>
         </section>
