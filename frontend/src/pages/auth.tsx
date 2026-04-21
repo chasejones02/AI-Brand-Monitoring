@@ -10,7 +10,7 @@ import { useAuth } from '../contexts/auth-context'
 import { createBusiness } from '../lib/api'
 import { Nav } from '../components/nav'
 import { LoginForm } from '../components/ui/login-form'
-import { CyberneticGrid } from '../components/ui/cybernetic-grid'
+import { CrystalCursor } from '../components/crystal-cursor'
 
 export default function AuthPage() {
   const { session } = useAuth()
@@ -95,8 +95,9 @@ export default function AuthPage() {
 
   return (
     <div style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden' }}>
-      {/* Cybernetic grid background */}
-      <CyberneticGrid />
+      {/* Grid + crystal cursor background (matches landing page bottom) */}
+      <div className="landing-clean-bg" aria-hidden />
+      <CrystalCursor active />
 
       {/* Vignette + readability layer */}
       <div

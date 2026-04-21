@@ -7,8 +7,8 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
 import { createCheckoutSession } from '../lib/api'
-import { CyberneticGrid } from '../components/ui/cybernetic-grid'
 import { Nav } from '../components/nav'
+import { CrystalCursor } from '../components/crystal-cursor'
 
 const check = (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round">
@@ -46,8 +46,9 @@ export default function PricingPage() {
 
   return (
     <div className="pp-page">
-      {/* Cybernetic grid background */}
-      <CyberneticGrid />
+      {/* Grid + crystal cursor background (matches landing page bottom) */}
+      <div className="landing-clean-bg" aria-hidden />
+      <CrystalCursor active />
 
       <Nav />
 

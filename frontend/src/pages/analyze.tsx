@@ -9,7 +9,7 @@ import { Nav } from '../components/nav'
 import { DemoPlayer } from '../components/demo-player'
 import { HeroForm } from '../components/hero-form'
 import { Footer } from '../components/footer'
-import { CyberneticGrid } from '../components/ui/cybernetic-grid'
+import { CrystalCursor } from '../components/crystal-cursor'
 import { useScrollReveal } from '../hooks/use-scroll-reveal'
 
 export default function AnalyzePage() {
@@ -26,7 +26,10 @@ export default function AnalyzePage() {
 
   return (
     <>
-      <CyberneticGrid />
+      {/* Grid + crystal cursor background (matches landing page bottom) */}
+      <div className="landing-clean-bg" aria-hidden />
+      <CrystalCursor active />
+
       <Nav />
 
       <main>
