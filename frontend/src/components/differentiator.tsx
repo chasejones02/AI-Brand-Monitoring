@@ -1,4 +1,24 @@
+import { useCallback, useRef, useState } from 'react'
+
 export function Differentiator() {
+  const cardRef = useRef<HTMLDivElement>(null)
+  const [tilt, setTilt] = useState({ x: 0, y: 0 })
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const el = cardRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    const rotateY = ((e.clientX - cx) / (rect.width / 2)) * 6
+    const rotateX = ((cy - e.clientY) / (rect.height / 2)) * 6
+    setTilt({ x: rotateX, y: rotateY })
+  }, [])
+
+  const handleMouseLeave = useCallback(() => {
+    setTilt({ x: 0, y: 0 })
+  }, [])
+
   return (
     <section className="diff-section">
       <div className="container">
@@ -11,7 +31,15 @@ export function Differentiator() {
           </p>
         </div>
 
-        <div className="diff-card reveal">
+        <div
+          className="diff-card reveal"
+          ref={cardRef}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          style={{
+            transform: `perspective(900px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+          }}
+        >
           <div className="diff-col diff-col-them">
             <div className="diff-col-label">Traditional tools</div>
             <ul className="diff-list">

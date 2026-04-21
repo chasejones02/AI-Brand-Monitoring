@@ -2,9 +2,10 @@
  * LandingPage — Full-bleed golden eye background with hero overlay.
  * The eye fades out via GSAP ScrollTrigger as the user scrolls past
  * the stakes section, revealing a clean grid background underneath.
+ * A canvas-based crystal cursor effect activates once the eye is gone.
  */
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
@@ -19,6 +20,7 @@ import { TrustStrip } from '../components/trust-strip'
 import { FaqSection } from '../components/faq-section'
 import { CtaSection } from '../components/cta-section'
 import { Footer } from '../components/footer'
+import { CrystalCursor } from '../components/crystal-cursor'
 import { useScrollReveal } from '../hooks/use-scroll-reveal'
 
 if (typeof window !== 'undefined') {
@@ -29,6 +31,7 @@ export function LandingPage() {
   const navigate = useNavigate()
   const eyeBgRef = useRef<HTMLDivElement>(null)
   const stakesRef = useRef<HTMLDivElement>(null)
+  const [crystalActive, setCrystalActive] = useState(false)
 
   useScrollReveal()
 
@@ -46,6 +49,15 @@ export function LandingPage() {
           scrub: 1,
         },
       })
+
+      ScrollTrigger.create({
+        trigger: stakesRef.current,
+        start: 'top 60%',
+        end: 'bottom 20%',
+        onUpdate: (self) => {
+          setCrystalActive(self.progress > 0.85)
+        },
+      })
     })
 
     return () => ctx.revert()
@@ -54,6 +66,9 @@ export function LandingPage() {
   return (
     <>
       <Nav />
+
+      {/* Canvas crystal cursor — activates after eye background fades */}
+      <CrystalCursor active={crystalActive} />
 
       {/* Clean grid background — visible after eye fades */}
       <div className="landing-clean-bg" aria-hidden />

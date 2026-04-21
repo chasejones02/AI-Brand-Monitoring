@@ -2148,6 +2148,11 @@
       -webkit-backdrop-filter: blur(14px) saturate(110%);
       box-shadow: 0 8px 28px -12px rgba(0, 0, 0, 0.6);
       overflow: hidden;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .hero-feed:hover {
+      border-color: rgba(201, 143, 10, 0.4);
+      box-shadow: 0 8px 28px -12px rgba(0, 0, 0, 0.6), 0 0 20px rgba(201, 143, 10, 0.12);
       white-space: nowrap;
     }
     .hero-feed-pulse {
@@ -2462,7 +2467,14 @@
         0 0 0 1px rgba(255, 255, 255, 0.03) inset;
       transform-style: preserve-3d;
       will-change: transform;
-      transition: transform 0.45s cubic-bezier(.22, 1, .36, 1);
+      transition: transform 0.45s cubic-bezier(.22, 1, .36, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .sb-card:hover {
+      border-color: rgba(201, 143, 10, 0.4);
+      box-shadow:
+        0 32px 80px -24px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+        0 0 32px rgba(201, 143, 10, 0.15);
     }
 
     /* Dots */
@@ -2795,6 +2807,13 @@
       backdrop-filter: blur(14px) saturate(110%);
       -webkit-backdrop-filter: blur(14px) saturate(110%);
       box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.5);
+      transform-style: preserve-3d;
+      will-change: transform;
+      transition: transform 0.45s cubic-bezier(.22, 1, .36, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .diff-card:hover {
+      border-color: rgba(201, 143, 10, 0.35);
+      box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.5), 0 0 28px rgba(201, 143, 10, 0.12);
     }
 
     .diff-divider {
@@ -3303,7 +3322,11 @@
       box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.7);
       transform-style: preserve-3d;
       will-change: transform;
-      transition: transform 0.4s cubic-bezier(.22, 1, .36, 1);
+      transition: transform 0.4s cubic-bezier(.22, 1, .36, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .stakes-chat:hover {
+      border-color: rgba(201, 143, 10, 0.4);
+      box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.7), 0 0 28px rgba(201, 143, 10, 0.15);
     }
     .stakes-chat-header {
       display: flex;
@@ -3459,6 +3482,11 @@
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       animation: stakesBubbleIn 0.5s cubic-bezier(.22, 1, .36, 1) 0.35s both;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .stakes-verdict:hover {
+      border-color: rgba(201, 143, 10, 0.45);
+      box-shadow: 0 0 24px rgba(201, 143, 10, 0.12);
     }
     .stakes-verdict-line {
       font-family: 'Outfit', sans-serif;
