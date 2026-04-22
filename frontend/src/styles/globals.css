@@ -1421,6 +1421,96 @@
       color: var(--red);
     }
 
+    /* Free scan strip above pricing cards */
+    .pricing-free-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      margin-top: 2.5rem;
+      padding: 0.75rem 1.25rem;
+      border: 1px dashed rgba(201,143,10,0.25);
+      border-radius: 10px;
+      background: rgba(201,143,10,0.04);
+      font-size: 0.88rem;
+      color: var(--text-muted);
+    }
+    .pricing-free-strip svg {
+      color: var(--green);
+      flex-shrink: 0;
+    }
+    .pricing-free-strip-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      padding: 0;
+      white-space: nowrap;
+      transition: opacity 0.2s ease;
+    }
+    .pricing-free-strip-btn:hover {
+      opacity: 0.8;
+    }
+
+    /* Bottom nudge below pricing cards */
+    .pricing-bottom-nudge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 2.5rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255,255,255,0.05);
+    }
+    .pricing-bottom-text {
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .pricing-bottom-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.92rem;
+      cursor: pointer;
+      padding: 0.4rem 0;
+      transition: color 0.2s ease;
+      text-decoration: underline;
+      text-decoration-color: rgba(255,255,255,0.12);
+      text-underline-offset: 3px;
+    }
+    .pricing-bottom-btn:hover {
+      color: var(--accent);
+      text-decoration-color: rgba(201,143,10,0.4);
+    }
+    .pricing-bottom-btn svg {
+      flex-shrink: 0;
+      transition: transform 0.2s ease;
+    }
+    .pricing-bottom-btn:hover svg {
+      transform: translateX(2px);
+    }
+
+    @media (max-width: 600px) {
+      .pricing-free-strip {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+      }
+    }
+
     /* ─── Bottom CTA ────────────────────────────────────── */
     /* ─── Closing CTA ─────────────────────────────────── */
     .cta-final {
@@ -3605,6 +3695,14 @@
       color: var(--text);
       margin-bottom: 0.75rem;
     }
+    .pp-title-sub {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 600;
+      font-size: clamp(1.3rem, 2.8vw, 1.8rem);
+      color: var(--text-muted);
+      letter-spacing: -0.015em;
+      margin-bottom: 0.75rem;
+    }
     .pp-subtitle {
       font-size: 1.05rem;
       color: var(--accent);
@@ -3781,21 +3879,101 @@
       cursor: not-allowed;
     }
 
-    .pp-footer {
-      text-align: center;
-      padding: 2.5rem 0 3rem;
+    /* Free scan strip above pricing cards */
+    .pp-free-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      max-width: 1040px;
+      margin: 2rem auto 0;
+      padding: 0.75rem 1.25rem;
+      border: 1px dashed rgba(201,143,10,0.25);
+      border-radius: 10px;
+      background: rgba(201,143,10,0.04);
+      font-size: 0.88rem;
+      color: var(--text-muted);
       position: relative;
       z-index: 1;
     }
-    .pp-contact {
-      font-size: 0.95rem;
-      color: var(--accent);
-      text-decoration: none;
-      opacity: 0.8;
-      transition: opacity 0.2s;
+    .pp-free-strip svg {
+      color: var(--green);
+      flex-shrink: 0;
     }
-    .pp-contact:hover { opacity: 1; }
+    .pp-free-strip-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      padding: 0;
+      white-space: nowrap;
+      transition: opacity 0.2s ease;
+    }
+    .pp-free-strip-btn:hover {
+      opacity: 0.8;
+    }
+
+    /* Bottom nudge below pricing cards */
+    .pp-bottom-nudge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4rem;
+      max-width: 1040px;
+      margin: 2.5rem auto 0;
+      padding: 2rem 2rem 3rem;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      position: relative;
+      z-index: 1;
+    }
+    .pp-bottom-text {
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .pp-bottom-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.92rem;
+      cursor: pointer;
+      padding: 0.4rem 0;
+      transition: color 0.2s ease;
+      text-decoration: underline;
+      text-decoration-color: rgba(255,255,255,0.12);
+      text-underline-offset: 3px;
+    }
+    .pp-bottom-btn:hover {
+      color: var(--accent);
+      text-decoration-color: rgba(201,143,10,0.4);
+    }
+    .pp-bottom-btn svg {
+      flex-shrink: 0;
+      transition: transform 0.2s ease;
+    }
+    .pp-bottom-btn:hover svg {
+      transform: translateX(2px);
+    }
 
     @media (max-width: 900px) {
       .pp-grid { grid-template-columns: 1fr; max-width: 420px; }
+      .pp-free-strip {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.5rem;
+        margin-left: 2rem;
+        margin-right: 2rem;
+      }
     }

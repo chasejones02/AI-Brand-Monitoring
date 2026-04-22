@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
 import { createCheckoutSession } from '../lib/api'
 import { Nav } from '../components/nav'
@@ -19,6 +19,7 @@ const check = (
 
 export default function PricingPage() {
   const { session } = useAuth()
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const canceled = searchParams.get('canceled') === 'true'
   const [loading, setLoading] = useState<string | null>(null)
@@ -55,8 +56,9 @@ export default function PricingPage() {
 
       {/* Header */}
       <header className="pp-header">
-        <h1 className="pp-title">Premium Pricing Plans</h1>
-        <p className="pp-subtitle">Choose the plan that elevates your brand visibility.</p>
+        <h1 className="pp-title">Know what AI says about you.</h1>
+        <p className="pp-title-sub">Starting at $29/mo</p>
+        <p className="pp-subtitle">Solo owner? Start with Starter. Managing clients? Jump to Agency.</p>
       </header>
 
       {canceled && (
@@ -66,6 +68,21 @@ export default function PricingPage() {
         </div>
       )}
       {error && <div className="pp-banner pp-banner-error">{error}</div>}
+
+      {/* Free scan strip */}
+      <div className="pp-free-strip">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+        <span>Your first scan is free — no credit card, no commitment.</span>
+        <button className="pp-free-strip-btn" onClick={() => navigate('/analyze')}>
+          Get your free scan
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
+          </svg>
+        </button>
+      </div>
 
       {/* Cards */}
       <div className="pp-grid">
@@ -82,6 +99,7 @@ export default function PricingPage() {
             <li>{check} 5 queries tracked</li>
             <li>{check} Weekly scans</li>
             <li>{check} All 4 AI platforms</li>
+            <li>{check} Track 3 competitors</li>
           </ul>
           <button
             className="pp-btn"
@@ -106,7 +124,7 @@ export default function PricingPage() {
             <li>{check} 15 queries tracked</li>
             <li>{check} Daily scans</li>
             <li>{check} All 4 AI platforms</li>
-            <li>{check} Competitor radar</li>
+            <li>{check} Track 5 competitors</li>
             <li>{check} Historical trend graphs</li>
             <li>{check} Email digest reports</li>
           </ul>
@@ -146,9 +164,15 @@ export default function PricingPage() {
         </TiltCard>
       </div>
 
-      {/* Footer link */}
-      <div className="pp-footer">
-        <a href="mailto:hello@visaion.com" className="pp-contact">Contact sales</a>
+      {/* Bottom nudge */}
+      <div className="pp-bottom-nudge">
+        <span className="pp-bottom-text">Not ready to commit?</span>
+        <button className="pp-bottom-btn" onClick={() => navigate('/analyze')}>
+          Get a free AI visibility scan first — see your score before you pay.
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
+          </svg>
+        </button>
       </div>
     </div>
   )
