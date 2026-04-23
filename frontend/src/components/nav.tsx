@@ -1,39 +1,55 @@
 /**
- * Nav — Fixed top navigation bar.
- * Logo + nav links + CTA button that scrolls to the hero form.
+ * Nav — Fixed top navigation.
+ * Logo + Pricing + How it works + Sign in. CTA routes to /analyze.
  */
 
-interface NavProps {
-  onCtaClick: () => void
-}
+import { Link, useNavigate } from 'react-router-dom'
 
-export function Nav({ onCtaClick }: NavProps) {
+export function Nav({ authPage = false }: { authPage?: boolean }) {
+  const navigate = useNavigate()
+
   return (
     <nav>
       <div className="container nav-inner">
-        <a href="#" className="logo">
-          <div className="logo-mark">
-            <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
-              <rect x="1" y="8" width="3" height="7" fill="#000" rx="1" />
-              <rect x="6" y="5" width="3" height="10" fill="#000" rx="1" />
-              <rect x="11" y="2" width="3" height="13" fill="#000" rx="1" />
-            </svg>
-          </div>
+        <Link to="/" className="logo">
+          <img src="/logo-eye.png" alt="Visaion" className="logo-mark-img" />
           <span className="logo-text">
             Vis<span className="logo-ai">ai</span>on
           </span>
-        </a>
+        </Link>
 
-        <ul className="nav-links">
-          <li><a href="#how-it-works">How it works</a></li>
-          <li><a href="#report">Sample report</a></li>
-          <li><a href="#pricing">Pricing</a></li>
-          <li><a href="/auth">Sign in</a></li>
-        </ul>
+        {authPage ? (
+          <Link
+            to="/"
+            style={{
+              color: 'var(--text-muted)',
+              fontSize: '0.875rem',
+              fontFamily: "'Outfit', sans-serif",
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'color 0.2s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+          >
+            &#8592; Back to home
+          </Link>
+        ) : (
+          <>
+            <ul className="nav-links">
+              <li><Link to="/">Home</Link></li>
+              <li><Link to="/pricing">Pricing</Link></li>
+              <li><Link to="/analyze">How it works</Link></li>
+              <li><Link to="/auth">Sign in</Link></li>
+            </ul>
 
-        <button className="btn-nav" onClick={onCtaClick}>
-          Get Free Report
-        </button>
+            <button className="btn-nav" onClick={() => navigate('/analyze')}>
+              Check Your Visibility
+            </button>
+          </>
+        )}
       </div>
     </nav>
   )

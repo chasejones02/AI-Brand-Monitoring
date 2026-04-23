@@ -1,17 +1,20 @@
 /**
- * Footer — Bottom bar with logo + links.
+ * Footer — Thin single-row bar with working links only.
  */
+
+import { Link } from 'react-router-dom'
 
 export function Footer() {
   return (
-    <footer>
-      <div className="container footer-inner">
-        <div className="footer-copy">© 2026 Vis<span className="logo-ai">ai</span>on. All rights reserved.</div>
+    <footer className="site-footer">
+      <div className="container site-footer-inner">
         <ul className="footer-links">
-          <li><a href="#">Privacy</a></li>
-          <li><a href="#">Terms</a></li>
-          <li><a href="#">Contact</a></li>
+          <li><Link to="/pricing">Pricing</Link></li>
+          <li><a href="mailto:hello@visaion.com">Contact</a></li>
         </ul>
+        <div className="footer-copy">
+          © 2026 Vis<span className="logo-ai">ai</span>on. All rights reserved.
+        </div>
       </div>
     </footer>
   )

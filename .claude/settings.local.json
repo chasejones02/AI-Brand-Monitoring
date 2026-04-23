@@ -10,7 +10,23 @@
       "Bash(find /c/Users/jones/OneDrive/Documents/GitHub/AI-Brand-Monitoring -type f -name *.env*)",
       "WebFetch(domain:github.com)",
       "Bash(xargs ls:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Read(//mnt/skills/public/**)",
+      "Read(//mnt/skills/user/**)",
+      "Read(//tmp/imgtool/**)",
+      "Read(//tmp/**)",
+      "Read(//mnt/c/temp/imgtool/**)",
+      "Bash(\"/mnt/c/Program Files/nodejs/npm\" init -y)",
+      "Bash(\"/mnt/c/Program Files/nodejs/npm\" install jimp)",
+      "Bash(\"/mnt/c/Program Files/nodejs/node.exe\" strip-bg.js)",
+      "Bash(\"/mnt/c/Program Files/nodejs/node.exe\" check-alpha.js)",
+      "Bash(cp \"/mnt/c/Users/jones/Downloads/Futuristic eye with golden accents.png\" \"/mnt/c/Users/jones/OneDrive/Documents/GitHub/AI-Brand-Monitoring/frontend/public/eye.png\")",
+      "Bash(\"/mnt/c/Program Files/nodejs/node.exe\" -e \"const {Jimp}=require\\('jimp'\\);\\(async\\(\\)=>{const img=await Jimp.read\\('C:/Users/jones/OneDrive/Documents/GitHub/AI-Brand-Monitoring/frontend/public/eye.png'\\);const {width,height,data}=img.bitmap;console.log\\('dims',width,'x',height\\);const pts=[['TL',5,5],['TM',width/2|0,5],['TR',width-5,5],['ML',5,height/2|0],['C',width/2|0,height/2|0],['MR',width-5,height/2|0],['BL',5,height-5],['BR',width-5,height-5]];for\\(const[n,x,y]of pts\\){const i=\\(y*width+x\\)*4;console.log\\(n,'rgba\\('+data[i]+','+data[i+1]+','+data[i+2]+','+data[i+3]+'\\)'\\)}}\\)\\(\\);\")",
+      "Read(//mnt/**)",
+      "Read(//home/jones/.claude/**)",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "Bash(curl -s http://localhost:5173/)"
     ]
   }
 }

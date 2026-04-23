@@ -1,10 +1,13 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/auth-context'
 import { LandingPage } from './pages/landing'
 import AuthPage from './pages/auth'
 import DashboardPage from './pages/dashboard'
 import SuccessPage from './pages/success'
 import PricingPage from './pages/pricing'
+import AnalyzePage from './pages/analyze'
+import { EyeballIntro } from './components/eyeball-intro'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth()
@@ -13,10 +16,21 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function HomeOnLoad() {
+  const navigate = useNavigate()
+  useEffect(() => {
+    if (window.location.pathname !== '/') {
+      navigate('/', { replace: true })
+    }
+  }, [])
+  return null
+}
+
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/analyze" element={<AnalyzePage />} />
       <Route path="/auth" element={<AuthPage />} />
       <Route
         path="/dashboard"
@@ -34,9 +48,17 @@ function AppRoutes() {
 }
 
 export default function App() {
+  const [introShown, setIntroShown] = useState(false)
+
+  function handleIntroComplete() {
+    setIntroShown(true)
+  }
+
   return (
     <BrowserRouter>
       <AuthProvider>
+        <HomeOnLoad />
+        {!introShown && <EyeballIntro onComplete={handleIntroComplete} />}
         <AppRoutes />
       </AuthProvider>
     </BrowserRouter>

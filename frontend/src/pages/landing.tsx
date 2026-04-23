@@ -1,87 +1,114 @@
 /**
- * LandingPage — Composes all landing page sections in order.
- *
- * Hero: left = headline/chips/CTA, right = auto-playing DemoPlayer.
- * Signup section sits below the ticker with the full HeroForm.
+ * LandingPage — Full-bleed golden eye background with hero overlay.
+ * The eye fades out via GSAP ScrollTrigger as the user scrolls past
+ * the stakes section, revealing a clean grid background underneath.
+ * A canvas-based crystal cursor effect activates once the eye is gone.
  */
 
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { Nav } from '../components/nav'
 import { Hero } from '../components/hero'
-import { DemoPlayer } from '../components/demo-player'
-import { HeroForm } from '../components/hero-form'
-import { Ticker } from '../components/ticker'
-import { HowItWorks } from '../components/how-it-works'
-import { ReportPreview } from '../components/report-preview'
-import { Pricing } from '../components/pricing'
+import { StakesSection } from '../components/stakes-section'
+import { FeaturesStrip } from '../components/features-strip'
+import { ScoreboardPreview } from '../components/scoreboard-preview'
+import { AudienceStrip } from '../components/audience-strip'
+import { Differentiator } from '../components/differentiator'
+import { TrustStrip } from '../components/trust-strip'
+import { FaqSection } from '../components/faq-section'
 import { CtaSection } from '../components/cta-section'
 import { Footer } from '../components/footer'
+import { CrystalCursor } from '../components/crystal-cursor'
 import { useScrollReveal } from '../hooks/use-scroll-reveal'
 
+if (typeof window !== 'undefined') {
+  gsap.registerPlugin(ScrollTrigger)
+}
+
 export function LandingPage() {
-  const signupSectionRef = useRef<HTMLElement>(null)
+  const navigate = useNavigate()
+  const eyeBgRef = useRef<HTMLDivElement>(null)
+  const stakesRef = useRef<HTMLDivElement>(null)
+  const [crystalActive, setCrystalActive] = useState(false)
 
   useScrollReveal()
 
-  function scrollToForm() {
-    signupSectionRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
+  useEffect(() => {
+    if (!eyeBgRef.current || !stakesRef.current) return
 
-  function handleCtaSubmit(email: string) {
-    scrollToForm()
-    setTimeout(() => {
-      const emailInput = document.getElementById('email') as HTMLInputElement | null
-      if (emailInput) {
-        emailInput.value = email
-        emailInput.focus()
-      }
-    }, 600)
-  }
+    const ctx = gsap.context(() => {
+      gsap.to(eyeBgRef.current, {
+        opacity: 0,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: stakesRef.current,
+          start: 'top 60%',
+          end: 'bottom 20%',
+          scrub: 1,
+        },
+      })
+
+      ScrollTrigger.create({
+        trigger: stakesRef.current,
+        start: 'top 60%',
+        end: 'bottom 20%',
+        onUpdate: (self) => {
+          setCrystalActive(self.progress > 0.85)
+        },
+      })
+    })
+
+    return () => ctx.revert()
+  }, [])
 
   return (
     <>
-      <Nav onCtaClick={scrollToForm} />
+      <Nav />
 
-      <section className="hero">
-        <div className="hero-glow"></div>
-        <div className="container" style={{ display: 'contents' }}>
-          <Hero onCtaClick={scrollToForm} />
-          <DemoPlayer onCtaClick={scrollToForm} />
-        </div>
-      </section>
+      {/* Canvas crystal cursor — activates after eye background fades */}
+      <CrystalCursor active={crystalActive} />
 
-      <Ticker />
+      {/* Clean grid background — visible after eye fades */}
+      <div className="landing-clean-bg" aria-hidden />
 
-      {/* Signup section */}
-      <section className="signup-section" id="get-report" ref={signupSectionRef}>
-        <div className="signup-inner">
-          <div className="signup-pitch reveal">
-            <p className="section-label">Free Report</p>
-            <h2>
-              Find out if AI chatbots<br />
-              <em>mention your business</em>
-            </h2>
-            <p>
-              Enter your email and a few search phrases your customers actually use.
-              We'll scan ChatGPT and Claude and return a full visibility report — no credit card needed.
-            </p>
-            <ul className="signup-benefits">
-              <li>AI Visibility Score from 0–100</li>
-              <li>Query-by-query breakdown per platform</li>
-              <li>Sentiment analysis on every mention</li>
-              <li>Results in under 60 seconds</li>
-            </ul>
+      {/* Full-bleed eye background — fades out on scroll */}
+      <div className="landing-eye-bg" ref={eyeBgRef} aria-hidden>
+        <img
+          src="/ai_brand_monitor_landing_page (2).png"
+          alt=""
+          className="landing-eye-bg-img"
+        />
+        <div className="landing-eye-bg-overlay" />
+      </div>
+
+      <main>
+        <section className="landing-hero-section">
+          <div className="container">
+            <Hero onCtaClick={() => navigate('/analyze')} />
           </div>
-          <div className="reveal">
-            <HeroForm />
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <HowItWorks />
-      <ReportPreview onScrollToForm={scrollToForm} />
-      <Pricing />
-      <CtaSection onSubmit={handleCtaSubmit} />
+        <div ref={stakesRef}>
+          <StakesSection onCtaClick={() => navigate('/analyze')} />
+        </div>
+
+        <FeaturesStrip />
+
+        <ScoreboardPreview onCtaClick={() => navigate('/analyze')} />
+
+        <AudienceStrip />
+
+        <Differentiator />
+
+        <TrustStrip />
+
+        <FaqSection />
+
+        <CtaSection onCtaClick={() => navigate('/analyze')} />
+      </main>
+
       <Footer />
     </>
   )

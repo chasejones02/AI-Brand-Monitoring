@@ -10,6 +10,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
+import { GlowCard } from '../components/ui/spotlight-card'
 import {
   getBusinesses,
   getBusinessHistory,
@@ -400,7 +401,8 @@ export default function DashboardPage() {
       <div style={s.page}>
         <nav style={s.nav}>
           <span style={s.navLogo}>
-            <span style={{ color: 'var(--accent)' }}>AI</span> Brand Monitor
+            <img src="/logo-eye.png" alt="Visaion" style={{ height: '36px', width: 'auto', marginRight: '8px', verticalAlign: 'middle' }} />
+            Vis<span style={{ color: 'var(--accent)' }}>ai</span>on
           </span>
           <div style={s.navRight}>
             {user?.email && <span style={s.navEmail}>{user.email}</span>}
@@ -501,7 +503,8 @@ function DashboardNav({
     <nav style={s.nav}>
       <div style={s.navLeft}>
         <Link to="/" style={s.navLogo}>
-          <span style={{ color: 'var(--accent)' }}>AI</span> Brand Monitor
+          <img src="/logo-eye.png" alt="Visaion" style={{ height: '36px', width: 'auto', marginRight: '8px', verticalAlign: 'middle' }} />
+          Vis<span style={{ color: 'var(--accent)' }}>ai</span>on
         </Link>
 
         {activeBusiness && (
@@ -664,13 +667,15 @@ function BusinessSetupForm({ onSubmit, isSubmitting, error }: SetupFormProps) {
             <p style={s.formError}>{formError || error}</p>
           )}
 
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            style={{ ...s.primaryBtn, opacity: isSubmitting ? 0.6 : 1 }}
-          >
-            {isSubmitting ? 'Setting up…' : 'Start monitoring →'}
-          </button>
+          <GlowCard customSize radius={8} className="!block !p-0 !shadow-none">
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              style={{ ...s.primaryBtn, opacity: isSubmitting ? 0.6 : 1 }}
+            >
+              {isSubmitting ? 'Setting up…' : 'Start monitoring →'}
+            </button>
+          </GlowCard>
         </div>
       </div>
     </div>
@@ -750,13 +755,15 @@ function NewScanForm({ business, onSubmit, onCancel, isSubmitting }: NewScanForm
 
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button onClick={onCancel} style={s.secondaryBtn}>Cancel</button>
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              style={{ ...s.primaryBtn, flex: 1, opacity: isSubmitting ? 0.6 : 1 }}
-            >
-              {isSubmitting ? 'Starting scan…' : 'Run scan →'}
-            </button>
+            <GlowCard customSize radius={8} className="!block !p-0 !shadow-none" style={{ flex: 1 }}>
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                style={{ ...s.primaryBtn, opacity: isSubmitting ? 0.6 : 1 }}
+              >
+                {isSubmitting ? 'Starting scan…' : 'Run scan →'}
+              </button>
+            </GlowCard>
           </div>
         </div>
       </div>
@@ -781,9 +788,11 @@ function NoScansState({
       <p style={s.emptyText}>
         Run your first scan to see how AI platforms mention your business.
       </p>
-      <button onClick={onNewScan} style={s.primaryBtn}>
-        Run first scan →
-      </button>
+      <GlowCard customSize radius={8} className="!block !p-0 !shadow-none">
+        <button onClick={onNewScan} style={s.primaryBtn}>
+          Run first scan →
+        </button>
+      </GlowCard>
     </div>
   )
 }
@@ -1036,11 +1045,11 @@ function QueryCard({
   const anyMentioned = platforms.some(p => result.platforms[p]?.mentioned)
 
   return (
-    <div
-      style={{
-        ...s.queryCard,
-        animation: `fadeUp 0.4s cubic-bezier(.22,1,.36,1) ${index * 0.06}s both`,
-      }}
+    <GlowCard
+      customSize
+      radius={6}
+      className="!flex !flex-col !gap-4 !p-5"
+      style={{ animation: `fadeUp 0.4s cubic-bezier(.22,1,.36,1) ${index * 0.06}s both` }}
     >
       <div style={s.queryCardHeader}>
         <span style={s.queryIndex}>{String(index + 1).padStart(2, '0')}</span>
@@ -1111,7 +1120,7 @@ function QueryCard({
           {platforms.reduce((sum, p) => sum + (result.platforms[p]?.scores.total ?? 0), 0)} pts
         </span>
       </div>
-    </div>
+    </GlowCard>
   )
 }
 
@@ -1183,7 +1192,7 @@ const s: Record<string, React.CSSProperties> = {
     minWidth: 0,
   },
   navLogo: {
-    fontFamily: "'Instrument Serif', serif",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: '1.2rem',
     color: 'var(--text)',
     textDecoration: 'none',
@@ -1317,7 +1326,7 @@ const s: Record<string, React.CSSProperties> = {
     paddingBottom: '2rem',
   },
   formCardTitle: {
-    fontFamily: "'Instrument Serif', serif",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: 'clamp(1.8rem, 4vw, 2.8rem)',
     fontWeight: 400,
     color: 'var(--text)',
@@ -1460,7 +1469,7 @@ const s: Record<string, React.CSSProperties> = {
     padding: '2rem',
   },
   emptyTitle: {
-    fontFamily: "'Instrument Serif', serif",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: '1.8rem',
     fontWeight: 400,
     color: 'var(--text)',
@@ -1485,9 +1494,8 @@ const s: Record<string, React.CSSProperties> = {
     transform: 'translateX(-50%)',
     width: '120px',
     height: '120px',
-    border: '1px solid rgba(240,165,0,0.2)',
+    border: '1px solid var(--border)',
     borderRadius: '50%',
-    animation: 'glow-pulse 2s ease-in-out infinite',
   },
   pulseRingInner: {
     position: 'absolute' as const,
@@ -1496,15 +1504,14 @@ const s: Record<string, React.CSSProperties> = {
     transform: 'translateX(-50%)',
     width: '80px',
     height: '80px',
-    border: '1px solid rgba(240,165,0,0.1)',
+    border: '1px solid var(--border-dim)',
     borderRadius: '50%',
-    animation: 'glow-pulse 2s ease-in-out infinite 0.5s',
   },
   runningIcon: {
     width: '56px',
     height: '56px',
     background: 'var(--accent-dim)',
-    border: '1px solid rgba(240,165,0,0.2)',
+    border: '1px solid rgba(201,143,10,0.2)',
     borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
@@ -1514,7 +1521,7 @@ const s: Record<string, React.CSSProperties> = {
     zIndex: 1,
   },
   runningTitle: {
-    fontFamily: "'Instrument Serif', serif",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: '2rem',
     fontWeight: 400,
     color: 'var(--text)',
@@ -1572,7 +1579,7 @@ const s: Record<string, React.CSSProperties> = {
     marginBottom: '0.6rem',
   },
   businessName: {
-    fontFamily: "'Instrument Serif', serif",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: 'clamp(2rem, 5vw, 3.2rem)',
     fontWeight: 400,
     lineHeight: 1.1,
@@ -1676,7 +1683,7 @@ const s: Record<string, React.CSSProperties> = {
     marginTop: '0.5rem',
   },
   sectionTitle: {
-    fontFamily: "'Instrument Serif', serif",
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: '1.4rem',
     fontWeight: 400,
     color: 'var(--text)',
