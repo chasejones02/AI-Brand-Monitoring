@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { User, Lock, ArrowRight, Building2, MapPin, FileText } from 'lucide-react'
+import { User, Lock, ArrowRight, Building2, MapPin, FileText, Eye, EyeOff, Check } from 'lucide-react'
 
 /* ─── WebGL Shader ─────────────────────────────────── */
 const vertexSrc = `
@@ -134,6 +134,9 @@ function FloatingInput({
   onChange,
   required = true,
   minLength,
+  showToggle,
+  autoFocus,
+  onValueChange,
 }: {
   icon: typeof User
   label: string
@@ -142,9 +145,14 @@ function FloatingInput({
   onChange: (v: string) => void
   required?: boolean
   minLength?: number
+  showToggle?: boolean
+  autoFocus?: boolean
+  onValueChange?: () => void
 }) {
   const [focused, setFocused] = useState(false)
+  const [revealed, setRevealed] = useState(false)
   const active = focused || value.length > 0
+  const effectiveType = showToggle ? (revealed ? 'text' : type) : type
 
   return (
     <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
@@ -166,13 +174,14 @@ function FloatingInput({
         {label}
       </div>
       <input
-        type={type}
+        type={effectiveType}
         value={value}
-        onChange={e => onChange(e.target.value)}
+        onChange={e => { onChange(e.target.value); onValueChange?.() }}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         required={required}
         minLength={minLength}
+        autoFocus={autoFocus}
         style={{
           width: '100%',
           background: 'transparent',
@@ -181,11 +190,33 @@ function FloatingInput({
           color: 'var(--text)',
           fontSize: '0.95rem',
           fontFamily: "'Outfit', sans-serif",
-          padding: '12px 0 8px',
+          padding: `12px ${showToggle ? '32px' : '0'} 8px 0`,
           outline: 'none',
           transition: 'border-color 0.25s',
         }}
       />
+      {showToggle && (
+        <button
+          type="button"
+          onClick={() => setRevealed(r => !r)}
+          tabIndex={-1}
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: '10px',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: revealed ? 'var(--accent)' : 'var(--text-muted)',
+            padding: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            transition: 'color 0.2s',
+          }}
+        >
+          {revealed ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      )}
     </div>
   )
 }
@@ -316,17 +347,33 @@ function SubmitButton({ loading, label, loadingLabel }: { loading: boolean; labe
   )
 }
 
+/* ─── Google Logo SVG ─────────────────────────────── */
+function GoogleLogo() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 48 48">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+      <path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.1 24.1 0 0 0 0 21.56l7.98-6.19z"/>
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    </svg>
+  )
+}
+
 /* ─── LoginForm (Flipping Card) ────────────────────── */
 interface LoginFormProps {
   onSignIn: (email: string, password: string) => Promise<void>
   onSignUp: (email: string, password: string, fullName: string) => Promise<void>
   onBusinessSubmit: (data: { name: string; location: string; description: string }) => Promise<void>
+  onForgotPassword: (email: string) => Promise<void>
+  onGoogleSignIn: () => Promise<void>
   flipped: boolean
   error?: string
+  successMessage?: string
   loading?: boolean
+  onClearError?: () => void
 }
 
-export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, flipped, error, loading }: LoginFormProps) {
+export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, onForgotPassword, onGoogleSignIn, flipped, error, successMessage, loading, onClearError }: LoginFormProps) {
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -424,7 +471,7 @@ export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, flipped, error
                   border: 'none',
                   borderRadius: '8px',
                   background: mode === m ? 'rgba(255,255,255,0.1)' : 'transparent',
-                  color: mode === m ? 'var(--text)' : 'var(--text-muted)',
+                  color: mode === m ? 'var(--text)' : 'rgba(221,229,239,0.55)',
                   fontSize: '0.875rem',
                   fontWeight: mode === m ? 600 : 400,
                   fontFamily: "'Outfit', sans-serif",
@@ -455,11 +502,52 @@ export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, flipped, error
             </p>
           </div>
 
+          {/* Google SSO */}
+          <button
+            type="button"
+            onClick={onGoogleSignIn}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              padding: '0.75rem 1rem',
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: '10px',
+              color: 'var(--text)',
+              fontSize: '0.9rem',
+              fontWeight: 500,
+              fontFamily: "'Outfit', sans-serif",
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.28)'
+              e.currentTarget.style.background = 'rgba(255,255,255,0.07)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'
+              e.currentTarget.style.background = 'rgba(255,255,255,0.04)'
+            }}
+          >
+            <GoogleLogo />
+            Continue with Google
+          </button>
+
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', margin: '1.25rem 0' }}>
+            <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>or</span>
+            <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
+          </div>
+
           <form onSubmit={handleAuth}>
             {mode === 'signup' && (
-              <FloatingInput icon={User} label="Full Name" value={fullName} onChange={setFullName} />
+              <FloatingInput icon={User} label="Full Name" value={fullName} onChange={setFullName} autoFocus={mode === 'signup'} onValueChange={onClearError} />
             )}
-            <FloatingInput icon={User} label="Email Address" type="email" value={email} onChange={setEmail} />
+            <FloatingInput icon={User} label="Email Address" type="email" value={email} onChange={setEmail} autoFocus={mode === 'login'} onValueChange={onClearError} />
             <FloatingInput
               icon={Lock}
               label="Password"
@@ -467,24 +555,74 @@ export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, flipped, error
               value={password}
               onChange={setPassword}
               minLength={mode === 'signup' ? 8 : undefined}
+              showToggle
+              onValueChange={onClearError}
             />
 
-            {error && (
+            {/* Forgot password — sign-in only */}
+            {mode === 'login' && (
+              <div style={{ textAlign: 'right', marginTop: '-1rem', marginBottom: '1rem' }}>
+                <button
+                  type="button"
+                  onClick={() => onForgotPassword(email)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    fontSize: '0.8rem',
+                    fontFamily: "'Outfit', sans-serif",
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    textUnderlineOffset: '2px',
+                    transition: 'color 0.2s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--accent)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
+
+            {/* Password requirements — signup only */}
+            {mode === 'signup' && (
+              <div style={{ marginTop: '-1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Check
+                  size={14}
+                  style={{
+                    color: password.length >= 8 ? 'var(--green)' : 'var(--text-dim)',
+                    transition: 'color 0.2s',
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    color: password.length >= 8 ? 'var(--green)' : 'var(--text-dim)',
+                    transition: 'color 0.2s',
+                  }}
+                >
+                  At least 8 characters
+                </span>
+              </div>
+            )}
+
+            {/* Error / success message */}
+            {(error || successMessage) && (
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  background: 'rgba(239,68,68,0.08)',
-                  border: '1px solid rgba(239,68,68,0.2)',
+                  background: successMessage ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+                  border: `1px solid ${successMessage ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
                   borderRadius: '8px',
                   padding: '0.6rem 0.9rem',
-                  color: 'var(--red)',
+                  color: successMessage ? 'var(--green)' : 'var(--red)',
                   fontSize: '0.85rem',
                   marginBottom: '1rem',
                 }}
               >
-                {error}
+                {successMessage || error}
               </div>
             )}
 

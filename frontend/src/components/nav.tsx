@@ -5,7 +5,7 @@
 
 import { Link, useNavigate } from 'react-router-dom'
 
-export function Nav() {
+export function Nav({ authPage = false }: { authPage?: boolean }) {
   const navigate = useNavigate()
 
   return (
@@ -24,16 +24,38 @@ export function Nav() {
           </span>
         </Link>
 
-        <ul className="nav-links">
-          <li><Link to="/">Home</Link></li>
-          <li><Link to="/pricing">Pricing</Link></li>
-          <li><Link to="/analyze">How it works</Link></li>
-          <li><Link to="/auth">Sign in</Link></li>
-        </ul>
+        {authPage ? (
+          <Link
+            to="/"
+            style={{
+              color: 'var(--text-muted)',
+              fontSize: '0.875rem',
+              fontFamily: "'Outfit', sans-serif",
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'color 0.2s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--text)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+          >
+            &#8592; Back to home
+          </Link>
+        ) : (
+          <>
+            <ul className="nav-links">
+              <li><Link to="/">Home</Link></li>
+              <li><Link to="/pricing">Pricing</Link></li>
+              <li><Link to="/analyze">How it works</Link></li>
+              <li><Link to="/auth">Sign in</Link></li>
+            </ul>
 
-        <button className="btn-nav" onClick={() => navigate('/analyze')}>
-          Check Your Visibility
-        </button>
+            <button className="btn-nav" onClick={() => navigate('/analyze')}>
+              Check Your Visibility
+            </button>
+          </>
+        )}
       </div>
     </nav>
   )

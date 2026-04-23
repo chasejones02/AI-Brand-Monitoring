@@ -19,6 +19,7 @@ export default function AuthPage() {
 
   const [flipped, setFlipped] = useState(false)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -36,8 +37,45 @@ export default function AuthPage() {
     return () => subscription.unsubscribe()
   }, [])
 
+  function handleClearError() {
+    setError('')
+    setSuccessMessage('')
+  }
+
+  async function handleForgotPassword(email: string) {
+    if (!email.trim()) {
+      setError('Enter your email address first')
+      return
+    }
+    setError('')
+    setSuccessMessage('')
+    setLoading(true)
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/auth',
+      })
+      if (resetError) throw resetError
+      setSuccessMessage('Check your email for a reset link')
+    } catch (err: any) {
+      setError(err.message ?? 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + '/dashboard' },
+    })
+    if (oauthError) {
+      setError(oauthError.message ?? 'Google sign-in failed')
+    }
+  }
+
   async function handleSignIn(email: string, password: string) {
     setError('')
+    setSuccessMessage('')
     setLoading(true)
     try {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
@@ -52,6 +90,7 @@ export default function AuthPage() {
 
   async function handleSignUp(email: string, password: string, fullName: string) {
     setError('')
+    setSuccessMessage('')
     setLoading(true)
     try {
       const { data, error: signUpError } = await supabase.auth.signUp({
@@ -112,7 +151,7 @@ export default function AuthPage() {
         }}
       />
 
-      <Nav />
+      <Nav authPage />
 
       {/* Centered form */}
       <div
@@ -130,9 +169,13 @@ export default function AuthPage() {
           onSignIn={handleSignIn}
           onSignUp={handleSignUp}
           onBusinessSubmit={handleBusinessSubmit}
+          onForgotPassword={handleForgotPassword}
+          onGoogleSignIn={handleGoogleSignIn}
           flipped={flipped}
           error={error}
+          successMessage={successMessage}
           loading={loading}
+          onClearError={handleClearError}
         />
       </div>
     </div>
