@@ -68,7 +68,7 @@ export function HeroForm() {
 
   return (
     <form className="analyze-form" id="hero-form" onSubmit={handleSubmit}>
-      <h2 className="analyze-title">Start Your Analysis</h2>
+      <h2 className="analyze-form-title">Start Your Analysis</h2>
 
       <div className="form-group">
         <label htmlFor="biz-name">Business Name</label>

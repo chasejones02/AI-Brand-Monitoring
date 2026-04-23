@@ -672,7 +672,7 @@
     .ticker-inner {
       display: inline-flex;
       gap: 0;
-      animation: ticker 48s linear infinite;
+      animation: ticker 64s linear infinite;
     }
     .ticker-item {
       display: inline-flex;
@@ -683,11 +683,29 @@
       color: var(--text-muted);
       font-weight: 500;
     }
-    .ticker-item .tick-biz { color: var(--text); }
-    .ticker-item .tick-score {
+    .ticker-item .tick-platform {
       font-family: 'JetBrains Mono', monospace;
-      color: var(--accent);
       font-size: 0.72rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .ticker-item .tick-query {
+      color: var(--text-muted);
+      font-style: italic;
+      font-size: 0.82rem;
+    }
+    .ticker-item .tick-biz { color: var(--text); font-weight: 600; }
+    .tick-you {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--bg);
+      background: var(--accent);
+      padding: 0.15em 0.5em;
+      border-radius: 3px;
+      margin-left: 0.25rem;
     }
     .ticker-sep {
       color: var(--text-dim);
@@ -2394,7 +2412,7 @@
     /* ─── Analyze page hero ────────────────────────────── */
     .analyze-hero {
       padding-top: 7.5rem;
-      padding-bottom: 1.5rem;
+      padding-bottom: 0.5rem;
       position: relative;
       overflow: hidden;
     }
@@ -2448,21 +2466,104 @@
       line-height: 1.65;
     }
 
-    /* ─── Analysis section ─────────────────────────────── */
-    .analysis-section {
-      padding: 3.5rem 0 5rem;
-      position: relative;
+    /* ─── Steps Row ────────────────────────────────────── */
+    .analyze-steps {
+      padding: 1.5rem 0 2.5rem;
     }
-    .analysis-inner {
-      max-width: 1080px;
+    .analyze-steps-inner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.25rem;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    .analyze-step {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+    .analyze-step-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--bg);
+      background: var(--accent);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 2rem;
-      align-items: start;
+      place-items: center;
+      flex-shrink: 0;
     }
-    .analysis-demo {
+    .analyze-step-label {
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+    .analyze-step-arrow {
+      color: var(--text-muted);
+      flex-shrink: 0;
+      opacity: 0.5;
+    }
+
+    /* ─── Centered Form Section ─────────────────────────── */
+    .analyze-form-section {
+      padding: 0 0 3rem;
+    }
+    .analyze-form-center {
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    /* ─── Preview / Demo Section ────────────────────────── */
+    .analyze-preview-section {
+      padding: 2rem 0 5rem;
       position: relative;
     }
+    .analyze-preview-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .analyze-preview-divider {
+      width: 60px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      margin-bottom: 2rem;
+    }
+    .analyze-preview-heading {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      color: var(--text);
+      letter-spacing: -0.025em;
+      margin-bottom: 0.6rem;
+    }
+    .analyze-preview-sub {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      max-width: 480px;
+      margin-bottom: 2.5rem;
+      line-height: 1.6;
+    }
+    .analyze-preview-card {
+      max-width: 720px;
+      width: 100%;
+    }
+    .analyze-bottom-cta {
+      margin-top: 2.5rem;
+      width: auto !important;
+      padding: 1rem 2.5rem !important;
+      border-radius: 9999px !important;
+      box-shadow: 0 10px 30px -12px rgba(201,143,10,0.55);
+    }
+
+    /* ─── Analysis demo label (reused in preview) ──────── */
     .analysis-demo-label {
       display: inline-flex;
       align-items: center;
@@ -2480,10 +2581,6 @@
       background: var(--accent);
       border-radius: 50%;
       animation: pulse-dot 1.6s ease-in-out infinite;
-    }
-    .analysis-form-wrap {
-      position: sticky;
-      top: 6rem;
     }
 
     /* ─── Scoreboard preview ──────────────────────────── */
@@ -3239,7 +3336,7 @@
       border-left-color: var(--accent);
       box-shadow: 0 12px 40px -16px rgba(201,143,10,0.35);
     }
-    .analyze-title {
+    .analyze-form-title {
       font-family: 'Outfit', sans-serif;
       font-weight: 800;
       font-size: 1.7rem;
@@ -3621,8 +3718,10 @@
     /* ─── Responsive (redesign additions) ──────────────── */
     @media (max-width: 900px) {
       .features-inner { grid-template-columns: 1fr; }
-      .analysis-inner { grid-template-columns: 1fr; gap: 2.5rem; }
-      .analysis-form-wrap { position: static; }
+      .analyze-steps-inner { flex-direction: column; gap: 0.75rem; }
+      .analyze-step-arrow { transform: rotate(90deg); }
+      .analyze-form-center { max-width: 100%; }
+      .analyze-bottom-cta { width: 100% !important; }
       .landing-hero-section { padding-top: 8rem; min-height: 60vh; }
       .hero-feed { padding: 0.65rem 0.85rem; gap: 0.6rem; }
       .hero-feed-query { display: none; }

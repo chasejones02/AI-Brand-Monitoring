@@ -126,7 +126,7 @@ type Phase = 'input' | 'clicking' | 'results'
 
 const SCORE_STEPS = 35
 
-export function DemoPlayer({ onCtaClick }: { onCtaClick: () => void }) {
+export function DemoPlayer() {
   const [bizIdx, setBizIdx] = useState(0)
   const [currentBiz, setCurrentBiz] = useState<DemoBusiness>(BUSINESSES[0])
   const [bizChars, setBizChars] = useState(0)
@@ -351,14 +351,8 @@ export function DemoPlayer({ onCtaClick }: { onCtaClick: () => void }) {
             ))}
           </div>
 
-          <button className="btn-primary" onClick={onCtaClick} style={{ marginTop: '1.25rem' }}>
-            Try with your business
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
-            </svg>
-          </button>
-          <p style={{ fontSize: '.72rem', color: 'var(--text-dim)', textAlign: 'center', marginTop: '.75rem' }}>
-            Example report · auto-cycles through demo businesses
+          <p style={{ fontSize: '.72rem', color: 'var(--text-dim)', textAlign: 'center', marginTop: '1.25rem' }}>
+            Auto-cycles through demo businesses
           </p>
         </div>
       )}

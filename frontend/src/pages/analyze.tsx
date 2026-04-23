@@ -1,7 +1,7 @@
 /**
- * AnalyzePage — "How it works" demo + "Start your analysis" form.
- * Reached via the "Check Your Visibility" CTAs and the "How it works"
- * nav link on the landing page.
+ * AnalyzePage — "How it works" narrative flow.
+ * Steps → Form → Demo preview → Closing CTA.
+ * Reached via "Check Your Visibility" CTAs and "How it works" nav link.
  */
 
 import { useRef } from 'react'
@@ -34,6 +34,7 @@ export default function AnalyzePage() {
       <Nav />
 
       <main>
+        {/* ── Hero ── */}
         <section className="analyze-hero">
           <div className="container analyze-hero-inner">
             <span className="analyze-kicker anim-1">How it works</span>
@@ -47,21 +48,53 @@ export default function AnalyzePage() {
           </div>
         </section>
 
-        <section className="analysis-section" id="start">
-          <div className="container analysis-inner">
-            <TiltCard className="analysis-demo reveal">
+        {/* ── Preview Section ── */}
+        <section className="analyze-preview-section anim-4">
+          <div className="container analyze-preview-inner">
+            <h2 className="analyze-preview-heading">Here's what you'll get</h2>
+            <p className="analyze-preview-sub">
+              A real AI visibility report — scores, platform breakdown, and actionable recommendations.
+            </p>
+            <TiltCard className="analyze-preview-card">
               <div className="analysis-demo-label">
                 <span className="analysis-demo-dot" />
-                See how it works
+                Live Demo
               </div>
-              <DemoPlayer onCtaClick={scrollToForm} />
+              <DemoPlayer />
             </TiltCard>
+          </div>
+        </section>
 
-            <div className="analysis-form-wrap reveal" ref={formRef}>
-              <TiltCard>
-                <HeroForm />
-              </TiltCard>
+        {/* ── Steps Row ── */}
+        <section className="analyze-steps reveal">
+          <div className="container analyze-steps-inner">
+            <div className="analyze-step">
+              <span className="analyze-step-num">1</span>
+              <span className="analyze-step-label">Enter your business</span>
             </div>
+            <svg className="analyze-step-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+            <div className="analyze-step">
+              <span className="analyze-step-num">2</span>
+              <span className="analyze-step-label">We query AI platforms</span>
+            </div>
+            <svg className="analyze-step-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+            <div className="analyze-step">
+              <span className="analyze-step-num">3</span>
+              <span className="analyze-step-label">Get your score</span>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Centered Form ── */}
+        <section className="analyze-form-section" id="start" ref={formRef}>
+          <div className="container analyze-form-center">
+            <TiltCard>
+              <HeroForm />
+            </TiltCard>
           </div>
         </section>
       </main>

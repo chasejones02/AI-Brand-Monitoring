@@ -12,6 +12,7 @@ type YourPosition = 'missing' | number
 type Scenario = {
   trade: string
   city: string
+  yourBiz: string
   yourPosition: YourPosition
   competitors: [string, string, string]
   verdict: string
@@ -22,6 +23,7 @@ const SCENARIOS: Scenario[] = [
   {
     trade: 'plumber',
     city: 'Denver',
+    yourBiz: 'BlueSky Plumbing Co.',
     yourPosition: 1,
     competitors: ['Front Range Pipe Pros', 'Mile High Plumbing Co.', 'Summit Drain & Sewer'],
     verdict: "You're #1. AI recommends you first.",
@@ -30,6 +32,7 @@ const SCENARIOS: Scenario[] = [
   {
     trade: 'dentist',
     city: 'Austin',
+    yourBiz: 'Bright Smile Dental',
     yourPosition: 4,
     competitors: ['Capitol Smile Studio', 'Bluebonnet Dental Care', 'Hill Country Family Dental'],
     verdict: "You'd rank #4. 3 competitors get listed first.",
@@ -38,6 +41,7 @@ const SCENARIOS: Scenario[] = [
   {
     trade: 'roofer',
     city: 'Phoenix',
+    yourBiz: 'Apex Roofing Solutions',
     yourPosition: 'missing',
     competitors: ['Desert Crest Roofing', 'Saguaro Roof Solutions', 'Valley Sun Contractors'],
     verdict: "Not in the answer. AI named 3 other contractors.",
@@ -46,6 +50,7 @@ const SCENARIOS: Scenario[] = [
   {
     trade: 'coffee shop',
     city: 'San Diego',
+    yourBiz: 'Coastal Coffee Co.',
     yourPosition: 2,
     competitors: ['Harbor Mist Roasters', 'Pacific Bean Collective', 'Sunset Coffee Bar'],
     verdict: "You'd rank #2 — but 1 competitor is listed first.",
@@ -54,6 +59,7 @@ const SCENARIOS: Scenario[] = [
   {
     trade: 'tax advisor',
     city: 'Chicago',
+    yourBiz: 'Greenfield Tax Advisors',
     yourPosition: 'missing',
     competitors: ['Lakeshore Tax Group', 'Wabash Advisors LLC', 'North Loop Accounting'],
     verdict: "Not in the answer. 3 firms recommended instead.",
@@ -83,7 +89,7 @@ function renderAiLines(s: Scenario) {
         ))}
         <div className="stakes-ai-line stakes-ai-missing">
           <span className="stakes-rank">—</span>
-          <span className="stakes-missing-label">Your business not mentioned</span>
+          <span className="stakes-missing-label">{s.yourBiz} not mentioned</span>
         </div>
       </>
     )
@@ -97,7 +103,7 @@ function renderAiLines(s: Scenario) {
       rows.push(
         <div className="stakes-ai-line stakes-ai-you-inline" key={rank}>
           <span className="stakes-rank stakes-rank-you">{rank}.</span>
-          <span className="stakes-you-label-inline">Your business</span>
+          <span className="stakes-you-label-inline">{s.yourBiz}</span>
           <span className="stakes-you-tag">that's you</span>
         </div>
       )
