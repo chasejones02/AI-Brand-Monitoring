@@ -23,7 +23,8 @@ export default function SuccessPage() {
 
         {/* Logo */}
         <Link to="/" style={s.logo}>
-          <span style={{ color: 'var(--accent)' }}>AI</span> Brand Monitor
+          <img src="/logo-eye.png" alt="Visaion" style={{ height: '36px', width: 'auto', marginRight: '8px', verticalAlign: 'middle' }} />
+          Vis<span style={{ color: 'var(--accent)' }}>ai</span>on
         </Link>
 
         {/* Check icon */}

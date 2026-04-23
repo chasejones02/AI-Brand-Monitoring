@@ -401,7 +401,8 @@ export default function DashboardPage() {
       <div style={s.page}>
         <nav style={s.nav}>
           <span style={s.navLogo}>
-            <span style={{ color: 'var(--accent)' }}>AI</span> Brand Monitor
+            <img src="/logo-eye.png" alt="Visaion" style={{ height: '36px', width: 'auto', marginRight: '8px', verticalAlign: 'middle' }} />
+            Vis<span style={{ color: 'var(--accent)' }}>ai</span>on
           </span>
           <div style={s.navRight}>
             {user?.email && <span style={s.navEmail}>{user.email}</span>}
@@ -502,7 +503,8 @@ function DashboardNav({
     <nav style={s.nav}>
       <div style={s.navLeft}>
         <Link to="/" style={s.navLogo}>
-          <span style={{ color: 'var(--accent)' }}>AI</span> Brand Monitor
+          <img src="/logo-eye.png" alt="Visaion" style={{ height: '36px', width: 'auto', marginRight: '8px', verticalAlign: 'middle' }} />
+          Vis<span style={{ color: 'var(--accent)' }}>ai</span>on
         </Link>
 
         {activeBusiness && (

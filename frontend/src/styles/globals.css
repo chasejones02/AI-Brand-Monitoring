@@ -219,15 +219,12 @@
       gap: 0.55rem;
       text-decoration: none;
     }
-    .logo-mark {
-      width: 36px; height: 36px;
-      background: var(--text);
-      border-radius: 4px;
-      display: grid;
-      place-items: center;
+    .logo-mark-img {
+      height: 44px;
+      width: auto;
       flex-shrink: 0;
+      object-fit: contain;
     }
-    .logo-mark svg { display: block; }
     .logo-text {
       font-family: 'Outfit', sans-serif;
       font-weight: 800;

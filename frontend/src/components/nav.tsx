@@ -12,13 +12,7 @@ export function Nav({ authPage = false }: { authPage?: boolean }) {
     <nav>
       <div className="container nav-inner">
         <Link to="/" className="logo">
-          <div className="logo-mark">
-            <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
-              <rect x="1" y="8" width="3" height="7" fill="#000" rx="1" />
-              <rect x="6" y="5" width="3" height="10" fill="#000" rx="1" />
-              <rect x="11" y="2" width="3" height="13" fill="#000" rx="1" />
-            </svg>
-          </div>
+          <img src="/logo-eye.png" alt="Visaion" className="logo-mark-img" />
           <span className="logo-text">
             Vis<span className="logo-ai">ai</span>on
           </span>
