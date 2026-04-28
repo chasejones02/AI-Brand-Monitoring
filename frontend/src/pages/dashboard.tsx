@@ -27,13 +27,28 @@ interface PlatformResult {
   mention_position: number | null
   sentiment: 'positive' | 'neutral' | 'negative' | null
   competitors_mentioned: string[]
-  scores: { mention: number; position: number; sentiment: number; total: number }
+  scores: { mention: number; position: number; sentiment: number; total: number; max: number }
 }
 
 interface QueryResult {
   query_id: string
   query_text: string
+  source?: 'generated' | 'custom'
+  intent?: string | null
+  generation_reason?: string | null
   platforms: Record<string, PlatformResult>
+}
+
+interface ScoreDetails {
+  formula_version: string
+  formula: string
+  result_count: number
+  max_per_result: number
+  max_points: number
+  earned_points: number
+  mention_points: number
+  position_points: number
+  sentiment_points: number
 }
 
 interface ScanData {
@@ -43,6 +58,7 @@ interface ScanData {
   business_name: string
   started_at: string
   completed_at: string | null
+  score_details?: ScoreDetails
   results: QueryResult[]
 }
 
@@ -50,11 +66,15 @@ interface BusinessQuery {
   id: string
   query_text: string
   is_active: boolean
+  source?: 'generated' | 'custom'
+  intent?: string | null
+  generation_reason?: string | null
 }
 
 interface BusinessWithQueries {
   id: string
   name: string
+  location: string | null
   website: string | null
   industry: string | null
   created_at: string
@@ -981,6 +1001,23 @@ function ScanResultsView({
         </div>
       </div>
 
+      {scan.score_details && (
+        <div style={s.scoreExplain}>
+          <div>
+            <p style={s.scoreExplainLabel}>Score formula</p>
+            <p style={s.scoreExplainText}>
+              {Math.round(scan.score_details.earned_points)} of {scan.score_details.max_points} possible points
+              {' '}across {scan.score_details.result_count} query/platform result{scan.score_details.result_count === 1 ? '' : 's'}.
+            </p>
+          </div>
+          <div style={s.scoreExplainGrid}>
+            <span>Mention: {scan.score_details.mention_points}</span>
+            <span>Position: {scan.score_details.position_points}</span>
+            <span>Sentiment: {scan.score_details.sentiment_points}</span>
+          </div>
+        </div>
+      )}
+
       {/* Platform bar */}
       {platforms.length > 0 && (
         <div style={s.platformBar}>
@@ -1053,7 +1090,12 @@ function QueryCard({
     >
       <div style={s.queryCardHeader}>
         <span style={s.queryIndex}>{String(index + 1).padStart(2, '0')}</span>
-        <p style={s.queryText}>"{result.query_text}"</p>
+        <div>
+          <p style={s.queryText}>"{result.query_text}"</p>
+          {result.source === 'generated' && result.generation_reason && (
+            <p style={s.queryReason}>{result.generation_reason}</p>
+          )}
+        </div>
       </div>
 
       <div style={s.queryPlatforms}>
@@ -1626,6 +1668,39 @@ const s: Record<string, React.CSSProperties> = {
     letterSpacing: '0.06em',
     textTransform: 'uppercase' as const,
   },
+  scoreExplain: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: '1rem',
+    flexWrap: 'wrap' as const,
+    background: 'var(--surface)',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius)',
+    padding: '1rem 1.25rem',
+    marginBottom: '1.5rem',
+  },
+  scoreExplainLabel: {
+    fontSize: '0.72rem',
+    fontWeight: 700,
+    letterSpacing: '0.1em',
+    textTransform: 'uppercase' as const,
+    color: 'var(--accent)',
+    marginBottom: '0.35rem',
+  },
+  scoreExplainText: {
+    fontSize: '0.85rem',
+    color: 'var(--text-muted)',
+    lineHeight: 1.5,
+  },
+  scoreExplainGrid: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.6rem',
+    flexWrap: 'wrap' as const,
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: '0.78rem',
+    color: 'var(--text)',
+  },
 
   // Platform bar
   platformBar: {
@@ -1720,6 +1795,12 @@ const s: Record<string, React.CSSProperties> = {
     color: 'var(--text)',
     lineHeight: 1.45,
     fontStyle: 'italic',
+  },
+  queryReason: {
+    marginTop: '0.45rem',
+    fontSize: '0.74rem',
+    lineHeight: 1.45,
+    color: 'var(--text-muted)',
   },
   queryPlatforms: {
     display: 'flex',

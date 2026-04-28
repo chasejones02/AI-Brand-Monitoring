@@ -22,9 +22,13 @@ async function authFetch(path: string, options: RequestInit = {}) {
 
 export async function createBusiness(payload: {
   name: string
+  location?: string
+  description?: string
   website?: string
   industry?: string
-  queries: string[]
+  queries?: string[]
+  generate_queries?: boolean
+  query_count?: number
 }): Promise<{ business_id: string }> {
   const { data } = await authFetch('/api/business', {
     method: 'POST',

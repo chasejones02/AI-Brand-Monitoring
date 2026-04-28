@@ -51,7 +51,7 @@ router.get('/:scanId', requireAuth, async (req: Request, res: Response): Promise
     .select(`
       id, platform, mentioned, mention_position, sentiment,
       competitors_mentioned, mention_score, position_score, sentiment_score,
-      queries!inner(id, query_text)
+      queries!inner(id, query_text, source, intent, generation_reason)
     `)
     .eq('scan_id', scanId)
     .order('created_at', { ascending: true })
@@ -69,6 +69,9 @@ router.get('/:scanId', requireAuth, async (req: Request, res: Response): Promise
       byQuery[query.id] = {
         query_id: query.id,
         query_text: query.query_text,
+        source: query.source,
+        intent: query.intent,
+        generation_reason: query.generation_reason,
         platforms: {},
       }
     }
@@ -82,9 +85,12 @@ router.get('/:scanId', requireAuth, async (req: Request, res: Response): Promise
         position: r.position_score,
         sentiment: r.sentiment_score,
         total: r.mention_score + r.position_score + r.sentiment_score,
+        max: 18,
       },
     }
   }
+
+  const scoreDetails = buildScoreDetails(results ?? [])
 
   res.json({
     data: {
@@ -94,11 +100,35 @@ router.get('/:scanId', requireAuth, async (req: Request, res: Response): Promise
       business_name: business.name,
       started_at: scan.started_at,
       completed_at: scan.completed_at,
+      score_details: scoreDetails,
       results: Object.values(byQuery),
     },
     error: null,
   })
 })
+
+function buildScoreDetails(results: any[]) {
+  const max_per_result = 18
+  const result_count = results.length
+  const max_points = result_count * max_per_result
+  const mention_points = results.reduce((sum, r) => sum + (r.mention_score ?? 0), 0)
+  const position_points = results.reduce((sum, r) => sum + (r.position_score ?? 0), 0)
+  const sentiment_points = results.reduce((sum, r) => sum + (r.sentiment_score ?? 0), 0)
+  const earned_points = mention_points + position_points + sentiment_points
+
+  return {
+    formula_version: 'v1',
+    formula:
+      'AI Visibility Score = earned points / max points * 100. Each query/platform result can earn 10 mention points, up to 5 position points, and up to 3 sentiment points.',
+    result_count,
+    max_per_result,
+    max_points,
+    earned_points,
+    mention_points,
+    position_points,
+    sentiment_points,
+  }
+}
 
 // GET /api/results/business/:businessId
 // Returns all scans for a business (history)

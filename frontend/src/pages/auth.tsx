@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/auth-context'
-import { createBusiness } from '../lib/api'
+import { createBusiness, triggerScan } from '../lib/api'
 import { Nav } from '../components/nav'
 import { LoginForm } from '../components/ui/login-form'
 import { CrystalCursor } from '../components/crystal-cursor'
@@ -116,17 +116,15 @@ export default function AuthPage() {
 
   async function handleBusinessSubmit(data: { name: string; location: string; description: string }) {
     try {
-      const queries = [
-        `best ${data.name} in ${data.location}`,
-        `${data.name} ${data.location} reviews`,
-        `${data.name} recommendations`,
-      ]
-      await createBusiness({
+      const { business_id } = await createBusiness({
         name: data.name,
-        industry: data.description || undefined,
-        queries,
+        location: data.location,
+        description: data.description || undefined,
+        generate_queries: true,
+        query_count: 5,
       })
-      navigate('/dashboard')
+      const { scan_id } = await triggerScan(business_id)
+      navigate(`/dashboard?scanId=${scan_id}`)
     } catch {
       navigate('/dashboard')
     }

@@ -1,5 +1,6 @@
 import OpenAI from 'openai'
 import Anthropic from '@anthropic-ai/sdk'
+import { GoogleGenAI } from '@google/genai'
 import 'dotenv/config'
 
 const openai = process.env.OPENAI_API_KEY
@@ -19,7 +20,11 @@ const perplexity = process.env.PERPLEXITY_API_KEY
     })
   : null
 
-export type Platform = 'openai' | 'anthropic' | 'perplexity'
+const gemini = process.env.GEMINI_API_KEY
+  ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
+  : null
+
+export type Platform = 'openai' | 'anthropic' | 'perplexity' | 'gemini'
 
 export type QueryResult = {
   platform: Platform
@@ -74,6 +79,21 @@ async function queryAnthropic(prompt: string): Promise<string> {
   return block.text
 }
 
+async function queryGemini(prompt: string): Promise<string> {
+  if (!gemini) throw new Error('Gemini API key not configured')
+
+  const response = await gemini.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: prompt,
+    config: {
+      maxOutputTokens: 500,
+      temperature: 0.7,
+    },
+  })
+
+  return response.text ?? ''
+}
+
 // Send the user's query as-is — adding extra instructions changes how the AI responds
 // compared to a real user typing the same query, which defeats the purpose of the scan.
 function buildPrompt(queryText: string): string {
@@ -96,6 +116,9 @@ export async function runQueryOnPlatforms(
         return { platform, raw_response }
       } else if (platform === 'perplexity') {
         const raw_response = await queryPerplexity(prompt)
+        return { platform, raw_response }
+      } else if (platform === 'gemini') {
+        const raw_response = await queryGemini(prompt)
         return { platform, raw_response }
       }
       throw new Error(`Unknown platform: ${platform}`)
@@ -201,5 +224,6 @@ export function getAvailablePlatforms(): Platform[] {
   if (isRealKey(process.env.OPENAI_API_KEY)) platforms.push('openai')
   if (isRealKey(process.env.ANTHROPIC_API_KEY)) platforms.push('anthropic')
   if (isRealKey(process.env.PERPLEXITY_API_KEY)) platforms.push('perplexity')
+  if (isRealKey(process.env.GEMINI_API_KEY)) platforms.push('gemini')
   return platforms
 }

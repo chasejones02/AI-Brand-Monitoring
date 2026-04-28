@@ -28,6 +28,7 @@ export type Business = {
   id: string
   user_id: string
   name: string
+  location: string | null
   website: string | null
   industry: string | null
   created_at: string
@@ -38,6 +39,9 @@ export type Query = {
   business_id: string
   query_text: string
   is_active: boolean
+  source: 'generated' | 'custom'
+  intent: string | null
+  generation_reason: string | null
   created_at: string
 }
 
