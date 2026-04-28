@@ -36,14 +36,14 @@ The core loop (sign up → business entry → scan → results → pay) works en
 - [ ] Check event ID before applying any webhook handler to prevent double-updates on retries
 - **Files:** `backend/routes/stripe.ts`
 
-### 5. Free tier race condition
-- [ ] Replace the two-step count+insert check with an atomic Postgres function or DB-level constraint
-- **Files:** `backend/routes/scan.ts` (~line 33–60)
+### 5. Free tier race condition ✓
+- [x] Replace the two-step count+insert check with an atomic Postgres function or DB-level constraint
+- **Files:** `backend/routes/scan.ts`, `supabase/migrations/20260428000000_generated_free_scan_flow.sql`
 
-### 6. Remove Gemini references
-- [ ] Remove all Gemini references from `queryEngine.ts`, types, and schema until it is properly implemented
-- [ ] Gemini is currently referenced but never called — will render `undefined` in the dashboard
-- **Files:** `backend/services/queryEngine.ts`, `backend/services/supabase.ts`, `supabase/migrations/`
+### 6. Implement Gemini support ✓
+- [x] Add Gemini to `queryEngine.ts` using `@google/genai` and `GEMINI_API_KEY`
+- [x] Keep dashboard platform rendering backed by real scan results
+- **Files:** `backend/services/queryEngine.ts`, `backend/services/supabase.ts`, `backend/package.json`
 
 ### 7. Scan history + re-scan UX
 - [ ] Build a scan history list on the dashboard using existing `GET /api/results/business/:id`
@@ -103,3 +103,4 @@ Do NOT start these until the 8 non-negotiables are done and you've had real user
 **Floor (if shipped now):** Scans get stuck, free tier is bypassable, no password reset, no retention mechanic. Users churn silently. MRR plateaus fast.
 
 **Ceiling (if executed cleanly):** Concept is well-timed — AI search is eating SEO, SMBs are anxious, no clear incumbent. Agency tier at $149/mo is defensible. At 200 paying customers = $20K+ MRR with minimal marginal cost. Achievable within 12 months with tight execution on retention (weekly scans, trend graphs, email digests).
+

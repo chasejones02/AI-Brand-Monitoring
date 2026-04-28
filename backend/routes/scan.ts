@@ -30,38 +30,6 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
     .eq('id', userId)
     .single()
 
-  if (profile?.subscription_status !== 'active') {
-    // Count all completed/running scans across all this user's businesses
-    const { data: userBusinesses } = await supabase
-      .from('businesses')
-      .select('id')
-      .eq('user_id', userId)
-
-    const businessIds = (userBusinesses ?? []).map((b: { id: string }) => b.id)
-
-    let priorScanCount = 0
-    if (businessIds.length > 0) {
-      // Only completed scans count toward the free-tier limit. A stuck
-      // `running` row (e.g. from a crashed backend) must not permanently
-      // block the user from retrying.
-      const { count } = await supabase
-        .from('scans')
-        .select('id', { count: 'exact', head: true })
-        .in('business_id', businessIds)
-        .eq('status', 'completed')
-      priorScanCount = count ?? 0
-    }
-
-    if (priorScanCount >= 1) {
-      res.status(403).json({
-        data: null,
-        error: 'Active subscription required',
-        code: 'subscription_required',
-      })
-      return
-    }
-  }
-
   // Verify the business belongs to this user
   const { data: business, error: bizError } = await supabase
     .from('businesses')
@@ -87,26 +55,41 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
     return
   }
 
-  // Create a scan record
-  const { data: scan, error: scanError } = await supabase
-    .from('scans')
-    .insert({ business_id, status: 'running', triggered_by: 'manual' })
-    .select()
-    .single()
+  // Create a scan record atomically with free-tier enforcement.
+  const { data: scanCreateRows, error: scanError } = await supabase
+    .rpc('create_scan_if_allowed', {
+      p_business_id: business_id,
+      p_user_id: userId,
+    })
 
-  if (scanError || !scan) {
+  const scanCreate = Array.isArray(scanCreateRows) ? scanCreateRows[0] : null
+
+  if (scanError || !scanCreate) {
     res.status(500).json({ data: null, error: 'Failed to create scan' })
+    return
+  }
+
+  if (!scanCreate.allowed) {
+    if (scanCreate.reason === 'subscription_required') {
+      res.status(403).json({
+        data: null,
+        error: 'Active subscription required',
+        code: 'subscription_required',
+      })
+      return
+    }
+    res.status(404).json({ data: null, error: 'Business not found' })
     return
   }
 
   const isFree = profile?.subscription_status !== 'active'
 
   // Return the scan ID immediately so frontend can poll
-  res.status(202).json({ data: { scan_id: scan.id }, error: null })
+  res.status(202).json({ data: { scan_id: scanCreate.scan_id }, error: null })
 
   // Run the scan asynchronously (fire and forget)
-  runScan(scan.id, business.name, queries, isFree).catch(err => {
-    console.error(`Scan ${scan.id} failed:`, err)
+  runScan(scanCreate.scan_id, business.name, queries, isFree).catch(err => {
+    console.error(`Scan ${scanCreate.scan_id} failed:`, err)
   })
 })
 
@@ -146,6 +129,7 @@ async function runScan(
   }
 
   const allResults: any[] = []
+  const platformErrors: Record<string, string> = {}
 
   for (const query of queries) {
     const platformResults = await runQueryOnPlatforms(query.query_text, platforms)
@@ -153,6 +137,7 @@ async function runScan(
     for (const pr of platformResults) {
       if (pr.error) {
         console.warn(`Platform ${pr.platform} error for query ${query.id}:`, pr.error)
+        platformErrors[pr.platform] = pr.error
         continue
       }
 
@@ -188,6 +173,15 @@ async function runScan(
   // Insert all results
   if (allResults.length > 0) {
     await supabase.from('scan_results').insert(allResults)
+  }
+
+  if (allResults.length === 0) {
+    console.error(`Scan ${scanId} produced no usable platform results`, platformErrors)
+    await supabase
+      .from('scans')
+      .update({ status: 'failed', completed_at: new Date().toISOString() })
+      .eq('id', scanId)
+    return
   }
 
   // Calculate overall visibility score
