@@ -4,7 +4,6 @@ interface TiltCardProps {
   children: React.ReactNode
   className?: string
   style?: React.CSSProperties
-  as?: keyof HTMLElementTagNameMap
   maxTilt?: number
 }
 
@@ -12,14 +11,13 @@ export function TiltCard({
   children,
   className,
   style,
-  as: Tag = 'div' as any,
   maxTilt = 8,
 }: TiltCardProps) {
-  const ref = useRef<HTMLElement>(null)
+  const ref = useRef<HTMLDivElement>(null)
   const [tilt, setTilt] = useState({ x: 0, y: 0 })
 
   const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => {
+    (e: React.MouseEvent<HTMLDivElement>) => {
       const el = ref.current
       if (!el) return
       const rect = el.getBoundingClientRect()
@@ -37,7 +35,7 @@ export function TiltCard({
   }, [])
 
   return (
-    <Tag
+    <div
       ref={ref}
       className={className}
       onMouseMove={handleMouseMove}
@@ -52,6 +50,6 @@ export function TiltCard({
       }}
     >
       {children}
-    </Tag>
+    </div>
   )
 }

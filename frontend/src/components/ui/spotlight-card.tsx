@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, ReactNode } from 'react';
+import React, { useEffect, useRef, type ReactNode } from 'react';
 
 // Brand orange — matches --accent: #c98f0a in globals.css
 const BRAND = '201, 143, 10';

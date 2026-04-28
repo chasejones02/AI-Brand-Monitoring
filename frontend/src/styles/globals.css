@@ -2527,6 +2527,14 @@
       max-width: 560px;
       margin: 0 auto;
     }
+    .analyze-prompt-note {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      text-align: center;
+      margin: 0 auto 1rem;
+      max-width: 520px;
+    }
 
     /* ─── Preview / Demo Section ────────────────────────── */
     .analyze-preview-section {
@@ -2590,6 +2598,33 @@
       background: var(--accent);
       border-radius: 50%;
       animation: pulse-dot 1.6s ease-in-out infinite;
+    }
+    .sb-demo-card {
+      position: relative;
+      z-index: 1;
+      border-radius: 18px;
+    }
+    .sb-demo-tilt {
+      margin: 0 auto;
+    }
+    .sb-demo-card .analysis-demo-label {
+      margin: 1rem 1.25rem 0.35rem;
+    }
+    .sb-demo-card .demo-player {
+      border-color: transparent;
+      border-left-color: transparent;
+      box-shadow: none;
+    }
+    .analyze-form-glow {
+      border-radius: 18px;
+    }
+    .analyze-form-tilt {
+      width: 100%;
+    }
+    .analyze-form-glow .analyze-form {
+      border-color: transparent;
+      border-left-color: transparent;
+      box-shadow: none;
     }
 
     /* ─── Scoreboard preview ──────────────────────────── */

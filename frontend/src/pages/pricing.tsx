@@ -75,7 +75,7 @@ export default function PricingPage() {
           <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
           <polyline points="22 4 12 14.01 9 11.01" />
         </svg>
-        <span>Your first scan is free — no credit card, no commitment.</span>
+        <span>Your first scan is free - we generate prompts from your business name and location.</span>
         <button className="pp-free-strip-btn" onClick={() => navigate('/analyze')}>
           Get your free scan
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -96,7 +96,7 @@ export default function PricingPage() {
           </div>
           <p className="pp-desc">For solo businesses.</p>
           <ul className="pp-features">
-            <li>{check} 5 queries tracked</li>
+            <li>{check} 5 custom prompts tracked</li>
             <li>{check} Weekly scans</li>
             <li>{check} All 4 AI platforms</li>
             <li>{check} Track 3 competitors</li>
@@ -121,7 +121,7 @@ export default function PricingPage() {
           </div>
           <p className="pp-desc">For growing businesses.</p>
           <ul className="pp-features">
-            <li>{check} 15 queries tracked</li>
+            <li>{check} 15 custom prompts tracked</li>
             <li>{check} Daily scans</li>
             <li>{check} All 4 AI platforms</li>
             <li>{check} Track 5 competitors</li>
@@ -147,7 +147,7 @@ export default function PricingPage() {
           </div>
           <p className="pp-desc">For marketing agencies.</p>
           <ul className="pp-features">
-            <li>{check} 30 queries tracked</li>
+            <li>{check} 30 custom prompts tracked</li>
             <li>{check} Multi-brand (20 profiles)</li>
             <li>{check} Actionable recommendations</li>
             <li>{check} White-label reports</li>
