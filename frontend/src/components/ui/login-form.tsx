@@ -227,11 +227,15 @@ function FloatingTextarea({
   label,
   value,
   onChange,
+  required = true,
+  minLength,
 }: {
   icon: typeof FileText
   label: string
   value: string
   onChange: (v: string) => void
+  required?: boolean
+  minLength?: number
 }) {
   const [focused, setFocused] = useState(false)
   const active = focused || value.length > 0
@@ -261,6 +265,8 @@ function FloatingTextarea({
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         rows={2}
+        required={required}
+        minLength={minLength}
         style={{
           width: '100%',
           background: 'transparent',
@@ -367,20 +373,21 @@ interface LoginFormProps {
   onForgotPassword: (email: string) => Promise<void>
   onGoogleSignIn: () => Promise<void>
   flipped: boolean
+  initialBusiness?: { name: string; location: string; description: string }
   error?: string
   successMessage?: string
   loading?: boolean
   onClearError?: () => void
 }
 
-export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, onForgotPassword, onGoogleSignIn, flipped, error, successMessage, loading, onClearError }: LoginFormProps) {
+export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, onForgotPassword, onGoogleSignIn, flipped, initialBusiness, error, successMessage, loading, onClearError }: LoginFormProps) {
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
-  const [bizName, setBizName] = useState('')
-  const [bizLocation, setBizLocation] = useState('')
-  const [bizDesc, setBizDesc] = useState('')
+  const [bizName, setBizName] = useState(initialBusiness?.name ?? '')
+  const [bizLocation, setBizLocation] = useState(initialBusiness?.location ?? '')
+  const [bizDesc, setBizDesc] = useState(initialBusiness?.description ?? '')
   const [bizLoading, setBizLoading] = useState(false)
   const tiltRef = useRef<HTMLDivElement>(null)
   const [tilt, setTilt] = useState({ x: 0, y: 0 })
@@ -413,6 +420,8 @@ export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, onForgotPasswo
 
   const handleBusiness = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!bizLocation.includes(',')) return
+    if (bizDesc.trim().length < 10) return
     setBizLoading(true)
     try { await onBusinessSubmit({ name: bizName, location: bizLocation, description: bizDesc }) }
     finally { setBizLoading(false) }
@@ -682,7 +691,7 @@ export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, onForgotPasswo
           <form onSubmit={handleBusiness}>
             <FloatingInput icon={Building2} label="Business Name" value={bizName} onChange={setBizName} />
             <FloatingInput icon={MapPin} label="Location (city, state)" value={bizLocation} onChange={setBizLocation} />
-            <FloatingTextarea icon={FileText} label="Description (optional)" value={bizDesc} onChange={setBizDesc} />
+            <FloatingTextarea icon={FileText} label="Short Description" value={bizDesc} onChange={setBizDesc} minLength={10} />
             <SubmitButton loading={bizLoading} label="Continue to Dashboard" loadingLabel="Setting up..." />
           </form>
         </div>

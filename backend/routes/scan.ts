@@ -33,7 +33,7 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
   // Verify the business belongs to this user
   const { data: business, error: bizError } = await supabase
     .from('businesses')
-    .select('id, name')
+    .select('id, name, location')
     .eq('id', business_id)
     .eq('user_id', userId)
     .single()
@@ -88,7 +88,7 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
   res.status(202).json({ data: { scan_id: scanCreate.scan_id }, error: null })
 
   // Run the scan asynchronously (fire and forget)
-  runScan(scanCreate.scan_id, business.name, queries, isFree).catch(err => {
+  runScan(scanCreate.scan_id, business.name, business.location, queries, isFree).catch(err => {
     console.error(`Scan ${scanCreate.scan_id} failed:`, err)
   })
 })
@@ -96,6 +96,7 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
 async function runScan(
   scanId: string,
   businessName: string,
+  businessLocation: string | null,
   queries: { id: string; query_text: string }[],
   isFree: boolean = false
 ) {
@@ -132,7 +133,9 @@ async function runScan(
   const platformErrors: Record<string, string> = {}
 
   for (const query of queries) {
-    const platformResults = await runQueryOnPlatforms(query.query_text, platforms)
+    const platformResults = await runQueryOnPlatforms(query.query_text, platforms, {
+      location: businessLocation,
+    })
 
     for (const pr of platformResults) {
       if (pr.error) {

@@ -6,10 +6,15 @@ import { generateQueriesForBusiness, type GeneratedQuery } from '../services/que
 
 const router = Router()
 
+function hasRegionLevelLocation(location: string): boolean {
+  const parts = location.split(',').map(part => part.trim()).filter(Boolean)
+  return parts.length >= 2 && parts[0].length >= 2 && parts[1].length >= 2
+}
+
 const CreateBusinessSchema = z.object({
   name: z.string().min(1).max(200),
   location: z.string().min(1).max(200).optional(),
-  description: z.string().max(1000).optional(),
+  description: z.string().min(10).max(1000).optional(),
   website: z.string().url().optional().or(z.literal('')),
   industry: z.string().optional(),
   queries: z.array(z.string().min(3).max(500)).min(1).max(10).optional(),
@@ -21,6 +26,20 @@ const CreateBusinessSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ['location'],
       message: 'Location is required for generated free-scan queries',
+    })
+  }
+  if (data.generate_queries && data.location?.trim() && !hasRegionLevelLocation(data.location)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['location'],
+      message: 'Use a precise location like "Brookings, SD" or "Brookings, South Dakota"',
+    })
+  }
+  if (data.generate_queries && !data.description?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['description'],
+      message: 'A short business description is required for generated free-scan queries',
     })
   }
   if (!data.generate_queries && !data.queries?.length) {
@@ -74,6 +93,7 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
     .single()
 
   if (bizError || !business) {
+    console.error('Failed to create business:', bizError)
     res.status(500).json({ data: null, error: 'Failed to create business' })
     return
   }
@@ -90,6 +110,7 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
   const { error: queryError } = await supabase.from('queries').insert(queryRows)
 
   if (queryError) {
+    console.error('Business created but failed to save queries:', queryError)
     res.status(500).json({ data: null, error: 'Business created but failed to save queries' })
     return
   }

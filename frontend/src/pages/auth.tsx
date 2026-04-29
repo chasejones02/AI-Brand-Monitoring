@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/auth-context'
 import { createBusiness, triggerScan } from '../lib/api'
@@ -15,7 +15,13 @@ import { CrystalCursor } from '../components/crystal-cursor'
 export default function AuthPage() {
   const { session } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const isRecovery = useRef(false)
+  const initialBusiness = {
+    name: searchParams.get('name') ?? '',
+    location: searchParams.get('location') ?? '',
+    description: searchParams.get('description') ?? '',
+  }
 
   const [flipped, setFlipped] = useState(false)
   const [error, setError] = useState('')
@@ -116,10 +122,14 @@ export default function AuthPage() {
 
   async function handleBusinessSubmit(data: { name: string; location: string; description: string }) {
     try {
+      if (data.description.trim().length < 10) {
+        setError('Add a short description of what your business does.')
+        return
+      }
       const { business_id } = await createBusiness({
         name: data.name,
         location: data.location,
-        description: data.description || undefined,
+        description: data.description,
         generate_queries: true,
         query_count: 5,
       })
@@ -168,9 +178,10 @@ export default function AuthPage() {
           onSignUp={handleSignUp}
           onBusinessSubmit={handleBusinessSubmit}
           onForgotPassword={handleForgotPassword}
-          onGoogleSignIn={handleGoogleSignIn}
-          flipped={flipped}
-          error={error}
+        onGoogleSignIn={handleGoogleSignIn}
+        flipped={flipped}
+        initialBusiness={initialBusiness}
+        error={error}
           successMessage={successMessage}
           loading={loading}
           onClearError={handleClearError}

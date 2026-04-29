@@ -32,6 +32,10 @@ export type QueryResult = {
   error?: string
 }
 
+export type QueryContext = {
+  location?: string | null
+}
+
 async function queryOpenAI(prompt: string): Promise<string> {
   if (!openai) throw new Error('OpenAI API key not configured')
 
@@ -45,22 +49,103 @@ async function queryOpenAI(prompt: string): Promise<string> {
   return response.choices[0]?.message?.content ?? ''
 }
 
-async function queryPerplexity(prompt: string): Promise<string> {
+const US_STATE_NAMES: Record<string, string> = {
+  AL: 'Alabama',
+  AK: 'Alaska',
+  AZ: 'Arizona',
+  AR: 'Arkansas',
+  CA: 'California',
+  CO: 'Colorado',
+  CT: 'Connecticut',
+  DE: 'Delaware',
+  FL: 'Florida',
+  GA: 'Georgia',
+  HI: 'Hawaii',
+  ID: 'Idaho',
+  IL: 'Illinois',
+  IN: 'Indiana',
+  IA: 'Iowa',
+  KS: 'Kansas',
+  KY: 'Kentucky',
+  LA: 'Louisiana',
+  ME: 'Maine',
+  MD: 'Maryland',
+  MA: 'Massachusetts',
+  MI: 'Michigan',
+  MN: 'Minnesota',
+  MS: 'Mississippi',
+  MO: 'Missouri',
+  MT: 'Montana',
+  NE: 'Nebraska',
+  NV: 'Nevada',
+  NH: 'New Hampshire',
+  NJ: 'New Jersey',
+  NM: 'New Mexico',
+  NY: 'New York',
+  NC: 'North Carolina',
+  ND: 'North Dakota',
+  OH: 'Ohio',
+  OK: 'Oklahoma',
+  OR: 'Oregon',
+  PA: 'Pennsylvania',
+  RI: 'Rhode Island',
+  SC: 'South Carolina',
+  SD: 'South Dakota',
+  TN: 'Tennessee',
+  TX: 'Texas',
+  UT: 'Utah',
+  VT: 'Vermont',
+  VA: 'Virginia',
+  WA: 'Washington',
+  WV: 'West Virginia',
+  WI: 'Wisconsin',
+  WY: 'Wyoming',
+}
+
+function parseUserLocation(location?: string | null) {
+  if (!location) return null
+  const [cityRaw, regionRaw] = location.split(',').map(part => part.trim())
+  if (!cityRaw) return null
+  const region = regionRaw
+    ? US_STATE_NAMES[regionRaw.toUpperCase()] ?? regionRaw
+    : undefined
+
+  return {
+    country: 'US',
+    city: cityRaw,
+    ...(region ? { region } : {}),
+  }
+}
+
+async function queryPerplexity(prompt: string, context?: QueryContext): Promise<string> {
   if (!perplexity) throw new Error('Perplexity API key not configured')
 
-  const response = await perplexity.chat.completions.create({
+  const userLocation = parseUserLocation(context?.location)
+  const request = {
     model: 'sonar',
     messages: [
       {
         role: 'system',
         content:
-          'You are a helpful assistant with real-time web search. When answering questions about local businesses, services, or products, always include specific, named businesses in your response. Be thorough and list as many relevant businesses as you can find.',
+          'You are a helpful assistant with real-time web search. When answering questions about local businesses, services, or products, prioritize the exact city and state in the user query, include specific named businesses, and do not substitute similarly named cities in other states.',
       },
       { role: 'user', content: prompt },
     ],
     max_tokens: 1024,
-    temperature: 0.7,
-  })
+    temperature: 0.2,
+    ...(userLocation
+      ? {
+          web_search_options: {
+            search_context_size: 'high',
+            user_location: userLocation,
+          },
+        }
+      : { web_search_options: { search_context_size: 'medium' } }),
+  }
+
+  const response = await perplexity.chat.completions.create({
+    ...(request as any),
+  } as any)
 
   return response.choices[0]?.message?.content ?? ''
 }
@@ -102,7 +187,8 @@ function buildPrompt(queryText: string): string {
 
 export async function runQueryOnPlatforms(
   queryText: string,
-  platforms: Platform[]
+  platforms: Platform[],
+  context?: QueryContext
 ): Promise<QueryResult[]> {
   const prompt = buildPrompt(queryText)
 
@@ -115,7 +201,7 @@ export async function runQueryOnPlatforms(
         const raw_response = await queryAnthropic(prompt)
         return { platform, raw_response }
       } else if (platform === 'perplexity') {
-        const raw_response = await queryPerplexity(prompt)
+        const raw_response = await queryPerplexity(prompt, context)
         return { platform, raw_response }
       } else if (platform === 'gemini') {
         const raw_response = await queryGemini(prompt)
