@@ -35,7 +35,7 @@ export default function AnalyzePage() {
               Three minutes from <em>blank slate</em> to <em>AI visibility report</em>.
             </h1>
             <p className="analyze-sub anim-3">
-              Enter your business name and location. For the free scan, Visaion generates
+              Enter your business name, location, and short description. For the free scan, Visaion generates
               the prompts for you so you can get a fast first read on your AI visibility.
             </p>
           </div>
@@ -69,7 +69,7 @@ export default function AnalyzePage() {
         <section className="analyze-form-section" id="start" ref={formRef}>
           <div className="container analyze-form-center">
             <p className="analyze-prompt-note reveal">
-              Free scans use generated prompts based on your business and location.
+              Free scans use generated prompts based on your business, location, and category.
               Paid plans unlock custom prompt tracking for the exact searches you care about.
             </p>
             <TiltCard className="analyze-form-tilt reveal">

@@ -915,7 +915,7 @@ function ScanResultsView({
         </div>
         <h2 style={s.runningTitle}>Scanning AI platforms…</h2>
         <p style={s.runningText}>
-          Querying ChatGPT and Perplexity for{' '}
+          Querying the available scan platform for{' '}
           <strong style={{ color: 'var(--text)' }}>
             {scan?.business_name ?? 'your business'}
           </strong>
@@ -923,7 +923,7 @@ function ScanResultsView({
           This usually takes 15–60 seconds.
         </p>
         <div style={s.platformPills}>
-          {['ChatGPT', 'Perplexity'].map(p => (
+          {['Perplexity'].map(p => (
             <span key={p} style={s.platformPillRunning}>
               <span style={s.platformDot} />
               {p}
@@ -959,13 +959,17 @@ function ScanResultsView({
 
   const score = scan.visibility_score ?? 0
   const platforms = scan.results.length > 0 ? Object.keys(scan.results[0].platforms) : []
+  const isPerplexityOnly = platforms.length === 1 && platforms[0] === 'perplexity'
+  const allGenerated = scan.results.length > 0 && scan.results.every(r => r.source === 'generated')
 
   return (
     <div style={s.content}>
       {/* Score header */}
       <div style={s.scoreSection}>
         <div style={s.scoreLeft}>
-          <p style={s.eyebrow}>AI Visibility Report</p>
+          <p style={s.eyebrow}>
+            {isPerplexityOnly ? 'Free Perplexity Visibility Report' : 'AI Visibility Report'}
+          </p>
           <h1 style={s.businessName}>{scan.business_name}</h1>
           <p style={s.scanMeta}>
             Scanned{' '}
@@ -1008,6 +1012,7 @@ function ScanResultsView({
             <p style={s.scoreExplainText}>
               {Math.round(scan.score_details.earned_points)} of {scan.score_details.max_points} possible points
               {' '}across {scan.score_details.result_count} query/platform result{scan.score_details.result_count === 1 ? '' : 's'}.
+              {isPerplexityOnly ? ' This free score is based on Perplexity results only.' : ''}
             </p>
           </div>
           <div style={s.scoreExplainGrid}>
@@ -1057,7 +1062,7 @@ function ScanResultsView({
 
       {/* Query cards */}
       <div style={s.queriesSection}>
-        <h2 style={s.sectionTitle}>Query Breakdown</h2>
+        <h2 style={s.sectionTitle}>{allGenerated ? 'Generated Query Breakdown' : 'Query Breakdown'}</h2>
         <div style={s.queryGrid}>
           {scan.results.map((result, i) => (
             <QueryCard key={result.query_id} result={result} index={i} platforms={platforms} />
