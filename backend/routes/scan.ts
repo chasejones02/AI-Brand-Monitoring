@@ -156,7 +156,7 @@ async function runScan(
         mentioned: analysis.mentioned,
         mention_position: analysis.position_index,
         sentiment: analysis.sentiment,
-        competitors_mentioned: [],
+        competitors_mentioned: analysis.competitors_mentioned,
       })
 
       allResults.push({
@@ -167,7 +167,7 @@ async function runScan(
         mentioned: analysis.mentioned,
         mention_position: analysis.position_index,
         sentiment: analysis.sentiment,
-        competitors_mentioned: [],
+        competitors_mentioned: analysis.competitors_mentioned,
         ...scores,
       })
     }

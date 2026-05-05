@@ -27,6 +27,7 @@ interface PlatformResult {
   mention_position: number | null
   sentiment: 'positive' | 'neutral' | 'negative' | null
   competitors_mentioned: string[]
+  raw_response: string | null
   scores: { mention: number; position: number; sentiment: number; total: number; max: number }
 }
 
@@ -43,6 +44,8 @@ interface ScoreDetails {
   formula_version: string
   formula: string
   result_count: number
+  mentioned_results: number
+  sentiment_counts: { positive: number; neutral: number; negative: number }
   max_per_result: number
   max_points: number
   earned_points: number
@@ -127,6 +130,19 @@ function formatScanLabel(scan: ScanSummary): string {
   if (scan.status === 'failed') return `${date} · Failed`
   const score = scan.visibility_score != null ? `Score ${Math.round(scan.visibility_score)}` : 'No score'
   return `${date} · ${score}`
+}
+
+function pluralize(count: number, singular: string, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`
+}
+
+function sentimentSummary(counts: ScoreDetails['sentiment_counts']) {
+  const total = counts.positive + counts.neutral + counts.negative
+  if (total === 0) return 'No sentiment detected yet.'
+  const dominant = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
+  const label = dominant[0]
+  const count = dominant[1]
+  return `${pluralize(count, label)} mention${count === 1 ? '' : 's'} led the scan.`
 }
 
 // ─── DashboardPage ────────────────────────────────────────────────────────────
@@ -1008,17 +1024,37 @@ function ScanResultsView({
       {scan.score_details && (
         <div style={s.scoreExplain}>
           <div>
-            <p style={s.scoreExplainLabel}>Score formula</p>
+            <p style={s.scoreExplainLabel}>Score explanation</p>
             <p style={s.scoreExplainText}>
-              {Math.round(scan.score_details.earned_points)} of {scan.score_details.max_points} possible points
-              {' '}across {scan.score_details.result_count} query/platform result{scan.score_details.result_count === 1 ? '' : 's'}.
+              Mentioned in {scan.score_details.mentioned_results} of {scan.score_details.result_count} query/platform result{scan.score_details.result_count === 1 ? '' : 's'}.
+              {' '}Position and sentiment then adjust the score.
               {isPerplexityOnly ? ' This free score is based on Perplexity results only.' : ''}
             </p>
           </div>
           <div style={s.scoreExplainGrid}>
-            <span>Mention: {scan.score_details.mention_points}</span>
-            <span>Position: {scan.score_details.position_points}</span>
-            <span>Sentiment: {scan.score_details.sentiment_points}</span>
+            <span>{Math.round(scan.score_details.earned_points)}/{scan.score_details.max_points} pts</span>
+            <span>{pluralize(scan.score_details.mentioned_results, 'mention')}</span>
+            <span>{pluralize(scan.score_details.result_count, 'data point')}</span>
+          </div>
+        </div>
+      )}
+
+      {scan.score_details && (
+        <div style={s.sentimentSummary}>
+          <div>
+            <p style={s.scoreExplainLabel}>Sentiment summary</p>
+            <p style={s.scoreExplainText}>{sentimentSummary(scan.score_details.sentiment_counts)}</p>
+          </div>
+          <div style={s.sentimentCounts}>
+            <span style={{ ...s.sentimentPill, borderColor: 'rgba(34,197,94,0.35)', color: 'var(--green)' }}>
+              {scan.score_details.sentiment_counts.positive} positive
+            </span>
+            <span style={{ ...s.sentimentPill, borderColor: 'rgba(148,163,184,0.3)', color: 'var(--text-muted)' }}>
+              {scan.score_details.sentiment_counts.neutral} neutral
+            </span>
+            <span style={{ ...s.sentimentPill, borderColor: 'rgba(239,68,68,0.35)', color: 'var(--red)' }}>
+              {scan.score_details.sentiment_counts.negative} negative
+            </span>
           </div>
         </div>
       )}
@@ -1057,6 +1093,24 @@ function ScanResultsView({
               </div>
             )
           })}
+          {isPerplexityOnly && ['openai', 'anthropic', 'gemini'].map(platform => (
+            <div key={`locked-${platform}`} style={{ ...s.platformBarItem, ...s.lockedPlatformItem }}>
+              <div style={s.platformBarHeader}>
+                <span
+                  style={{
+                    ...s.platformDotLarge,
+                    background: PLATFORM_COLORS[platform] ?? 'var(--text-muted)',
+                  }}
+                />
+                <span style={s.platformBarName}>{PLATFORM_LABELS[platform] ?? platform}</span>
+                <span style={s.lockBadge}>Locked</span>
+              </div>
+              <p style={s.lockedPlatformCopy}>
+                See what {PLATFORM_LABELS[platform] ?? platform} says about this business and which competitors it names.
+              </p>
+              <Link to="/pricing" style={s.unlockLink}>Unlock results</Link>
+            </div>
+          ))}
         </div>
       )}
 
@@ -1139,6 +1193,20 @@ function QueryCard({
               )}
               {!pr?.mentioned && <span style={s.chipMissed}>not mentioned</span>}
             </div>
+          )
+        })}
+      </div>
+
+      <div style={s.rawResponses}>
+        {platforms.map(platform => {
+          const pr = result.platforms[platform]
+          if (!pr?.raw_response?.trim()) return null
+          const label = PLATFORM_LABELS[platform] ?? platform
+          return (
+            <details key={`${platform}-raw`} style={s.rawResponseDetails} open={platforms.length === 1}>
+              <summary style={s.rawResponseSummary}>What {label} said</summary>
+              <p style={s.rawResponseText}>{pr.raw_response}</p>
+            </details>
           )
         })}
       </div>
@@ -1706,6 +1774,30 @@ const s: Record<string, React.CSSProperties> = {
     fontSize: '0.78rem',
     color: 'var(--text)',
   },
+  sentimentSummary: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    gap: '1rem',
+    flexWrap: 'wrap' as const,
+    background: 'rgba(255,255,255,0.025)',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius)',
+    padding: '1rem 1.25rem',
+    marginBottom: '1.5rem',
+  },
+  sentimentCounts: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    flexWrap: 'wrap' as const,
+  },
+  sentimentPill: {
+    border: '1px solid',
+    borderRadius: '999px',
+    padding: '0.25rem 0.6rem',
+    fontSize: '0.76rem',
+    fontFamily: "'JetBrains Mono', monospace",
+  },
 
   // Platform bar
   platformBar: {
@@ -1756,6 +1848,35 @@ const s: Record<string, React.CSSProperties> = {
     fontSize: '0.78rem',
     fontFamily: "'JetBrains Mono', monospace",
     color: 'var(--text)',
+  },
+  lockedPlatformItem: {
+    opacity: 0.82,
+    background:
+      'linear-gradient(135deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015))',
+    position: 'relative' as const,
+  },
+  lockBadge: {
+    marginLeft: 'auto',
+    border: '1px solid var(--border)',
+    borderRadius: '999px',
+    padding: '0.12rem 0.45rem',
+    fontSize: '0.68rem',
+    color: 'var(--text-muted)',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.08em',
+  },
+  lockedPlatformCopy: {
+    fontSize: '0.78rem',
+    lineHeight: 1.5,
+    color: 'var(--text-muted)',
+    margin: 0,
+  },
+  unlockLink: {
+    color: 'var(--accent)',
+    fontSize: '0.78rem',
+    fontWeight: 700,
+    textDecoration: 'none',
+    marginTop: 'auto',
   },
 
   // Query section
@@ -1811,6 +1932,32 @@ const s: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column' as const,
     gap: '0.4rem',
+  },
+  rawResponses: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.55rem',
+  },
+  rawResponseDetails: {
+    border: '1px solid var(--border-dim)',
+    borderRadius: '6px',
+    background: 'rgba(0,0,0,0.18)',
+    overflow: 'hidden',
+  },
+  rawResponseSummary: {
+    cursor: 'pointer',
+    padding: '0.6rem 0.75rem',
+    fontSize: '0.78rem',
+    fontWeight: 700,
+    color: 'var(--text)',
+  },
+  rawResponseText: {
+    margin: 0,
+    padding: '0 0.75rem 0.75rem',
+    color: 'var(--text-muted)',
+    fontSize: '0.8rem',
+    lineHeight: 1.6,
+    whiteSpace: 'pre-wrap' as const,
   },
   platformChip: {
     display: 'flex',

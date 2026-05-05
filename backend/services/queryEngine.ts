@@ -226,6 +226,7 @@ export type MentionAnalysis = {
   variant_used: string | null       // exact text used in response, e.g. "Google Chrome" when searching "Chrome"
   position_index: number | null     // 1 = first brand mentioned, 2 = second, etc.
   sentiment: 'positive' | 'neutral' | 'negative' | null
+  competitors_mentioned: string[]   // other businesses/brands recommended alongside the target
 }
 
 // Uses OpenAI to determine if a business is mentioned in a raw AI response,
@@ -248,12 +249,15 @@ ${rawResponse}
 
 Does this response mention "${businessName}" or any common variation of it (abbreviations, alternative spellings, parent brand names, compound names like "Google Chrome" for "Chrome")?
 
+Also extract other named businesses, brands, products, or competitors that are recommended, compared, listed, or mentioned as alternatives alongside "${businessName}". Exclude "${businessName}" and its variants. Return at most 8 competitor names, using the exact names from the response.
+
 Return ONLY valid JSON, no markdown:
 {
   "mentioned": true or false,
   "variant_used": "the exact text from the response, or null",
   "position_index": 1-indexed position among all brands/products listed (or null if not mentioned),
-  "sentiment": "positive", "neutral", or "negative" based on how the business is portrayed (or null if not mentioned)
+  "sentiment": "positive", "neutral", or "negative" based on how the business is portrayed (or null if not mentioned),
+  "competitors_mentioned": ["competitor name", "another competitor"]
 }`
 
   try {
@@ -274,6 +278,7 @@ Return ONLY valid JSON, no markdown:
       sentiment: (['positive', 'neutral', 'negative'] as const).includes(parsed.sentiment)
         ? parsed.sentiment
         : parsed.mentioned ? 'neutral' : null,
+      competitors_mentioned: normalizeCompetitors(parsed.competitors_mentioned, businessName),
     }
   } catch (err) {
     console.error('analyzeMention failed, falling back to string match:', err)
@@ -298,7 +303,29 @@ function fallbackMentionAnalysis(response: string, businessName: string): Mentio
     variant_used: mentioned ? businessName : null,
     position_index,
     sentiment: mentioned ? 'neutral' : null,
+    competitors_mentioned: [],
   }
+}
+
+function normalizeCompetitors(value: unknown, businessName: string): string[] {
+  if (!Array.isArray(value)) return []
+  const target = businessName.trim().toLowerCase()
+  const seen = new Set<string>()
+  const competitors: string[] = []
+
+  for (const item of value) {
+    if (typeof item !== 'string') continue
+    const name = item.trim().replace(/\s+/g, ' ')
+    if (!name || name.length > 80) continue
+    const key = name.toLowerCase()
+    if (key === target || target.includes(key) || key.includes(target)) continue
+    if (seen.has(key)) continue
+    seen.add(key)
+    competitors.push(name)
+    if (competitors.length >= 8) break
+  }
+
+  return competitors
 }
 
 function isRealKey(key: string | undefined): boolean {

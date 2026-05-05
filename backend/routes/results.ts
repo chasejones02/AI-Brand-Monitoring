@@ -49,7 +49,7 @@ router.get('/:scanId', requireAuth, async (req: Request, res: Response): Promise
   const { data: results, error: resultsError } = await supabase
     .from('scan_results')
     .select(`
-      id, platform, mentioned, mention_position, sentiment,
+      id, platform, raw_response, mentioned, mention_position, sentiment,
       competitors_mentioned, mention_score, position_score, sentiment_score,
       queries!inner(id, query_text, source, intent, generation_reason)
     `)
@@ -80,6 +80,7 @@ router.get('/:scanId', requireAuth, async (req: Request, res: Response): Promise
       mention_position: r.mention_position,
       sentiment: r.sentiment,
       competitors_mentioned: r.competitors_mentioned,
+      raw_response: r.raw_response,
       scores: {
         mention: r.mention_score,
         position: r.position_score,
@@ -110,17 +111,29 @@ router.get('/:scanId', requireAuth, async (req: Request, res: Response): Promise
 function buildScoreDetails(results: any[]) {
   const max_per_result = 18
   const result_count = results.length
+  const mentioned_results = results.filter(r => r.mentioned).length
   const max_points = result_count * max_per_result
   const mention_points = results.reduce((sum, r) => sum + (r.mention_score ?? 0), 0)
   const position_points = results.reduce((sum, r) => sum + (r.position_score ?? 0), 0)
   const sentiment_points = results.reduce((sum, r) => sum + (r.sentiment_score ?? 0), 0)
   const earned_points = mention_points + position_points + sentiment_points
+  const sentiment_counts = results.reduce(
+    (counts, r) => {
+      if (r.sentiment === 'positive') counts.positive += 1
+      else if (r.sentiment === 'negative') counts.negative += 1
+      else if (r.sentiment === 'neutral') counts.neutral += 1
+      return counts
+    },
+    { positive: 0, neutral: 0, negative: 0 }
+  )
 
   return {
     formula_version: 'v1',
     formula:
       'AI Visibility Score = earned points / max points * 100. Each query/platform result can earn 10 mention points, up to 5 position points, and up to 3 sentiment points.',
     result_count,
+    mentioned_results,
+    sentiment_counts,
     max_per_result,
     max_points,
     earned_points,

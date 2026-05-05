@@ -1,30 +1,31 @@
-# AI Brand Monitor — Roadmap
+# AI Brand Monitor Roadmap
 
-> Last audited: 2026-04-03. Keep this file updated as items are completed.
+> Last updated: 2026-05-05. Keep this file updated as items are completed.
+> Important: after any roadmap item ships, check it off in this file in the same change set.
 
 ---
 
 ## Status: Pre-Launch
 
-The core loop (sign up → business entry → scan → results → pay) works end-to-end. The 8 items below are non-negotiable before charging strangers. No new features until these are done.
+The core loop (sign up -> business entry -> scan -> results -> pay) works end-to-end. The remaining launch work is split into core reliability blockers and report value/conversion blockers. Do not build speculative Phase 2 features until the launch blockers below are complete.
 
 ---
 
 ## Non-Negotiables (fix before launch)
 
-### 1. Stuck scan recovery ✓
+### 1. Stuck scan recovery
 - [x] Add a 5-minute timeout that flips `status` to `failed` if a scan never completes
 - [x] Surface an error state + retry button in the dashboard UI
 - **Files:** `backend/routes/scan.ts`, `frontend/src/pages/dashboard.tsx`
 
-### 2. Password reset ✓
+### 2. Password reset
 - [x] Add "Forgot password?" link on auth page
 - [x] Wire up `supabase.auth.resetPasswordForEmail()`
 - [x] Handle `PASSWORD_RECOVERY` event to show new-password form
 - [x] Custom branded email template (`supabase/templates/reset-password.html`)
 - **Files:** `frontend/src/pages/auth.tsx`
 
-### 3. Fix dashboard polling on terminal errors ✓
+### 3. Fix dashboard polling on terminal errors
 - [x] Stop the 3s polling loop on terminal error states (e.g. `subscription_required`, `failed`)
 - [x] Show appropriate error UI instead of infinite spinner
 - [x] Reap orphaned `running` scans on backend startup so crashes don't leave users stuck
@@ -34,20 +35,20 @@ The core loop (sign up → business entry → scan → results → pay) works en
 ### 4. Stripe webhook idempotency
 - [ ] Store processed Stripe event IDs in DB
 - [ ] Check event ID before applying any webhook handler to prevent double-updates on retries
-- **Files:** `backend/routes/stripe.ts`
+- **Files:** `backend/routes/stripe.ts`, `supabase/migrations/`
 
-### 5. Free tier race condition ✓
+### 5. Free tier race condition
 - [x] Replace the two-step count+insert check with an atomic Postgres function or DB-level constraint
 - **Files:** `backend/routes/scan.ts`, `supabase/migrations/20260428000000_generated_free_scan_flow.sql`
 
-### 6. Implement Gemini support ✓
+### 6. Implement Gemini support
 - [x] Add Gemini to `queryEngine.ts` using `@google/genai` and `GEMINI_API_KEY`
 - [x] Keep dashboard platform rendering backed by real scan results
 - **Files:** `backend/services/queryEngine.ts`, `backend/services/supabase.ts`, `backend/package.json`
 
 ### 7. Scan history + re-scan UX
 - [ ] Build a scan history list on the dashboard using existing `GET /api/results/business/:id`
-- [ ] Add a "Run New Scan" button — this is the core retention mechanic
+- [ ] Add a "Run New Scan" button - this is the core retention mechanic
 - **Files:** `frontend/src/pages/dashboard.tsx`
 
 ### 8. Subscription management page
@@ -57,11 +58,64 @@ The core loop (sign up → business entry → scan → results → pay) works en
 
 ---
 
+## Report Value + Freemium Conversion (fix before launch)
+
+### P1. Surface the aha moment in the report
+- [x] Return `raw_response` from `GET /api/results/:scanId`
+- [x] Show the full raw AI response for each query/platform result, especially Perplexity on free scans
+- [x] Rewrite score details in plain English: "Mentioned in X of Y results", not raw point totals
+- [x] Add aggregate sentiment summary for the scan
+- [x] Fix free-tier platform display: show one full Perplexity card plus locked ChatGPT, Claude, and Gemini cards
+- **Files:** `backend/routes/results.ts`, `frontend/src/pages/dashboard.tsx`
+
+### P2. Make competitor tracking real
+- [x] Extend `analyzeMention()` to extract `competitors_mentioned`
+- [x] Save competitor names into `scan_results.competitors_mentioned`
+- [x] Show competitor names in the dashboard report when returned by analysis
+- [ ] Use competitor counts in locked free-tier teasers
+- **Files:** `backend/services/queryEngine.ts`, `backend/routes/scan.ts`, `frontend/src/pages/dashboard.tsx`
+
+### P3. Preserve the exact business variant AI used
+- [ ] Add `variant_used` to `scan_results`
+- [ ] Save `analysis.variant_used` during scans
+- [ ] Return and display the exact variant used in the report
+- **Files:** `supabase/migrations/`, `backend/services/supabase.ts`, `backend/routes/scan.ts`, `backend/routes/results.ts`, `frontend/src/pages/dashboard.tsx`
+
+### P4. Add pre-scan query review
+- [ ] Free users see the five auto-generated queries as a read-only preview before the scan starts
+- [ ] Starter/Growth users can edit generated queries before running the scan
+- [ ] Avoid burning a free scan until the user confirms the preview
+- **Files:** `frontend/src/components/hero-form.tsx`, `frontend/src/pages/dashboard.tsx`, `backend/routes/business.ts`
+
+### P5. Add rule-based recommendations
+- [ ] Generate two free Perplexity-specific recommendations from scan data
+- [ ] Generate Starter recommendations by platform
+- [ ] Show locked additional recommendations in the free report
+- **Files:** `backend/services/`, `backend/routes/results.ts`, `frontend/src/pages/dashboard.tsx`
+
+### P6. Improve scoring clarity and quality
+- [ ] Replace cliff-style position scoring with a smoother curve
+- [ ] Add score confidence based on number of query/platform data points (Growth-exclusive in UI)
+- [ ] Add industry benchmark score copy/data model for Growth
+- **Files:** `backend/services/scorer.ts`, `backend/routes/results.ts`, `frontend/src/pages/dashboard.tsx`
+
+### P7. Align pricing tiers for launch
+- [ ] Drop Agency from launch pricing UI and checkout options
+- [ ] Launch with Free, Starter, and Growth only
+- [ ] Default pricing page billing toggle to annual
+- [ ] Set annual prices: Starter $24/mo billed annually, Growth $41/mo billed annually
+- [ ] Mark Growth as "Most Popular"
+- [ ] Use loss-aversion copy for paid features
+- [ ] Add social proof/testimonials to pricing page
+- **Files:** `frontend/src/components/pricing.tsx`, `frontend/src/pages/pricing.tsx`, `backend/routes/stripe.ts`
+
+---
+
 ## Strong-to-Have (before or shortly after launch)
 
-- [ ] **Rate limiting** — Add `express-rate-limit` to all API endpoints. Prevents OpenAI bill abuse.
-- [ ] **Startup env validation** — Validate all required env vars on boot. Fail fast, not on first use.
-- [ ] **Error tracking** — Add Sentry (free tier) so broken scans in production are visible.
+- [ ] **Rate limiting** - Add `express-rate-limit` to all API endpoints. Prevents OpenAI bill abuse.
+- [ ] **Startup env validation** - Validate all required env vars on boot. Fail fast, not on first use.
+- [ ] **Error tracking** - Add Sentry (free tier) so broken scans in production are visible.
 
 ---
 
@@ -69,28 +123,65 @@ The core loop (sign up → business entry → scan → results → pay) works en
 
 | Week | Focus |
 |------|-------|
-| Week 1 | Complete all 8 non-negotiables. Zero new features. |
-| Week 2 | Rate limiting, env validation, Sentry. Soft-launch to 10 known users. Watch what breaks. |
-| Post soft-launch | Phase 2 features only after core loop is airtight. |
+| Week 1 | Finish original reliability blockers plus P1 report value fixes. |
+| Week 2 | Competitor extraction, query review, recommendations, and pricing alignment. |
+| Soft launch | Invite 10 known users. Watch activation, scan completion, upgrade clicks, and API cost. |
+| Post soft-launch | Phase 2 features only after the core loop and free-to-paid path are stable. |
 
 ---
 
-## Phase 2 — Real Product (after MVP is stable)
+## Tier Strategy For Launch
 
-Do NOT start these until the 8 non-negotiables are done and you've had real users for at least 2 weeks.
+### Free - AI Visibility Snapshot
+- [ ] 1 lifetime scan, Perplexity only
+- [ ] 5 auto-generated queries with read-only pre-scan preview
+- [ ] Full Perplexity raw responses
+- [ ] Plain-English score explanation
+- [ ] 2 Perplexity-specific recommendations
+- [ ] Locked cards for ChatGPT, Claude, and Gemini
+- [ ] No recurring scans, competitor names, scan history, or trend data
 
-- [ ] All 4 AI platforms — add Gemini and Claude properly
+### Starter - $29/mo or $24/mo billed annually
+- [ ] All configured platforms: Perplexity, ChatGPT, Claude, Gemini
+- [ ] Weekly automated scans
+- [ ] 10 queries: 5 auto + 5 custom
+- [ ] Full query editor before scan runs
+- [ ] Competitor extraction up to 3 tracked competitors
+- [ ] 4 per-platform recommendations per scan
+- [ ] Sentiment summary across all platforms
+- [ ] 1 business profile
+
+### Growth - $49/mo or $41/mo billed annually
+- [ ] Everything in Starter
+- [ ] Daily automated scans
+- [ ] 20 custom queries
+- [ ] Track up to 5 competitors with scores
+- [ ] Historical trend graphs
+- [ ] Weekly email digest
+- [ ] Industry benchmark
+- [ ] Sentiment trend over time
+- [ ] Confidence indicator per score
+
+### Agency - dropped for launch
+- [x] Do not launch Agency until multi-business profiles exist in schema, backend, and UI.
+
+---
+
+## Phase 2 - Real Product (after MVP is stable)
+
+Do NOT start these until launch blockers are done and real users have used the product for at least 2 weeks.
+
 - [ ] Automated recurring scans (weekly/daily cadence)
 - [ ] Historical trend graphs
 - [ ] Competitor radar
 - [ ] Email digest reports
 - [ ] Multi-tier usage enforcement
+- [ ] Multi-business profiles for future Agency tier
 
 ---
 
-## Phase 3 — Growth Engine
+## Phase 3 - Growth Engine
 
-- [ ] Actionable recommendations engine
 - [ ] AI optimization guides
 - [ ] White-label / agency features
 - [ ] Embeddable "AI Visibility Badge"
@@ -100,7 +191,6 @@ Do NOT start these until the 8 non-negotiables are done and you've had real user
 
 ## Floor / Ceiling
 
-**Floor (if shipped now):** Scans get stuck, free tier is bypassable, no password reset, no retention mechanic. Users churn silently. MRR plateaus fast.
+**Floor (if shipped now):** Users can complete a scan, but the report still hides the most compelling evidence, gives too little guidance, and leaves pricing credibility exposed.
 
-**Ceiling (if executed cleanly):** Concept is well-timed — AI search is eating SEO, SMBs are anxious, no clear incumbent. Agency tier at $149/mo is defensible. At 200 paying customers = $20K+ MRR with minimal marginal cost. Achievable within 12 months with tight execution on retention (weekly scans, trend graphs, email digests).
-
+**Ceiling (if executed cleanly):** The free scan proves the value immediately, locked platform data creates specific curiosity, and Starter/Growth have clear reasons to upgrade. At 200 paying customers, this can become a meaningful SaaS business with manageable marginal scan cost.
