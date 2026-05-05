@@ -102,6 +102,24 @@ router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
+  // Idempotency guard: insert event_id first, then process. If insert hits the
+  // primary-key conflict, Stripe is retrying an event we've already applied —
+  // return 2xx so Stripe stops retrying and skip the handler.
+  const { error: dedupError } = await supabase
+    .from('processed_stripe_events')
+    .insert({ event_id: event.id, event_type: event.type })
+
+  if (dedupError) {
+    if (dedupError.code === '23505') {
+      console.log(`Stripe webhook duplicate, skipping: ${event.id} (${event.type})`)
+      res.json({ received: true, duplicate: true })
+      return
+    }
+    console.error('Failed to record Stripe event for idempotency:', dedupError)
+    res.status(500).json({ error: 'Failed to record event' })
+    return
+  }
+
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session

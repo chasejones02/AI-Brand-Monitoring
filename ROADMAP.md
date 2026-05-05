@@ -33,9 +33,9 @@ The core loop (sign up -> business entry -> scan -> results -> pay) works end-to
 - **Files:** `frontend/src/pages/dashboard.tsx`, `backend/server.ts`, `backend/routes/scan.ts`
 
 ### 4. Stripe webhook idempotency
-- [ ] Store processed Stripe event IDs in DB
-- [ ] Check event ID before applying any webhook handler to prevent double-updates on retries
-- **Files:** `backend/routes/stripe.ts`, `supabase/migrations/`
+- [x] Store processed Stripe event IDs in DB
+- [x] Check event ID before applying any webhook handler to prevent double-updates on retries
+- **Files:** `backend/routes/stripe.ts`, `supabase/migrations/20260505000000_stripe_webhook_idempotency.sql`
 
 ### 5. Free tier race condition
 - [x] Replace the two-step count+insert check with an atomic Postgres function or DB-level constraint
@@ -116,6 +116,33 @@ The core loop (sign up -> business entry -> scan -> results -> pay) works end-to
 - [ ] **Rate limiting** - Add `express-rate-limit` to all API endpoints. Prevents OpenAI bill abuse.
 - [ ] **Startup env validation** - Validate all required env vars on boot. Fail fast, not on first use.
 - [ ] **Error tracking** - Add Sentry (free tier) so broken scans in production are visible.
+
+---
+
+## Pre-Deploy Checklist (do BEFORE first production deploy)
+
+Currently developing against Stripe **test mode** (sandbox). Before flipping to live payments, all of the following must be done. Skipping any of these will either break payments or accept real cards in a broken pipeline.
+
+### Stripe — switch from test to live mode
+- [ ] Activate the Stripe account (business info, tax info, bank account for payouts) in the Stripe dashboard
+- [ ] Toggle dashboard to **Live mode** and recreate Products + Prices for Starter and Growth (test-mode price IDs do NOT carry over)
+- [ ] Copy the new live `STRIPE_PRICE_STARTER` and `STRIPE_PRICE_GROWTH` price IDs into the production env
+- [ ] Replace `STRIPE_SECRET_KEY` in production env with the live `sk_live_...` key
+- [ ] Replace `VITE_STRIPE_PUBLISHABLE_KEY` (or equivalent) in the frontend env with the live `pk_live_...` key
+- [ ] Create a **live-mode** webhook endpoint in Stripe pointed at the production backend URL (e.g. `https://api.yourdomain.com/api/stripe/webhook`)
+- [ ] Subscribe that endpoint to the same events the backend handles: `checkout.session.completed`, `customer.subscription.deleted`, `customer.subscription.updated`, `invoice.payment_failed`
+- [ ] Copy the live webhook **signing secret** (`whsec_...`) into production env as `STRIPE_WEBHOOK_SECRET`. This is NOT the same as the local `stripe listen` secret used in development
+- [ ] Make a real $0.50 test purchase end-to-end after deploy and confirm `profiles.subscription_status` flips to `active`
+
+### Supabase — production database
+- [ ] Run all migrations in `supabase/migrations/` against the production Supabase project, in filename order
+- [ ] Confirm `processed_stripe_events` table exists in production before deploying the new webhook code (deploying code first will 500 every webhook until the migration runs)
+- [ ] Production env has the production `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` — never the local dev project's keys
+
+### General env hygiene
+- [ ] `FRONTEND_URL` in backend env points to the live frontend domain (used for Stripe success/cancel redirects)
+- [ ] CORS origin in `backend/server.ts` allows the production frontend domain
+- [ ] No `whsec_...` from `stripe listen` is committed or in production env — those are local-dev-only and rotate every CLI session
 
 ---
 
