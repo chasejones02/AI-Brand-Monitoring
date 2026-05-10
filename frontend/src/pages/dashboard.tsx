@@ -11,6 +11,9 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
 import { GlowCard } from '../components/ui/spotlight-card'
+import { QuotaPill } from '../components/quota-pill'
+import { HistoryTrendsSection } from '../components/history-trends-section'
+import { TrendChart } from '../components/trend-chart'
 import {
   getBusinesses,
   getBusinessHistory,
@@ -18,6 +21,11 @@ import {
   createBusiness,
   triggerScan,
   updateBusinessQueries,
+  getQuota,
+  getBusinessTrends,
+  ApiError,
+  type QuotaStatus,
+  type BusinessTrends,
 } from '../lib/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -136,6 +144,22 @@ function pluralize(count: number, singular: string, plural = `${singular}s`) {
   return `${count} ${count === 1 ? singular : plural}`
 }
 
+// Lowest mention_position seen across every (query, platform) pair in the
+// scan. Used to surface "best position #N" as a quick-read indicator that
+// matches the score explanation, instead of showing raw point math.
+function bestMentionPosition(results: QueryResult[]): number | null {
+  let best: number | null = null
+  for (const r of results) {
+    for (const platform of Object.keys(r.platforms)) {
+      const pr = r.platforms[platform]
+      if (pr?.mentioned && pr.mention_position != null) {
+        if (best == null || pr.mention_position < best) best = pr.mention_position
+      }
+    }
+  }
+  return best
+}
+
 function sentimentSummary(counts: ScoreDetails['sentiment_counts']) {
   const total = counts.positive + counts.neutral + counts.negative
   if (total === 0) return 'No sentiment detected yet.'
@@ -164,6 +188,46 @@ export default function DashboardPage() {
   const [pollCount, setPollCount] = useState(0)
   const [globalError, setGlobalError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [quota, setQuota] = useState<QuotaStatus | null>(null)
+  const [trendsRefreshKey, setTrendsRefreshKey] = useState(0)
+  const [trends, setTrends] = useState<BusinessTrends | null>(null)
+  const [trendsLoading, setTrendsLoading] = useState(false)
+  const [trendsError, setTrendsError] = useState('')
+
+  const refreshQuota = useCallback(async () => {
+    try {
+      const q = await getQuota()
+      setQuota(q)
+    } catch {
+      // Non-fatal — pill just hides if quota fails to load.
+    }
+  }, [])
+
+  // Trends fetch — used by both the top-of-page chart and the history section.
+  // Resets when the active business or refresh key changes.
+  useEffect(() => {
+    if (!activeBusiness) {
+      setTrends(null)
+      return
+    }
+    let cancelled = false
+    setTrendsLoading(true)
+    setTrendsError('')
+    getBusinessTrends(activeBusiness.id)
+      .then(data => {
+        if (cancelled) return
+        setTrends(data)
+        setTrendsLoading(false)
+      })
+      .catch(err => {
+        if (cancelled) return
+        setTrendsError(err.message ?? 'Failed to load trends')
+        setTrendsLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [activeBusiness, trendsRefreshKey])
 
   const MAX_POLLS = 120 // ~6 minutes at 3s intervals — defense-in-depth beyond backend timeout
   const isTerminalStatus = scan?.status === 'completed' || scan?.status === 'failed'
@@ -181,6 +245,7 @@ export default function DashboardPage() {
     const urlScanId = searchParams.get('scanId')
     async function init() {
       try {
+        refreshQuota()
         const raw = await getBusinesses()
         const bizList: BusinessWithQueries[] = Array.isArray(raw) ? raw : []
         if (bizList.length === 0) {
@@ -231,6 +296,11 @@ export default function DashboardPage() {
               : s
           )
         )
+        if (data.status === 'completed') {
+          // A completed scan changes the trend chart and consumes a quota slot.
+          setTrendsRefreshKey(k => k + 1)
+          refreshQuota()
+        }
       }
     } catch (err: any) {
       if (activeScanIdRef.current !== scanId) return
@@ -240,7 +310,7 @@ export default function DashboardPage() {
         prev.map(s => (s.id === scanId ? { ...s, status: 'failed' as const } : s))
       )
     }
-  }, [])
+  }, [refreshQuota])
 
   useEffect(() => {
     if (!activeScanId) return
@@ -319,9 +389,16 @@ export default function DashboardPage() {
       }
       setActiveScanId(scan_id)
       setMode('results')
+      refreshQuota()
+      setTrendsRefreshKey(k => k + 1)
     } catch (err: any) {
-      if (err.message?.toLowerCase().includes('subscription')) {
+      if (err instanceof ApiError && err.code === 'subscription_required') {
         navigate('/pricing')
+        return
+      }
+      if (err instanceof ApiError && err.code === 'daily_quota_exceeded') {
+        refreshQuota()
+        setScanError(err.message)
         return
       }
       setScanError(err.message ?? 'Failed to start scan')
@@ -366,9 +443,17 @@ export default function DashboardPage() {
       setScanError('')
       setPollCount(0)
       setMode('results')
+      refreshQuota()
+      setTrendsRefreshKey(k => k + 1)
     } catch (err: any) {
-      if (err.message?.toLowerCase().includes('subscription')) {
+      if (err instanceof ApiError && err.code === 'subscription_required') {
         navigate('/pricing')
+        return
+      }
+      if (err instanceof ApiError && err.code === 'daily_quota_exceeded') {
+        refreshQuota()
+        setScanError(err.message)
+        setMode(scanHistory.length > 0 ? 'results' : 'no-scans')
         return
       }
       setScanError(err.message ?? 'Failed to start scan')
@@ -467,6 +552,7 @@ export default function DashboardPage() {
         onScanSelect={handleScanSelect}
         onNewScan={() => setMode('new-scan')}
         mode={mode}
+        quota={quota}
       />
 
       {globalError && (
@@ -493,16 +579,35 @@ export default function DashboardPage() {
       )}
 
       {mode === 'results' && (
-        <ScanResultsView
-          scan={scan}
-          scanError={scanError}
-          isRunning={isRunning}
-          pollTimedOut={pollTimedOut}
-          activeScanId={activeScanId}
-          onNewScan={() => setMode('new-scan')}
-          onRetry={handleRetryScan}
-          isRetrying={isSubmitting}
-        />
+        <>
+          {trends && trends.scans.length >= 2 && (
+            <div style={{ ...s.content, paddingBottom: '0.5rem' }}>
+              <TrendChart scans={trends.scans} />
+            </div>
+          )}
+          <ScanResultsView
+            scan={scan}
+            scanError={scanError}
+            isRunning={isRunning}
+            pollTimedOut={pollTimedOut}
+            activeScanId={activeScanId}
+            onNewScan={() => setMode('new-scan')}
+            onRetry={handleRetryScan}
+            isRetrying={isSubmitting}
+          />
+          {activeBusiness && scan?.status === 'completed' && scanHistory.length > 0 && (
+            <div style={s.content}>
+              <HistoryTrendsSection
+                trends={trends}
+                trendsLoading={trendsLoading}
+                trendsError={trendsError}
+                scanHistory={scanHistory}
+                activeScanId={activeScanId}
+                onScanSelect={handleScanSelect}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   )
@@ -521,6 +626,7 @@ interface DashboardNavProps {
   onScanSelect: (id: string) => void
   onNewScan: () => void
   mode: MainMode
+  quota: QuotaStatus | null
 }
 
 function DashboardNav({
@@ -534,7 +640,9 @@ function DashboardNav({
   onScanSelect,
   onNewScan,
   mode,
+  quota,
 }: DashboardNavProps) {
+  const quotaExhausted = !!quota && quota.remaining <= 0
   return (
     <nav style={s.nav}>
       <div style={s.navLeft}>
@@ -564,6 +672,7 @@ function DashboardNav({
       </div>
 
       <div style={s.navRight}>
+        <QuotaPill quota={quota} />
         {scanHistory.length > 0 && mode !== 'new-scan' && (
           <select
             style={{ ...s.navSelect, maxWidth: '200px' }}
@@ -577,7 +686,18 @@ function DashboardNav({
             ))}
           </select>
         )}
-        <button onClick={onNewScan} style={s.newScanBtn}>+ New Scan</button>
+        <button
+          onClick={onNewScan}
+          disabled={quotaExhausted}
+          style={{
+            ...s.newScanBtn,
+            opacity: quotaExhausted ? 0.5 : 1,
+            cursor: quotaExhausted ? 'not-allowed' : 'pointer',
+          }}
+          title={quotaExhausted ? 'Daily scan limit reached' : 'Run a new scan'}
+        >
+          + New Scan
+        </button>
         {email && <span style={s.navEmail}>{email}</span>}
         <button onClick={onSignOut} style={s.signOutBtn}>Sign out</button>
       </div>
@@ -855,21 +975,38 @@ function ScanResultsView({
   isRetrying: boolean
 }) {
   if (scanError) {
-    const isSub = scanError.toLowerCase().includes('subscription')
+    const lower = scanError.toLowerCase()
+    const isSub = lower.includes('subscription')
+    const isQuota = lower.includes('daily scan limit') || lower.includes('quota')
     return (
       <div style={s.emptyState}>
         {isSub ? (
           <>
             <p style={s.emptyTitle}>Upgrade to run scans</p>
             <p style={s.emptyText}>
-              You've used your free scan. Subscribe to run unlimited scans across
-              ChatGPT, Claude, and Perplexity.
+              You've used your free scan. Subscribe to run daily scans across
+              ChatGPT, Claude, Gemini, and Perplexity.
             </p>
             <Link
               to="/pricing"
               style={{ ...s.primaryBtn, textDecoration: 'none', display: 'inline-block', textAlign: 'center' as const }}
             >
               View pricing →
+            </Link>
+          </>
+        ) : isQuota ? (
+          <>
+            <p style={s.emptyTitle}>Daily scan limit reached</p>
+            <p style={s.emptyText}>
+              You've used today's scans for this plan. Your next slot opens in the
+              next 24 hours — see the quota indicator at the top of the page for the
+              exact time. Need more? Upgrade for higher daily limits.
+            </p>
+            <Link
+              to="/pricing"
+              style={{ ...s.primaryBtn, textDecoration: 'none', display: 'inline-block', textAlign: 'center' as const }}
+            >
+              See plans →
             </Link>
           </>
         ) : (
@@ -1018,26 +1155,40 @@ function ScanResultsView({
               ? 'Moderate visibility'
               : 'Low visibility'}
           </p>
+          {scan.score_details && (
+            <p style={s.scoreRawMath}>
+              {Math.round(scan.score_details.earned_points)} of {scan.score_details.max_points} possible pts
+            </p>
+          )}
         </div>
       </div>
 
-      {scan.score_details && (
-        <div style={s.scoreExplain}>
-          <div>
-            <p style={s.scoreExplainLabel}>Score explanation</p>
-            <p style={s.scoreExplainText}>
-              Mentioned in {scan.score_details.mentioned_results} of {scan.score_details.result_count} query/platform result{scan.score_details.result_count === 1 ? '' : 's'}.
-              {' '}Position and sentiment then adjust the score.
-              {isPerplexityOnly ? ' This free score is based on Perplexity results only.' : ''}
-            </p>
+      {scan.score_details && (() => {
+        const bestPos = bestMentionPosition(scan.results)
+        const earned = Math.round(scan.score_details.earned_points)
+        const max = scan.score_details.max_points
+        const resultCount = scan.score_details.result_count
+        return (
+          <div style={s.scoreExplain}>
+            <div>
+              <p style={s.scoreExplainLabel}>How this score was calculated</p>
+              <p style={s.scoreExplainText}>
+                Each of your {resultCount} {resultCount === 1 ? 'result' : 'results'} can earn up to{' '}
+                <strong style={{ color: 'var(--text)' }}>18 points</strong> — 10 for being mentioned,
+                up to 5 for ranking, and up to 3 for sentiment. You earned{' '}
+                <strong style={{ color: 'var(--text)' }}>{earned} of {max}</strong> possible points,
+                which normalizes to <strong style={{ color: 'var(--text)' }}>{Math.round(score)} / 100</strong>.
+                {isPerplexityOnly ? ' Free scans cover Perplexity only — upgrade to add ChatGPT, Claude, and Gemini.' : ''}
+              </p>
+            </div>
+            <div style={s.scoreExplainGrid}>
+              <span>{pluralize(scan.score_details.mentioned_results, 'mention')}</span>
+              {bestPos != null && <span>best position #{bestPos}</span>}
+              <span>{pluralize(resultCount, 'data point')}</span>
+            </div>
           </div>
-          <div style={s.scoreExplainGrid}>
-            <span>{Math.round(scan.score_details.earned_points)}/{scan.score_details.max_points} pts</span>
-            <span>{pluralize(scan.score_details.mentioned_results, 'mention')}</span>
-            <span>{pluralize(scan.score_details.result_count, 'data point')}</span>
-          </div>
-        </div>
-      )}
+        )
+      })()}
 
       {scan.score_details && (
         <div style={s.sentimentSummary}>
@@ -1114,12 +1265,25 @@ function ScanResultsView({
         </div>
       )}
 
-      {/* Query cards */}
+      {/* Query list — compact rows so all queries are scannable at a glance.
+          Raw responses are intentionally omitted; surfacing them here would
+          undercut the standalone competitor-extraction value. */}
       <div style={s.queriesSection}>
-        <h2 style={s.sectionTitle}>{allGenerated ? 'Generated Query Breakdown' : 'Query Breakdown'}</h2>
-        <div style={s.queryGrid}>
+        <div style={s.queriesHeader}>
+          <h2 style={s.sectionTitle}>{allGenerated ? 'Generated Query Breakdown' : 'Query Breakdown'}</h2>
+          <span style={s.queriesCount}>
+            {scan.results.length} {scan.results.length === 1 ? 'query' : 'queries'}
+          </span>
+        </div>
+        <div style={s.queryList}>
           {scan.results.map((result, i) => (
-            <QueryCard key={result.query_id} result={result} index={i} platforms={platforms} />
+            <QueryRow
+              key={result.query_id}
+              result={result}
+              index={i}
+              platforms={platforms}
+              isLast={i === scan.results.length - 1}
+            />
           ))}
         </div>
       </div>
@@ -1127,115 +1291,157 @@ function ScanResultsView({
   )
 }
 
-// ─── QueryCard ────────────────────────────────────────────────────────────────
+// ─── QueryRow ─────────────────────────────────────────────────────────────────
+// Compact row optimized for scanning many queries at once. Shows mention
+// status per platform, the competitors AI named alongside the business, and
+// the query's contribution to the visibility score. Raw AI responses are
+// deliberately omitted — exposing them here would devalue our competitor
+// extraction (users could just read the response themselves).
 
-function QueryCard({
+function QueryRow({
   result,
   index,
   platforms,
+  isLast,
 }: {
   result: QueryResult
   index: number
   platforms: string[]
+  isLast: boolean
 }) {
+  // Sum each scoring component across all platforms — for free scans this
+  // equals the per-platform value; for paid scans it stacks across platforms
+  // so the breakdown explains the row's total. The unit-less per-component
+  // numbers (10/5/3 max per platform) are summed as-is so the math is honest:
+  // mention + position + sentiment = total.
+  const componentScore = (key: 'mention' | 'position' | 'sentiment') =>
+    platforms.reduce((sum, p) => sum + (result.platforms[p]?.scores[key] ?? 0), 0)
+  const mentionPts = componentScore('mention')
+  const positionPts = componentScore('position')
+  const sentimentPts = componentScore('sentiment')
+  const totalScore = mentionPts + positionPts + sentimentPts
+  const maxScore = platforms.length * 18
   const anyMentioned = platforms.some(p => result.platforms[p]?.mentioned)
+  const competitors = Array.from(
+    new Set(platforms.flatMap(p => result.platforms[p]?.competitors_mentioned ?? []))
+  )
 
   return (
-    <GlowCard
-      customSize
-      radius={6}
-      className="!flex !flex-col !gap-4 !p-5"
-      style={{ animation: `fadeUp 0.4s cubic-bezier(.22,1,.36,1) ${index * 0.06}s both` }}
+    <div
+      style={{
+        ...s.queryRow,
+        borderBottom: isLast ? 'none' : '1px solid var(--border-dim)',
+        animation: `fadeUp 0.35s cubic-bezier(.22,1,.36,1) ${Math.min(index, 12) * 0.04}s both`,
+      }}
     >
-      <div style={s.queryCardHeader}>
-        <span style={s.queryIndex}>{String(index + 1).padStart(2, '0')}</span>
-        <div>
-          <p style={s.queryText}>"{result.query_text}"</p>
-          {result.source === 'generated' && result.generation_reason && (
-            <p style={s.queryReason}>{result.generation_reason}</p>
-          )}
-        </div>
+      <div style={s.queryRowTop}>
+        <span style={s.queryRowIndex}>{String(index + 1).padStart(2, '0')}</span>
+        <p style={s.queryRowText}>"{result.query_text}"</p>
+        <span
+          style={{
+            ...s.queryRowScore,
+            color: anyMentioned
+              ? scoreColor(maxScore > 0 ? (totalScore / maxScore) * 100 : 0)
+              : 'var(--text-dim)',
+          }}
+        >
+          {totalScore}
+          <span style={s.queryRowScoreUnit}> pts</span>
+        </span>
       </div>
 
-      <div style={s.queryPlatforms}>
+      <div style={s.queryRowPlatforms}>
         {platforms.map(platform => {
           const pr = result.platforms[platform]
           const label = PLATFORM_LABELS[platform] ?? platform
           const color = PLATFORM_COLORS[platform] ?? 'var(--text-muted)'
+          const mentioned = !!pr?.mentioned
           const { symbol, color: sentColor } = sentimentIcon(pr?.sentiment ?? null)
           return (
-            <div
+            <span
               key={platform}
               style={{
-                ...s.platformChip,
-                ...(pr?.mentioned ? s.platformChipMentioned : s.platformChipMissed),
-                borderColor: pr?.mentioned ? color + '40' : 'var(--border)',
+                ...s.queryRowBadge,
+                background: mentioned ? 'rgba(255,255,255,0.025)' : 'transparent',
+                borderColor: mentioned ? color + '50' : 'var(--border-dim)',
+                opacity: mentioned ? 1 : 0.55,
               }}
             >
               <span
-                style={{ ...s.chipDot, background: pr?.mentioned ? color : 'var(--text-dim)' }}
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: mentioned ? color : 'var(--text-dim)',
+                  flexShrink: 0,
+                }}
               />
               <span
                 style={{
-                  ...s.chipName,
-                  color: pr?.mentioned ? 'var(--text)' : 'var(--text-muted)',
+                  fontSize: '0.78rem',
+                  fontWeight: 500,
+                  color: mentioned ? 'var(--text)' : 'var(--text-muted)',
                 }}
               >
                 {label}
               </span>
-              {pr?.mentioned && (
-                <>
-                  {pr.mention_position && (
-                    <span style={s.chipPos}>#{pr.mention_position}</span>
-                  )}
-                  <span style={{ ...s.chipSentiment, color: sentColor }}>{symbol}</span>
-                </>
+              {mentioned && pr?.mention_position && (
+                <span style={s.queryRowPos}>#{pr.mention_position}</span>
               )}
-              {!pr?.mentioned && <span style={s.chipMissed}>not mentioned</span>}
-            </div>
-          )
-        })}
-      </div>
-
-      <div style={s.rawResponses}>
-        {platforms.map(platform => {
-          const pr = result.platforms[platform]
-          if (!pr?.raw_response?.trim()) return null
-          const label = PLATFORM_LABELS[platform] ?? platform
-          return (
-            <details key={`${platform}-raw`} style={s.rawResponseDetails} open={platforms.length === 1}>
-              <summary style={s.rawResponseSummary}>What {label} said</summary>
-              <p style={s.rawResponseText}>{pr.raw_response}</p>
-            </details>
-          )
-        })}
-      </div>
-
-      {platforms.some(p => (result.platforms[p]?.competitors_mentioned ?? []).length > 0) && (
-        <div style={s.competitors}>
-          <span style={s.competitorsLabel}>Also mentioned: </span>
-          {Array.from(
-            new Set(platforms.flatMap(p => result.platforms[p]?.competitors_mentioned ?? []))
-          ).map(c => (
-            <span key={c} style={s.competitorChip}>
-              {c}
+              {mentioned && (
+                <span
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    color: sentColor,
+                  }}
+                >
+                  {symbol}
+                </span>
+              )}
             </span>
-          ))}
+          )
+        })}
+      </div>
+
+      {anyMentioned && (
+        <div style={s.queryRowBreakdown}>
+          <span style={s.queryRowBreakdownItem}>
+            <span style={s.queryRowBreakdownNum}>{mentionPts}</span> mention
+          </span>
+          <span style={s.queryRowBreakdownPlus}>+</span>
+          <span style={s.queryRowBreakdownItem}>
+            <span style={s.queryRowBreakdownNum}>{positionPts}</span> position
+          </span>
+          <span style={s.queryRowBreakdownPlus}>+</span>
+          <span style={s.queryRowBreakdownItem}>
+            <span
+              style={{
+                ...s.queryRowBreakdownNum,
+                color: sentimentPts < 0 ? 'var(--red)' : undefined,
+              }}
+            >
+              {sentimentPts < 0 ? `−${Math.abs(sentimentPts)}` : sentimentPts}
+            </span>{' '}
+            sentiment
+          </span>
         </div>
       )}
 
-      <div style={s.scoreStrip}>
-        <span style={s.scoreStripLabel}>Query score</span>
-        <span
-          style={{
-            ...s.scoreStripValue,
-            color: anyMentioned ? 'var(--green)' : 'var(--text-muted)',
-          }}
-        >
-          {platforms.reduce((sum, p) => sum + (result.platforms[p]?.scores.total ?? 0), 0)} pts
-        </span>
-      </div>
-    </GlowCard>
+      {competitors.length > 0 && (
+        <div style={s.queryRowCompetitors}>
+          <span style={s.queryRowCompLabel}>Mentioned alongside</span>
+          <div style={s.queryRowCompChips}>
+            {competitors.map(c => (
+              <span key={c} style={s.competitorChip}>
+                {c}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -1741,6 +1947,13 @@ const s: Record<string, React.CSSProperties> = {
     letterSpacing: '0.06em',
     textTransform: 'uppercase' as const,
   },
+  scoreRawMath: {
+    marginTop: '0.4rem',
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: '0.72rem',
+    color: 'var(--text-dim)',
+    letterSpacing: '0.02em',
+  },
   scoreExplain: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -1883,13 +2096,141 @@ const s: Record<string, React.CSSProperties> = {
   queriesSection: {
     marginTop: '0.5rem',
   },
+  queriesHeader: {
+    display: 'flex',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    gap: '1rem',
+    marginBottom: '1rem',
+  },
+  queriesCount: {
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: '0.78rem',
+    color: 'var(--text-muted)',
+  },
   sectionTitle: {
     fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: '1.4rem',
     fontWeight: 400,
     color: 'var(--text)',
-    marginBottom: '1.25rem',
+    marginBottom: 0,
   },
+  queryList: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    background: 'var(--surface)',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius)',
+    overflow: 'hidden',
+  },
+  queryRow: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.55rem',
+    padding: '0.85rem 1.1rem',
+    borderBottom: '1px solid var(--border-dim)',
+  },
+  queryRowTop: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '0.75rem',
+  },
+  queryRowIndex: {
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: '0.7rem',
+    color: 'var(--text-dim)',
+    flexShrink: 0,
+    minWidth: '20px',
+  },
+  queryRowText: {
+    flex: 1,
+    margin: 0,
+    fontSize: '0.9rem',
+    color: 'var(--text)',
+    fontStyle: 'italic',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
+    minWidth: 0,
+  },
+  queryRowScore: {
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: '0.95rem',
+    fontWeight: 700,
+    flexShrink: 0,
+  },
+  queryRowScoreUnit: {
+    fontSize: '0.7rem',
+    fontWeight: 400,
+    color: 'var(--text-muted)',
+    marginLeft: '2px',
+  },
+  queryRowPlatforms: {
+    display: 'flex',
+    flexWrap: 'wrap' as const,
+    gap: '0.4rem',
+    paddingLeft: '32px',
+  },
+  queryRowBadge: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.4rem',
+    padding: '0.25rem 0.55rem',
+    borderRadius: '4px',
+    border: '1px solid',
+    fontSize: '0.78rem',
+    transition: 'opacity 0.15s, border-color 0.15s',
+  },
+  queryRowPos: {
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: '0.7rem',
+    color: 'var(--text-muted)',
+    background: 'var(--surface-2)',
+    padding: '0 4px',
+    borderRadius: '3px',
+  },
+  queryRowBreakdown: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '0.4rem',
+    paddingLeft: '32px',
+    fontSize: '0.72rem',
+    color: 'var(--text-muted)',
+    fontFamily: "'JetBrains Mono', monospace",
+    flexWrap: 'wrap' as const,
+  },
+  queryRowBreakdownItem: {
+    whiteSpace: 'nowrap' as const,
+  },
+  queryRowBreakdownNum: {
+    color: 'var(--text)',
+    fontWeight: 700,
+  },
+  queryRowBreakdownPlus: {
+    color: 'var(--text-dim)',
+    opacity: 0.6,
+  },
+  queryRowCompetitors: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '0.55rem',
+    paddingLeft: '32px',
+    flexWrap: 'wrap' as const,
+  },
+  queryRowCompLabel: {
+    fontSize: '0.68rem',
+    color: 'var(--text-dim)',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.08em',
+    flexShrink: 0,
+  },
+  queryRowCompChips: {
+    display: 'flex',
+    flexWrap: 'wrap' as const,
+    gap: '0.3rem',
+  },
+  // Legacy query-card styles below — preserved temporarily for any external
+  // references; the active layout is the queryList above.
   queryGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',

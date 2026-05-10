@@ -318,7 +318,7 @@ function StarterFeatures() {
       </div>
       <div className="report-point">
         {rpIcon(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>)}
-        <div><div className="rp-title">Weekly automated scans</div><div className="rp-desc">Fresh reports every week — no manual runs. Always know where you stand without lifting a finger.</div></div>
+        <div><div className="rp-title">1 on-demand scan per day</div><div className="rp-desc">Re-run a scan whenever you publish new content or push a campaign. Track shifts in your AI visibility on your timeline.</div></div>
       </div>
       <div className="report-point">
         {rpIcon(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>)}
@@ -333,7 +333,7 @@ function GrowthFeatures() {
     <div className="report-points">
       <div className="report-point">
         {rpIcon(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>)}
-        <div><div className="rp-title">Daily automated scans</div><div className="rp-desc">Catch ranking changes the same day they happen — not a week later. Stay ahead of competitors as AI models update.</div></div>
+        <div><div className="rp-title">5 on-demand scans per day</div><div className="rp-desc">Run multiple scans throughout the day to A/B test landing pages or watch how AI responses shift after a launch.</div></div>
       </div>
       <div className="report-point">
         {rpIcon(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><path d="M23 6l-9.5 9.5-5-5L1 18" /><path d="M17 6h6v6" /></svg>)}

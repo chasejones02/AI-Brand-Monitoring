@@ -90,7 +90,7 @@ export function Pricing() {
             <p className="pricing-desc">For solo businesses ready to own their AI presence.</p>
             <ul className="pricing-features">
               <li>{check} 5 queries tracked</li>
-              <li>{check} Weekly scans</li>
+              <li>{check} 1 on-demand scan per day</li>
               <li>{check} All 4 AI platforms</li>
               <li>{check} Track 3 competitors</li>
               <li>{check} 1 business profile</li>
@@ -116,7 +116,7 @@ export function Pricing() {
             <p className="pricing-desc">For growing businesses that need daily visibility and deeper insight.</p>
             <ul className="pricing-features">
               <li>{check} 15 queries tracked</li>
-              <li>{check} Daily scans</li>
+              <li>{check} 5 on-demand scans per day</li>
               <li>{check} All 4 AI platforms</li>
               <li>{check} Track 5 competitors</li>
               <li>{check} Historical trend graphs</li>

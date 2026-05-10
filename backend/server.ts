@@ -5,6 +5,7 @@ import scanRouter from './routes/scan.js'
 import resultsRouter from './routes/results.js'
 import businessRouter from './routes/business.js'
 import stripeRouter from './routes/stripe.js'
+import quotaRouter from './routes/quota.js'
 import { supabase } from './services/supabase.js'
 
 const app = express()
@@ -30,6 +31,7 @@ app.use('/api/scan', scanRouter)
 app.use('/api/results', resultsRouter)
 app.use('/api/business', businessRouter)
 app.use('/api/stripe', stripeRouter)
+app.use('/api/quota', quotaRouter)
 
 // 404 handler
 app.use((_req, res) => {

@@ -47,9 +47,11 @@ The core loop (sign up -> business entry -> scan -> results -> pay) works end-to
 - **Files:** `backend/services/queryEngine.ts`, `backend/services/supabase.ts`, `backend/package.json`
 
 ### 7. Scan history + re-scan UX
-- [ ] Build a scan history list on the dashboard using existing `GET /api/results/business/:id`
-- [ ] Add a "Run New Scan" button - this is the core retention mechanic
-- **Files:** `frontend/src/pages/dashboard.tsx`
+- [x] Build a scan history list on the dashboard using existing `GET /api/results/business/:id`
+- [x] Add a "Run New Scan" button - this is the core retention mechanic
+- [x] Add tier-based quota system (Starter 1/day, Growth 5/day, rolling 24h) replacing planned automated scans
+- [x] Add trend chart, per-platform sparklines, per-query trend rows
+- **Files:** `frontend/src/pages/dashboard.tsx`, `frontend/src/components/{quota-pill,trend-chart,platform-sparkline,query-trend-row,scan-history-list,history-trends-section}.tsx`, `backend/routes/{quota,scan,results}.ts`, `supabase/migrations/20260510000000_scan_quotas.sql`
 
 ### 8. Subscription management page
 - [ ] Integrate Stripe Customer Portal (`stripe.billingPortal.sessions.create`)
@@ -170,7 +172,7 @@ Currently developing against Stripe **test mode** (sandbox). Before flipping to 
 
 ### Starter - $29/mo or $24/mo billed annually
 - [ ] All configured platforms: Perplexity, ChatGPT, Claude, Gemini
-- [ ] Weekly automated scans
+- [x] 1 on-demand scan per rolling 24h window
 - [ ] 10 queries: 5 auto + 5 custom
 - [ ] Full query editor before scan runs
 - [ ] Competitor extraction up to 3 tracked competitors
@@ -180,10 +182,10 @@ Currently developing against Stripe **test mode** (sandbox). Before flipping to 
 
 ### Growth - $49/mo or $41/mo billed annually
 - [ ] Everything in Starter
-- [ ] Daily automated scans
+- [x] 5 on-demand scans per rolling 24h window
 - [ ] 20 custom queries
-- [ ] Track up to 5 competitors with scores
-- [ ] Historical trend graphs
+- [x] Track up to 5 competitors with scores
+- [x] Historical trend graphs (overall + per-platform + per-query)
 - [ ] Weekly email digest
 - [ ] Industry benchmark
 - [ ] Sentiment trend over time
@@ -198,11 +200,11 @@ Currently developing against Stripe **test mode** (sandbox). Before flipping to 
 
 Do NOT start these until launch blockers are done and real users have used the product for at least 2 weeks.
 
-- [ ] Automated recurring scans (weekly/daily cadence)
-- [ ] Historical trend graphs
-- [ ] Competitor radar
+- ~~Automated recurring scans~~ — superseded by on-demand quota model (see #7).
+- [x] Historical trend graphs (shipped with #7)
+- [ ] Competitor radar (richer view; basic competitor extraction already shipped)
 - [ ] Email digest reports
-- [ ] Multi-tier usage enforcement
+- [ ] Multi-tier usage enforcement (mostly handled by quota RPC; query-count limits still TODO)
 - [ ] Multi-business profiles for future Agency tier
 
 ---

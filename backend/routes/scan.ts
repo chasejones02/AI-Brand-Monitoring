@@ -78,6 +78,18 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
       })
       return
     }
+    if (scanCreate.reason === 'daily_quota_exceeded') {
+      const { data: quotaRows } = await supabase
+        .rpc('get_scan_quota_status', { p_user_id: userId })
+      const quota = Array.isArray(quotaRows) ? quotaRows[0] : quotaRows
+      res.status(403).json({
+        data: null,
+        error: 'Daily scan limit reached',
+        code: 'daily_quota_exceeded',
+        next_reset_at: quota?.next_reset_at ?? null,
+      })
+      return
+    }
     res.status(404).json({ data: null, error: 'Business not found' })
     return
   }

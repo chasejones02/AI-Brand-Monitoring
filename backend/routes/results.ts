@@ -176,4 +176,155 @@ router.get('/business/:businessId', requireAuth, async (req: Request, res: Respo
   res.json({ data: { business, scans: scans ?? [] }, error: null })
 })
 
+// GET /api/results/business/:businessId/trends
+// Returns time-series data across the last N completed scans for a business:
+//   - scans:        overall visibility score per scan (chronological)
+//   - by_platform:  per-platform 0-100 scores per scan
+//   - by_query:     per-query trend points (mentioned, position, total)
+router.get('/business/:businessId/trends', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  const { businessId } = req.params
+  const userId = req.userId!
+  const limit = Math.min(parseInt(String(req.query.limit ?? '30'), 10) || 30, 30)
+
+  const { data: business, error: bizError } = await supabase
+    .from('businesses')
+    .select('id, name')
+    .eq('id', businessId)
+    .eq('user_id', userId)
+    .single()
+
+  if (bizError || !business) {
+    res.status(404).json({ data: null, error: 'Business not found' })
+    return
+  }
+
+  // Pull the last N completed scans (most recent first), then reverse
+  // server-side so the frontend gets oldest-to-newest for trend rendering.
+  const { data: rawScans, error: scansError } = await supabase
+    .from('scans')
+    .select('id, visibility_score, started_at, completed_at')
+    .eq('business_id', businessId)
+    .eq('status', 'completed')
+    .order('completed_at', { ascending: false })
+    .limit(limit)
+
+  if (scansError) {
+    res.status(500).json({ data: null, error: 'Failed to fetch scans' })
+    return
+  }
+
+  const scans = (rawScans ?? []).slice().reverse()
+  const scanIds = scans.map(s => s.id)
+
+  if (scanIds.length === 0) {
+    res.json({
+      data: { scans: [], by_platform: {}, by_query: [] },
+      error: null,
+    })
+    return
+  }
+
+  const { data: results, error: resultsError } = await supabase
+    .from('scan_results')
+    .select(`
+      scan_id, platform, mentioned, mention_position,
+      mention_score, position_score, sentiment_score,
+      queries!inner(id, query_text)
+    `)
+    .in('scan_id', scanIds)
+
+  if (resultsError) {
+    res.status(500).json({ data: null, error: 'Failed to fetch result trends' })
+    return
+  }
+
+  // Per-platform scores: average normalized score per platform per scan.
+  const platformBuckets: Record<string, Record<string, { sum: number; count: number }>> = {}
+  // Per-query points keyed by query_id, then by scan_id.
+  const queryBuckets: Record<
+    string,
+    {
+      query_id: string
+      query_text: string
+      points: Record<string, { mentioned: boolean; mention_position: number | null; total_score: number }>
+    }
+  > = {}
+
+  for (const r of results ?? []) {
+    const total = (r.mention_score ?? 0) + (r.position_score ?? 0) + (r.sentiment_score ?? 0)
+    const normalized = (total / 18) * 100
+
+    if (!platformBuckets[r.platform]) platformBuckets[r.platform] = {}
+    if (!platformBuckets[r.platform][r.scan_id]) {
+      platformBuckets[r.platform][r.scan_id] = { sum: 0, count: 0 }
+    }
+    platformBuckets[r.platform][r.scan_id].sum += normalized
+    platformBuckets[r.platform][r.scan_id].count += 1
+
+    const query = (r as any).queries
+    if (!queryBuckets[query.id]) {
+      queryBuckets[query.id] = { query_id: query.id, query_text: query.query_text, points: {} }
+    }
+    // For per-query points we collapse all platforms into one line; if the
+    // same query was scanned on multiple platforms we keep the best mention
+    // position and OR mentioned together.
+    const existing = queryBuckets[query.id].points[r.scan_id]
+    if (existing) {
+      existing.mentioned = existing.mentioned || !!r.mentioned
+      if (
+        r.mention_position != null &&
+        (existing.mention_position == null || r.mention_position < existing.mention_position)
+      ) {
+        existing.mention_position = r.mention_position
+      }
+      existing.total_score = Math.max(existing.total_score, total)
+    } else {
+      queryBuckets[query.id].points[r.scan_id] = {
+        mentioned: !!r.mentioned,
+        mention_position: r.mention_position,
+        total_score: total,
+      }
+    }
+  }
+
+  const by_platform: Record<string, { scan_id: string; score: number }[]> = {}
+  for (const platform of Object.keys(platformBuckets)) {
+    by_platform[platform] = scanIds.map(scanId => {
+      const bucket = platformBuckets[platform][scanId]
+      return {
+        scan_id: scanId,
+        score: bucket ? bucket.sum / bucket.count : 0,
+      }
+    })
+  }
+
+  const by_query = Object.values(queryBuckets).map(q => ({
+    query_id: q.query_id,
+    query_text: q.query_text,
+    points: scanIds.map(scanId => {
+      const p = q.points[scanId]
+      return {
+        scan_id: scanId,
+        mentioned: p?.mentioned ?? false,
+        mention_position: p?.mention_position ?? null,
+        total_score: p?.total_score ?? 0,
+      }
+    }),
+  }))
+
+  res.json({
+    data: {
+      scans: scans.map(s => ({
+        scan_id: s.id,
+        visibility_score: s.visibility_score,
+        completed_at: s.completed_at,
+        started_at: s.started_at,
+      })),
+      by_platform,
+      by_query,
+    },
+    error: null,
+  })
+})
+
 export default router
