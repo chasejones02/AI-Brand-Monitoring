@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth.js'
 import { supabase } from '../services/supabase.js'
 import { runQueryOnPlatforms, getAvailablePlatforms, analyzeMention } from '../services/queryEngine.js'
 import { scoreResult, calculateVisibilityScore } from '../services/scorer.js'
+import { generateRecommendations } from '../services/recommendationEngine.js'
 
 const router = Router()
 
@@ -225,6 +226,23 @@ async function runScan(
   // Calculate overall visibility score
   const visibility_score = calculateVisibilityScore(allResults)
 
+  // Generate recommendations (non-fatal — scan completes even if this fails)
+  let recommendations: object[] = []
+  try {
+    const recInputs = allResults.map(r => ({
+      query_text: queries.find(q => q.id === r.query_id)?.query_text ?? '',
+      platform: r.platform,
+      mentioned: r.mentioned,
+      mention_position: r.mention_position,
+      sentiment: r.sentiment,
+      competitors_mentioned: r.competitors_mentioned ?? [],
+    }))
+    recommendations = await generateRecommendations(businessName, recInputs, visibility_score)
+    console.log(`[scan ${scanId}] generated ${recommendations.length} recommendations`)
+  } catch (err) {
+    console.error(`[scan ${scanId}] recommendation generation failed (non-fatal):`, err)
+  }
+
   // Mark scan complete
   clearTimeout(timeout)
   await supabase
@@ -232,6 +250,7 @@ async function runScan(
     .update({
       status: 'completed',
       visibility_score,
+      recommendations: recommendations.length > 0 ? recommendations : null,
       completed_at: new Date().toISOString(),
     })
     .eq('id', scanId)

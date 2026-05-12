@@ -90,10 +90,10 @@ The core loop (sign up -> business entry -> scan -> results -> pay) works end-to
 - **Files:** `frontend/src/components/hero-form.tsx`, `frontend/src/pages/dashboard.tsx`, `backend/routes/business.ts`
 
 ### P5. Add rule-based recommendations
-- [ ] Generate two free Perplexity-specific recommendations from scan data
-- [ ] Generate Starter recommendations by platform
-- [ ] Show locked additional recommendations in the free report
-- **Files:** `backend/services/`, `backend/routes/results.ts`, `frontend/src/pages/dashboard.tsx`
+- [x] Generate 7 recommendations per scan via single gpt-4o-mini call (non-fatal, scan completes regardless)
+- [x] Store on `scans.recommendations` (JSONB); tier-gate at API layer: free=1, starter=3, growth=7
+- [x] Show locked cards with visible title + blurred body + upgrade CTA
+- **Files:** `backend/services/recommendationEngine.ts`, `backend/routes/scan.ts`, `backend/routes/results.ts`, `frontend/src/components/recommendations-panel.tsx`
 
 ### P6. Improve scoring clarity and quality
 - [ ] Replace cliff-style position scoring with a smoother curve

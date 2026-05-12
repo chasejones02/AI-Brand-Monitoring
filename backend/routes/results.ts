@@ -1,8 +1,27 @@
 import { Router, Request, Response } from 'express'
 import { requireAuth } from '../middleware/auth.js'
 import { supabase } from '../services/supabase.js'
+import { TIER_REC_LIMITS, type Recommendation } from '../services/recommendationEngine.js'
 
 const router = Router()
+
+async function loadUserTier(userId: string): Promise<string> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('subscription_status, subscription_tier')
+    .eq('id', userId)
+    .single()
+  if (data?.subscription_status === 'active' && data.subscription_tier) return data.subscription_tier
+  return 'free'
+}
+
+function gateRecommendations(recs: Recommendation[], tier: string) {
+  const limit = TIER_REC_LIMITS[tier] ?? 1
+  return recs.map(r => r.priority <= limit
+    ? r
+    : { priority: r.priority, title: r.title, body: null, impact: r.impact, platform: r.platform, locked: true }
+  )
+}
 
 // GET /api/results/:scanId
 // Returns full scan results including per-platform, per-query breakdown
@@ -14,7 +33,7 @@ router.get('/:scanId', requireAuth, async (req: Request, res: Response): Promise
   const { data: scan, error: scanError } = await supabase
     .from('scans')
     .select(`
-      id, status, visibility_score, triggered_by, started_at, completed_at, tracking_set_id,
+      id, status, visibility_score, triggered_by, started_at, completed_at, tracking_set_id, recommendations,
       businesses!inner(id, name, user_id),
       tracking_sets(slot_number, name)
     `)
@@ -95,6 +114,12 @@ router.get('/:scanId', requireAuth, async (req: Request, res: Response): Promise
 
   const scoreDetails = buildScoreDetails(results ?? [])
 
+  const tier = await loadUserTier(userId)
+  const rawRecs: Recommendation[] = Array.isArray((scan as any).recommendations)
+    ? (scan as any).recommendations
+    : []
+  const recommendations = gateRecommendations(rawRecs, tier)
+
   const setMeta = (scan as any).tracking_sets
   res.json({
     data: {
@@ -109,6 +134,8 @@ router.get('/:scanId', requireAuth, async (req: Request, res: Response): Promise
       tracking_set_slot: setMeta?.slot_number ?? null,
       tracking_set_name: setMeta?.name ?? null,
       results: Object.values(byQuery),
+      recommendations,
+      tier,
     },
     error: null,
   })

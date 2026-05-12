@@ -74,6 +74,13 @@ export const TIER_SET_LIMITS: Record<string, number> = {
   agency: 3,
 }
 
+export const TIER_BUSINESS_LIMITS: Record<string, number> = {
+  free: 1,
+  starter: 1,
+  growth: 3,
+  agency: 10,
+}
+
 export type ScanResult = {
   id: string
   scan_id: string

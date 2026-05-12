@@ -19,6 +19,7 @@ import { TrendChart } from '../components/trend-chart'
 import { TrackingSetTabs } from '../components/tracking-set-tabs'
 import { TrackingSetEditor, type EditorMode } from '../components/tracking-set-editor'
 import { QueryAccordion } from '../components/query-accordion'
+import { RecommendationsPanel } from '../components/recommendations-panel'
 import {
   getBusinesses,
   getBusinessHistory,
@@ -36,6 +37,7 @@ import {
   type BusinessTrends,
   type TrackingSet,
   type BusinessWithTrackingSets,
+  type BusinessesResponse,
 } from '../lib/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -73,6 +75,15 @@ interface ScoreDetails {
   sentiment_points: number
 }
 
+export interface Recommendation {
+  priority: number
+  title: string
+  body: string | null
+  impact: 'high' | 'medium' | 'low'
+  platform: 'all' | 'perplexity' | 'openai' | 'anthropic' | 'gemini'
+  locked?: boolean
+}
+
 interface ScanData {
   scan_id: string
   status: 'pending' | 'running' | 'completed' | 'failed'
@@ -85,6 +96,8 @@ interface ScanData {
   tracking_set_slot?: number | null
   tracking_set_name?: string | null
   results: QueryResult[]
+  recommendations?: Recommendation[]
+  tier?: string
 }
 
 interface ScanSummary {
@@ -191,6 +204,9 @@ export default function DashboardPage() {
   const [maxSets, setMaxSets] = useState(1)
   const [canCreateMore, setCanCreateMore] = useState(false)
   const [tier, setTier] = useState<'free' | 'starter' | 'growth' | 'agency'>('free')
+  const [canAddBusiness, setCanAddBusiness] = useState(false)
+  const [maxBusinesses, setMaxBusinesses] = useState(1)
+  const [showAddBusiness, setShowAddBusiness] = useState(false)
 
   // Set editor modal state — covers both create (new tab) and edit (unlocked set).
   const [editorMode, setEditorMode] = useState<EditorMode | null>(null)
@@ -202,13 +218,21 @@ export default function DashboardPage() {
     return () => clearTimeout(t)
   }, [])
 
-  const refreshQuota = useCallback(async () => {
+  const refreshQuota = useCallback(async (setId?: string) => {
     try {
-      const q = await getQuota()
+      const q = await getQuota(setId ?? activeSetId ?? undefined)
       setQuota(q)
     } catch {
       // Non-fatal — pill just hides if quota fails to load.
     }
+  }, [activeSetId])
+
+  const applyBusinessesResponse = useCallback((raw: BusinessesResponse) => {
+    const bizList = raw.businesses ?? []
+    setBusinesses(bizList)
+    setCanAddBusiness(raw.can_add_more ?? false)
+    setMaxBusinesses(raw.max_businesses ?? 1)
+    return bizList
   }, [])
 
   const refreshTrackingSets = useCallback(async (businessId: string): Promise<TrackingSet[]> => {
@@ -270,14 +294,12 @@ export default function DashboardPage() {
     const urlSetId = searchParams.get('setId')
     async function init() {
       try {
-        refreshQuota()
         const raw = await getBusinesses()
-        const bizList: BusinessWithTrackingSets[] = Array.isArray(raw) ? raw : []
+        const bizList = applyBusinessesResponse(raw)
         if (bizList.length === 0) {
           setAppState('setup')
           return
         }
-        setBusinesses(bizList)
         const biz = bizList[0]
         setActiveBusiness(biz)
 
@@ -287,6 +309,7 @@ export default function DashboardPage() {
           sets[0]?.id ??
           null
         setActiveSetId(initialSetId)
+        refreshQuota(initialSetId ?? undefined)
 
         const histData = await getBusinessHistory(biz.id, initialSetId ?? undefined)
         const scans: ScanSummary[] = histData?.scans ?? []
@@ -400,6 +423,7 @@ export default function DashboardPage() {
     setActiveScanId(null)
     setScanError('')
     setScanHistory([])
+    refreshQuota(setId)
     try {
       const histData = await getBusinessHistory(activeBusiness.id, setId)
       const scans: ScanSummary[] = histData?.scans ?? []
@@ -575,8 +599,7 @@ export default function DashboardPage() {
       })
       const { scan_id } = await triggerScan(business_id, default_set_id)
       const raw = await getBusinesses()
-      const bizList: BusinessWithTrackingSets[] = Array.isArray(raw) ? raw : []
-      setBusinesses(bizList)
+      const bizList = applyBusinessesResponse(raw)
       const newBiz = bizList.find(b => b.id === business_id) ?? bizList[0]
       setActiveBusiness(newBiz)
       await refreshTrackingSets(business_id)
@@ -603,6 +626,36 @@ export default function DashboardPage() {
     }
   }
 
+  // ── Add additional business (Growth users) ────────────────────────────────
+  async function handleAddBusiness(name: string, website: string, industry: string, queries: string[]) {
+    setIsSubmitting(true)
+    setGlobalError('')
+    try {
+      const { business_id, default_set_id } = await createBusiness({
+        name,
+        website: website || undefined,
+        industry: industry || undefined,
+        queries,
+      })
+      const raw = await getBusinesses()
+      const bizList = applyBusinessesResponse(raw)
+      const newBiz = bizList.find(b => b.id === business_id) ?? bizList[0]
+      setActiveBusiness(newBiz)
+      const sets = await refreshTrackingSets(business_id)
+      setActiveSetId(default_set_id ?? sets[0]?.id ?? null)
+      setScanHistory([])
+      setScan(null)
+      setActiveScanId(null)
+      setScanError('')
+      setMode('no-scans')
+      setShowAddBusiness(false)
+    } catch (err: any) {
+      setGlobalError(err.message ?? 'Failed to create business')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
   if (appState === 'loading') {
     return (
@@ -611,6 +664,37 @@ export default function DashboardPage() {
           <div style={s.loadingSpinner} />
           <p style={s.loadingText}>Loading dashboard…</p>
         </div>
+      </div>
+    )
+  }
+
+  if (showAddBusiness) {
+    return (
+      <div style={s.page}>
+        <CrystalCursor active={cursorActive} />
+        <DashboardNav
+          email={user?.email}
+          onSignOut={signOut}
+          businesses={businesses}
+          activeBusiness={activeBusiness}
+          onBusinessChange={handleBusinessChange}
+          scanHistory={[]}
+          activeScanId={null}
+          onScanSelect={() => {}}
+          onNewScan={() => {}}
+          quota={null}
+          canAddBusiness={false}
+          onAddBusiness={() => {}}
+          businessCount={businesses.length}
+          maxBusinesses={maxBusinesses}
+        />
+        <BusinessSetupForm
+          title={`Add business (${businesses.length + 1} of ${maxBusinesses})`}
+          onSubmit={handleAddBusiness}
+          onCancel={() => { setShowAddBusiness(false); setGlobalError('') }}
+          isSubmitting={isSubmitting}
+          error={globalError}
+        />
       </div>
     )
   }
@@ -656,6 +740,10 @@ export default function DashboardPage() {
         onScanSelect={handleScanSelect}
         onNewScan={handleRunScan}
         quota={quota}
+        canAddBusiness={canAddBusiness}
+        onAddBusiness={() => setShowAddBusiness(true)}
+        businessCount={businesses.length}
+        maxBusinesses={maxBusinesses}
       />
 
       {globalError && (
@@ -792,6 +880,10 @@ interface DashboardNavProps {
   onScanSelect: (id: string) => void
   onNewScan: () => void
   quota: QuotaStatus | null
+  canAddBusiness: boolean
+  onAddBusiness: () => void
+  businessCount: number
+  maxBusinesses: number
 }
 
 function DashboardNav({
@@ -805,6 +897,10 @@ function DashboardNav({
   onScanSelect,
   onNewScan,
   quota,
+  canAddBusiness,
+  onAddBusiness,
+  businessCount,
+  maxBusinesses,
 }: DashboardNavProps) {
   const quotaExhausted = !!quota && quota.remaining <= 0
   return (
@@ -830,6 +926,15 @@ function DashboardNav({
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
               </select>
+            )}
+            {canAddBusiness && (
+              <button
+                onClick={onAddBusiness}
+                style={s.addBizBtn}
+                title={`Add business (${businessCount} of ${maxBusinesses})`}
+              >
+                + Add business
+              </button>
             )}
           </>
         )}
@@ -873,11 +978,13 @@ function DashboardNav({
 
 interface SetupFormProps {
   onSubmit: (name: string, website: string, industry: string, queries: string[]) => void
+  onCancel?: () => void
   isSubmitting: boolean
   error: string
+  title?: string
 }
 
-function BusinessSetupForm({ onSubmit, isSubmitting, error }: SetupFormProps) {
+function BusinessSetupForm({ onSubmit, onCancel, isSubmitting, error, title }: SetupFormProps) {
   const [name, setName] = useState('')
   const [website, setWebsite] = useState('')
   const [industry, setIndustry] = useState('')
@@ -907,8 +1014,13 @@ function BusinessSetupForm({ onSubmit, isSubmitting, error }: SetupFormProps) {
     <div style={s.formPage}>
       <div style={s.formCard}>
         <div style={s.formCardHeader}>
-          <p style={s.eyebrow}>Welcome</p>
-          <h1 style={s.formCardTitle}>Set up your business</h1>
+          {onCancel && (
+            <button onClick={onCancel} style={s.formCancelBtn}>
+              ← Back
+            </button>
+          )}
+          <p style={s.eyebrow}>{title ? 'Business profile' : 'Welcome'}</p>
+          <h1 style={s.formCardTitle}>{title ?? 'Set up your business'}</h1>
           <p style={s.formCardSubtitle}>
             Tell us about your company so we can track how AI platforms mention you.
           </p>
@@ -1203,6 +1315,9 @@ function ScanResultsView({
   const score = scan.visibility_score ?? 0
   const platforms = scan.results.length > 0 ? Object.keys(scan.results[0].platforms) : []
   const isPerplexityOnly = platforms.length === 1 && platforms[0] === 'perplexity'
+  // isFreeScan = scan was run on Perplexity only AND the viewer is still on free tier.
+  // After upgrading, existing Perplexity-only scans show competitors unblurred.
+  const isFreeScan = isPerplexityOnly && (scan.tier ?? 'free') === 'free'
   const allGenerated = scan.results.length > 0 && scan.results.every(r => r.source === 'generated')
 
   // Resolve which tracking set this scan was actually run against — usually
@@ -1293,7 +1408,7 @@ function ScanResultsView({
                     up to 5 for ranking, and up to 3 for sentiment. You earned{' '}
                     <strong style={{ color: 'var(--text)' }}>{earned} of {max}</strong> possible points,
                     which normalizes to <strong style={{ color: 'var(--text)' }}>{Math.round(score)} / 100</strong>.
-                    {isPerplexityOnly ? ' Free scans cover Perplexity only — upgrade to add ChatGPT, Claude, and Gemini.' : ''}
+                    {isFreeScan ? ' Free scans cover Perplexity only — upgrade to add ChatGPT, Claude, and Gemini.' : ''}
                   </p>
                 </div>
                 <div style={s.scoreExplainGrid}>
@@ -1369,7 +1484,7 @@ function ScanResultsView({
               </TiltCard>
             )
           })}
-          {isPerplexityOnly && (() => {
+          {isFreeScan && (() => {
             const lockedCompetitors = Array.from(new Set(
               scan.results.flatMap(r => r.platforms['perplexity']?.competitors_mentioned ?? [])
             )).slice(0, 2)
@@ -1400,6 +1515,14 @@ function ScanResultsView({
             ))
           })()}
         </div>
+      )}
+
+      {/* Recommendations */}
+      {scan.recommendations && scan.recommendations.length > 0 && (
+        <RecommendationsPanel
+          recommendations={scan.recommendations}
+          tier={scan.tier ?? 'free'}
+        />
       )}
 
       {/* Queries — tap to expand each row for full platform-by-platform
@@ -1656,6 +1779,31 @@ const s: Record<string, React.CSSProperties> = {
     fontSize: '0.8rem',
     fontFamily: "'Outfit', sans-serif",
     cursor: 'pointer',
+  },
+  addBizBtn: {
+    background: 'transparent',
+    border: '1px dashed rgba(240,165,0,0.4)',
+    borderRadius: '6px',
+    color: 'var(--accent)',
+    padding: '0.3rem 0.75rem',
+    fontSize: '0.78rem',
+    fontFamily: "'Outfit', sans-serif",
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'border-color 0.18s, background 0.18s',
+    whiteSpace: 'nowrap' as const,
+  },
+  formCancelBtn: {
+    background: 'transparent',
+    border: 'none',
+    color: 'var(--text-muted)',
+    fontSize: '0.85rem',
+    fontFamily: "'Outfit', sans-serif",
+    cursor: 'pointer',
+    padding: '0 0 1rem',
+    textAlign: 'left' as const,
+    display: 'block',
+    transition: 'color 0.18s',
   },
 
   // Error banner

@@ -1,8 +1,20 @@
 import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import { requireAuth } from '../middleware/auth.js'
-import { supabase } from '../services/supabase.js'
+import { supabase, TIER_BUSINESS_LIMITS } from '../services/supabase.js'
 import { generateQueriesForBusiness, type GeneratedQuery } from '../services/queryGenerator.js'
+
+async function loadUserTier(userId: string): Promise<string> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('subscription_status, subscription_tier')
+    .eq('id', userId)
+    .single()
+  if (data?.subscription_status === 'active' && data.subscription_tier) {
+    return data.subscription_tier
+  }
+  return 'free'
+}
 
 const router = Router()
 
@@ -64,6 +76,22 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
   const { name, location, description, website, industry, generate_queries, query_count } = parsed.data
   const userId = req.userId!
   const businessDescription = description?.trim() || industry?.trim() || ''
+
+  // Enforce per-tier business limit
+  const tier = await loadUserTier(userId)
+  const bizLimit = TIER_BUSINESS_LIMITS[tier] ?? 1
+  const { count: bizCount } = await supabase
+    .from('businesses')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+  if ((bizCount ?? 0) >= bizLimit) {
+    res.status(403).json({
+      data: null,
+      error: `Your ${tier} plan supports up to ${bizLimit} business profile${bizLimit === 1 ? '' : 's'}. Upgrade to add more.`,
+      code: 'business_limit_reached',
+    })
+    return
+  }
 
   let queryInputs: GeneratedQuery[]
   if (generate_queries) {
@@ -164,7 +192,18 @@ router.get('/', requireAuth, async (req: Request, res: Response): Promise<void> 
     ),
   }))
 
-  res.json({ data: businesses, error: null })
+  const tier = await loadUserTier(userId)
+  const maxBusinesses = TIER_BUSINESS_LIMITS[tier] ?? 1
+
+  res.json({
+    data: {
+      businesses,
+      tier,
+      max_businesses: maxBusinesses,
+      can_add_more: businesses.length < maxBusinesses,
+    },
+    error: null,
+  })
 })
 
 export default router

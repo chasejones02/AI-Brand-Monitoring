@@ -9,8 +9,13 @@ const router = Router()
 router.get('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
   const userId = req.userId!
 
+  const setId = typeof req.query.setId === 'string' ? req.query.setId : null
+
   const { data, error } = await supabase
-    .rpc('get_scan_quota_status', { p_user_id: userId })
+    .rpc('get_scan_quota_status', {
+      p_user_id: userId,
+      ...(setId ? { p_tracking_set_id: setId } : {}),
+    })
 
   const row = Array.isArray(data) ? data[0] : data
 

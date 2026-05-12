@@ -131,10 +131,11 @@ export function Pricing() {
             <p className="pricing-desc">For solo businesses that can't afford to be invisible to AI.</p>
             <ul className="pricing-features">
               <li>{check} All 4 platforms: ChatGPT, Claude, Gemini & Perplexity</li>
-              <li>{check} 1 fresh scan per day — catch shifts same day</li>
-              <li>{check} 5 AI-generated queries analyzed</li>
-              <li>{check} See which 3 rivals AI recommends over you</li>
+              <li>{check} 1 scan per day — catch ranking shifts same day</li>
+              <li>{check} 2 query sets — auto-generated + 1 you control</li>
+              <li>{check} 3 competitors tracked per scan</li>
               <li>{check} Plain-English visibility score breakdown</li>
+              <li>{check} 3 prioritized recommendations per scan</li>
               <li>{check} 1 business profile</li>
             </ul>
             <button
@@ -162,9 +163,10 @@ export function Pricing() {
             <ul className="pricing-features">
               <li>{check} Everything in Starter</li>
               <li>{check} 5 scans per day — spot drops before they cost you</li>
-              <li>{check} Track 5 competitors with full score breakdowns</li>
-              <li>{check} Full trend history — see when your score starts slipping</li>
-              <li>{check} Per-platform & per-query trend charts</li>
+              <li>{check} 3 business profiles — track each one independently</li>
+              <li>{check} 3 query sets per business (auto + 2 custom)</li>
+              <li>{check} Full trend history with per-platform & per-query charts</li>
+              <li>{check} 7 recommendations ranked by impact per scan</li>
             </ul>
             <button
               className="btn-pricing featured-btn"

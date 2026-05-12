@@ -128,7 +128,14 @@ export async function createBusiness(payload: {
   return data
 }
 
-export async function getBusinesses(): Promise<BusinessWithTrackingSets[]> {
+export interface BusinessesResponse {
+  businesses: BusinessWithTrackingSets[]
+  tier: 'free' | 'starter' | 'growth' | 'agency'
+  max_businesses: number
+  can_add_more: boolean
+}
+
+export async function getBusinesses(): Promise<BusinessesResponse> {
   const { data } = await authFetch('/api/business')
   return data
 }
@@ -206,8 +213,9 @@ export interface QuotaStatus {
   next_reset_at: string | null
 }
 
-export async function getQuota(): Promise<QuotaStatus> {
-  const { data } = await authFetch('/api/quota')
+export async function getQuota(setId?: string): Promise<QuotaStatus> {
+  const qs = setId ? `?setId=${encodeURIComponent(setId)}` : ''
+  const { data } = await authFetch(`/api/quota${qs}`)
   return data
 }
 
