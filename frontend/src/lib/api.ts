@@ -162,7 +162,7 @@ export async function getBusinessHistory(businessId: string, trackingSetId?: str
 
 // ─── Stripe ──────────────────────────────────────────────────────────────────
 
-export async function createCheckoutSession(tier: 'starter' | 'growth' | 'agency'): Promise<{ url: string }> {
+export async function createCheckoutSession(tier: 'starter' | 'starter_annual' | 'growth' | 'growth_annual'): Promise<{ url: string }> {
   const { data } = await authFetch('/api/stripe/create-checkout', {
     method: 'POST',
     body: JSON.stringify({ tier }),

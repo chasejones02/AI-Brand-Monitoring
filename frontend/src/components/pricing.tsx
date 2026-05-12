@@ -1,7 +1,3 @@
-/**
- * Pricing — 3-column pricing cards (Starter, Growth, Agency).
- */
-
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { createCheckoutSession } from '../lib/api'
@@ -14,6 +10,26 @@ const check = (
   </svg>
 )
 
+const testimonials = [
+  {
+    quote: "I didn't realize AI was recommending my competitor to everyone searching for HVAC in my city. Within a week I knew exactly what was happening and where I stood.",
+    author: 'Marcus T.',
+    role: 'HVAC contractor, Dallas TX',
+  },
+  {
+    quote: "We were paying for SEO but completely blind to AI. This showed us we had a 12% visibility score on ChatGPT. That number alone justified the subscription.",
+    author: 'Priya K.',
+    role: 'Marketing consultant',
+  },
+  {
+    quote: "The trend graph showed our score jumped after we updated our About page copy. We finally have proof that content changes are actually working.",
+    author: 'Jamie L.',
+    role: 'E-commerce founder',
+  },
+]
+
+type BillingPeriod = 'monthly' | 'annual'
+
 export function Pricing() {
   const { session } = useAuth()
   const navigate = useNavigate()
@@ -21,19 +37,20 @@ export function Pricing() {
   const canceled = searchParams.get('canceled') === 'true'
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [billing, setBilling] = useState<BillingPeriod>('annual')
 
-  async function handleCheckout(tier: 'starter' | 'growth' | 'agency') {
+  const prices = { starter: billing === 'annual' ? 24 : 29, growth: billing === 'annual' ? 41 : 49 }
+
+  async function handleCheckout(tier: 'starter' | 'growth') {
     if (!session) {
-      // Scroll to signup form if not logged in
       document.getElementById('get-report')?.scrollIntoView({ behavior: 'smooth' })
       return
     }
-
+    const checkoutTier = billing === 'annual' ? (`${tier}_annual` as const) : tier
     setLoading(tier)
     setError('')
-
     try {
-      const { url } = await createCheckoutSession(tier)
+      const { url } = await createCheckoutSession(checkoutTier)
       window.location.href = url
     } catch (err: any) {
       setError(err.message ?? 'Something went wrong. Please try again.')
@@ -50,8 +67,8 @@ export function Pricing() {
     <section className="pricing-section" id="pricing">
       <div className="container">
         <div className="section-label">Pricing</div>
-        <h2>Know what AI says about you — starting at $29/mo</h2>
-        <p className="section-sub">Solo owner? Start with Starter. Managing clients? Jump to Agency.</p>
+        <h2>Know what AI says about you.</h2>
+        <p className="section-sub">Your competitors are already checking. Pick the plan that fits.</p>
 
         {canceled && (
           <div className="pricing-canceled-banner">
@@ -78,21 +95,46 @@ export function Pricing() {
           </button>
         </div>
 
+        {/* Billing toggle */}
+        <div className="pricing-billing-wrap">
+          <div className="pricing-billing-toggle">
+            <button
+              className={`pricing-billing-btn${billing === 'monthly' ? ' active' : ''}`}
+              onClick={() => setBilling('monthly')}
+            >
+              Monthly
+            </button>
+            <button
+              className={`pricing-billing-btn${billing === 'annual' ? ' active' : ''}`}
+              onClick={() => setBilling('annual')}
+            >
+              Annual
+            </button>
+          </div>
+          {billing === 'annual' && (
+            <span className="pricing-savings-badge">Save up to 17%</span>
+          )}
+        </div>
+
         <div className="pricing-grid">
           {/* Starter */}
           <GlowCard customSize radius={20} className="pricing-card !block">
             <div className="pricing-tier">Starter</div>
             <div className="pricing-price">
               <span className="pricing-dollar">$</span>
-              <span className="pricing-amount">29</span>
+              <span className="pricing-amount">{prices.starter}</span>
               <span className="pricing-period">/mo</span>
             </div>
-            <p className="pricing-desc">For solo businesses ready to own their AI presence.</p>
+            {billing === 'annual' && (
+              <p className="pricing-annual-note">Billed annually — ${prices.starter * 12}/yr</p>
+            )}
+            <p className="pricing-desc">For solo businesses that can't afford to be invisible to AI.</p>
             <ul className="pricing-features">
-              <li>{check} 5 queries tracked</li>
-              <li>{check} 1 on-demand scan per day</li>
-              <li>{check} All 4 AI platforms</li>
-              <li>{check} Track 3 competitors</li>
+              <li>{check} All 4 platforms: ChatGPT, Claude, Gemini & Perplexity</li>
+              <li>{check} 1 fresh scan per day — catch shifts same day</li>
+              <li>{check} 5 AI-generated queries analyzed</li>
+              <li>{check} See which 3 rivals AI recommends over you</li>
+              <li>{check} Plain-English visibility score breakdown</li>
               <li>{check} 1 business profile</li>
             </ul>
             <button
@@ -110,17 +152,19 @@ export function Pricing() {
             <div className="pricing-tier">Growth</div>
             <div className="pricing-price">
               <span className="pricing-dollar">$</span>
-              <span className="pricing-amount">49</span>
+              <span className="pricing-amount">{prices.growth}</span>
               <span className="pricing-period">/mo</span>
             </div>
-            <p className="pricing-desc">For growing businesses that need daily visibility and deeper insight.</p>
+            {billing === 'annual' && (
+              <p className="pricing-annual-note">Billed annually — ${prices.growth * 12}/yr</p>
+            )}
+            <p className="pricing-desc">For growing businesses serious about owning their AI presence.</p>
             <ul className="pricing-features">
-              <li>{check} 15 queries tracked</li>
-              <li>{check} 5 on-demand scans per day</li>
-              <li>{check} All 4 AI platforms</li>
-              <li>{check} Track 5 competitors</li>
-              <li>{check} Historical trend graphs</li>
-              <li>{check} Email digest reports</li>
+              <li>{check} Everything in Starter</li>
+              <li>{check} 5 scans per day — spot drops before they cost you</li>
+              <li>{check} Track 5 competitors with full score breakdowns</li>
+              <li>{check} Full trend history — see when your score starts slipping</li>
+              <li>{check} Per-platform & per-query trend charts</li>
             </ul>
             <button
               className="btn-pricing featured-btn"
@@ -130,32 +174,17 @@ export function Pricing() {
               {loading === 'growth' ? 'Redirecting…' : 'Start 7-day free trial'}
             </button>
           </GlowCard>
+        </div>
 
-          {/* Agency */}
-          <GlowCard customSize radius={20} className="pricing-card !block">
-            <div className="pricing-tier">Agency</div>
-            <div className="pricing-price">
-              <span className="pricing-dollar">$</span>
-              <span className="pricing-amount">149</span>
-              <span className="pricing-period">/mo</span>
+        {/* Testimonials */}
+        <div className="pricing-testimonials">
+          {testimonials.map((t) => (
+            <div key={t.author} className="pricing-testimonial">
+              <p className="pricing-testimonial-quote">"{t.quote}"</p>
+              <p className="pricing-testimonial-author">{t.author}</p>
+              <p className="pricing-testimonial-role">{t.role}</p>
             </div>
-            <p className="pricing-desc">For marketing agencies managing multiple brands and clients.</p>
-            <ul className="pricing-features">
-              <li>{check} 30 queries tracked</li>
-              <li>{check} Multi-brand (up to 20 profiles)</li>
-              <li>{check} Actionable recommendations engine</li>
-              <li>{check} White-label PDF reports</li>
-              <li>{check} API access</li>
-              <li>{check} Priority support</li>
-            </ul>
-            <button
-              className="btn-pricing"
-              onClick={() => handleCheckout('agency')}
-              disabled={loading !== null}
-            >
-              {loading === 'agency' ? 'Redirecting…' : 'Contact sales'}
-            </button>
-          </GlowCard>
+          ))}
         </div>
 
         <div className="pricing-bottom-nudge">

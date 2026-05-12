@@ -1,8 +1,3 @@
-/**
- * PricingPage — Premium pricing with golden-bordered cards
- * and animated shader background.
- */
-
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
@@ -17,6 +12,26 @@ const check = (
   </svg>
 )
 
+const testimonials = [
+  {
+    quote: "I didn't realize AI was recommending my competitor to everyone searching for HVAC in my city. Within a week I knew exactly what was happening and where I stood.",
+    author: 'Marcus T.',
+    role: 'HVAC contractor, Dallas TX',
+  },
+  {
+    quote: "We were paying for SEO but completely blind to AI. This showed us we had a 12% visibility score on ChatGPT. That number alone justified the subscription.",
+    author: 'Priya K.',
+    role: 'Marketing consultant',
+  },
+  {
+    quote: "The trend graph showed our score jumped after we updated our About page copy. We finally have proof that content changes are actually working.",
+    author: 'Jamie L.',
+    role: 'E-commerce founder',
+  },
+]
+
+type BillingPeriod = 'monthly' | 'annual'
+
 export default function PricingPage() {
   const { session } = useAuth()
   const navigate = useNavigate()
@@ -24,16 +39,20 @@ export default function PricingPage() {
   const canceled = searchParams.get('canceled') === 'true'
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [billing, setBilling] = useState<BillingPeriod>('annual')
 
-  async function handleCheckout(tier: 'starter' | 'growth' | 'agency') {
+  const prices = { starter: billing === 'annual' ? 24 : 29, growth: billing === 'annual' ? 41 : 49 }
+
+  async function handleCheckout(tier: 'starter' | 'growth') {
     if (!session) {
       window.location.href = '/auth'
       return
     }
+    const checkoutTier = billing === 'annual' ? (`${tier}_annual` as const) : tier
     setLoading(tier)
     setError('')
     try {
-      const { url } = await createCheckoutSession(tier)
+      const { url } = await createCheckoutSession(checkoutTier)
       window.location.href = url
     } catch (err: any) {
       setError(err.message ?? 'Something went wrong. Please try again.')
@@ -48,17 +67,15 @@ export default function PricingPage() {
 
   return (
     <div className="pp-page">
-      {/* Grid + crystal cursor background (matches landing page bottom) */}
       <div className="landing-clean-bg" aria-hidden />
       <CrystalCursor active />
 
       <Nav />
 
-      {/* Header */}
       <header className="pp-header">
         <h1 className="pp-title">Know what AI says about you.</h1>
-        <p className="pp-title-sub">Starting at $29/mo</p>
-        <p className="pp-subtitle">Solo owner? Start with Starter. Managing clients? Jump to Agency.</p>
+        <p className="pp-title-sub">Starting at ${prices.starter}/mo</p>
+        <p className="pp-subtitle">Your competitors are already checking. Pick the plan that fits.</p>
       </header>
 
       {canceled && (
@@ -75,13 +92,34 @@ export default function PricingPage() {
           <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
           <polyline points="22 4 12 14.01 9 11.01" />
         </svg>
-        <span>Your first scan is free - we generate prompts from your business name and location.</span>
+        <span>Your first scan is free — no credit card, no commitment.</span>
         <button className="pp-free-strip-btn" onClick={() => navigate('/analyze')}>
           Get your free scan
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
           </svg>
         </button>
+      </div>
+
+      {/* Billing toggle */}
+      <div className="pp-billing-wrap">
+        <div className="pp-billing-toggle">
+          <button
+            className={`pp-billing-btn${billing === 'monthly' ? ' active' : ''}`}
+            onClick={() => setBilling('monthly')}
+          >
+            Monthly
+          </button>
+          <button
+            className={`pp-billing-btn${billing === 'annual' ? ' active' : ''}`}
+            onClick={() => setBilling('annual')}
+          >
+            Annual
+          </button>
+        </div>
+        {billing === 'annual' && (
+          <span className="pp-savings-badge">Save up to 17%</span>
+        )}
       </div>
 
       {/* Cards */}
@@ -91,15 +129,20 @@ export default function PricingPage() {
           <div className="pp-tier">Starter</div>
           <div className="pp-price">
             <span className="pp-dollar">$</span>
-            <span className="pp-amount">29</span>
+            <span className="pp-amount">{prices.starter}</span>
             <span className="pp-period">/mo</span>
           </div>
-          <p className="pp-desc">For solo businesses.</p>
+          {billing === 'annual' && (
+            <p className="pp-annual-note">Billed annually — ${prices.starter * 12}/yr</p>
+          )}
+          <p className="pp-desc">For solo businesses that can't afford to be invisible to AI.</p>
           <ul className="pp-features">
-            <li>{check} 5 custom prompts tracked</li>
-            <li>{check} 1 on-demand scan per day</li>
-            <li>{check} All 4 AI platforms</li>
-            <li>{check} Track 3 competitors</li>
+            <li>{check} All 4 platforms: ChatGPT, Claude, Gemini & Perplexity</li>
+            <li>{check} 1 fresh scan per day — catch shifts same day</li>
+            <li>{check} 5 AI-generated queries analyzed</li>
+            <li>{check} See which 3 rivals AI recommends over you</li>
+            <li>{check} Plain-English visibility score breakdown</li>
+            <li>{check} 1 business profile</li>
           </ul>
           <button
             className="pp-btn"
@@ -116,17 +159,19 @@ export default function PricingPage() {
           <div className="pp-tier">Growth</div>
           <div className="pp-price">
             <span className="pp-dollar">$</span>
-            <span className="pp-amount">49</span>
+            <span className="pp-amount">{prices.growth}</span>
             <span className="pp-period">/mo</span>
           </div>
-          <p className="pp-desc">For growing businesses.</p>
+          {billing === 'annual' && (
+            <p className="pp-annual-note">Billed annually — ${prices.growth * 12}/yr</p>
+          )}
+          <p className="pp-desc">For growing businesses serious about owning their AI presence.</p>
           <ul className="pp-features">
-            <li>{check} 15 custom prompts tracked</li>
-            <li>{check} 5 on-demand scans per day</li>
-            <li>{check} All 4 AI platforms</li>
-            <li>{check} Track 5 competitors</li>
-            <li>{check} Historical trend graphs</li>
-            <li>{check} Email digest reports</li>
+            <li>{check} Everything in Starter</li>
+            <li>{check} 5 scans per day — spot drops before they cost you</li>
+            <li>{check} Track 5 competitors with full score breakdowns</li>
+            <li>{check} Full trend history — see when your score starts slipping</li>
+            <li>{check} Per-platform & per-query trend charts</li>
           </ul>
           <button
             className="pp-btn pp-btn-featured"
@@ -136,32 +181,17 @@ export default function PricingPage() {
             {loading === 'growth' ? 'Redirecting…' : 'Start 7-day free trial'}
           </button>
         </TiltCard>
+      </div>
 
-        {/* Agency */}
-        <TiltCard className="pp-card">
-          <div className="pp-tier">Agency</div>
-          <div className="pp-price">
-            <span className="pp-dollar">$</span>
-            <span className="pp-amount">149</span>
-            <span className="pp-period">/mo</span>
+      {/* Testimonials */}
+      <div className="pp-testimonials">
+        {testimonials.map((t) => (
+          <div key={t.author} className="pp-testimonial">
+            <p className="pp-testimonial-quote">"{t.quote}"</p>
+            <p className="pp-testimonial-author">{t.author}</p>
+            <p className="pp-testimonial-role">{t.role}</p>
           </div>
-          <p className="pp-desc">For marketing agencies.</p>
-          <ul className="pp-features">
-            <li>{check} 30 custom prompts tracked</li>
-            <li>{check} Multi-brand (20 profiles)</li>
-            <li>{check} Actionable recommendations</li>
-            <li>{check} White-label reports</li>
-            <li>{check} API access</li>
-            <li>{check} Priority support</li>
-          </ul>
-          <button
-            className="pp-btn"
-            onClick={() => handleCheckout('agency')}
-            disabled={loading !== null}
-          >
-            {loading === 'agency' ? 'Redirecting…' : 'Contact sales'}
-          </button>
-        </TiltCard>
+        ))}
       </div>
 
       {/* Bottom nudge */}

@@ -10,17 +10,23 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
 const PRICE_MAP: Record<string, string> = {
   starter: process.env.STRIPE_PRICE_STARTER!,
+  starter_annual: process.env.STRIPE_PRICE_STARTER_ANNUAL!,
   growth: process.env.STRIPE_PRICE_GROWTH!,
-  agency: process.env.STRIPE_PRICE_AGENCY!,
+  growth_annual: process.env.STRIPE_PRICE_GROWTH_ANNUAL!,
+}
+
+// Strip _annual suffix to get the base tier name stored in the DB
+function normalizeDbTier(tier: string): string {
+  return tier.replace('_annual', '')
 }
 
 // POST /api/stripe/create-checkout
-// Body: { tier: 'starter' | 'growth' | 'agency' }
+// Body: { tier: 'starter' | 'starter_annual' | 'growth' | 'growth_annual' }
 router.post('/create-checkout', requireAuth, async (req: Request, res: Response): Promise<void> => {
   const { tier } = req.body
 
   if (!tier || !PRICE_MAP[tier]) {
-    res.status(400).json({ data: null, error: 'Invalid tier. Must be starter, growth, or agency.' })
+    res.status(400).json({ data: null, error: 'Invalid tier. Must be starter, starter_annual, growth, or growth_annual.' })
     return
   }
 
@@ -63,7 +69,7 @@ router.post('/create-checkout', requireAuth, async (req: Request, res: Response)
       line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${frontendUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontendUrl}/?canceled=true`,
-      metadata: { supabase_user_id: userId, tier },
+      metadata: { supabase_user_id: userId, tier: normalizeDbTier(tier) },
     })
 
     res.json({ data: { url: session.url }, error: null })
