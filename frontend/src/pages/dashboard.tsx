@@ -1368,28 +1368,36 @@ function ScanResultsView({
               </TiltCard>
             )
           })}
-          {isPerplexityOnly && ['openai', 'anthropic', 'gemini'].map(platform => (
-            <TiltCard key={`locked-${platform}`} maxTilt={6} style={{ flex: '1 1 200px', opacity: 0.82 }}>
-              <GlowCard customSize radius={10} className="!block !p-0 h-full">
-                <div style={{ ...s.platformBarItem, background: 'linear-gradient(135deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015))' }}>
-                  <div style={s.platformBarHeader}>
-                    <span
-                      style={{
-                        ...s.platformDotLarge,
-                        background: PLATFORM_COLORS[platform] ?? 'var(--text-muted)',
-                      }}
-                    />
-                    <span style={s.platformBarName}>{PLATFORM_LABELS[platform] ?? platform}</span>
-                    <span style={s.lockBadge}>Locked</span>
+          {isPerplexityOnly && (() => {
+            const lockedCompetitors = Array.from(new Set(
+              scan.results.flatMap(r => r.platforms['perplexity']?.competitors_mentioned ?? [])
+            )).slice(0, 2)
+            return ['openai', 'anthropic', 'gemini'].map(platform => (
+              <TiltCard key={`locked-${platform}`} maxTilt={6} style={{ flex: '1 1 200px', opacity: 0.82 }}>
+                <GlowCard customSize radius={10} className="!block !p-0 h-full">
+                  <div style={{ ...s.platformBarItem, background: 'linear-gradient(135deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015))' }}>
+                    <div style={s.platformBarHeader}>
+                      <span
+                        style={{
+                          ...s.platformDotLarge,
+                          background: PLATFORM_COLORS[platform] ?? 'var(--text-muted)',
+                        }}
+                      />
+                      <span style={s.platformBarName}>{PLATFORM_LABELS[platform] ?? platform}</span>
+                      <span style={s.lockBadge}>Locked</span>
+                    </div>
+                    <p style={s.lockedPlatformCopy}>
+                      {lockedCompetitors.length > 0
+                        ? `Perplexity named ${lockedCompetitors.join(' and ')} in your results — does ${PLATFORM_LABELS[platform] ?? platform} recommend them too?`
+                        : `See what ${PLATFORM_LABELS[platform] ?? platform} says about this business and which competitors it names.`
+                      }
+                    </p>
+                    <Link to="/pricing" style={s.unlockLink}>Unlock results</Link>
                   </div>
-                  <p style={s.lockedPlatformCopy}>
-                    See what {PLATFORM_LABELS[platform] ?? platform} says about this business and which competitors it names.
-                  </p>
-                  <Link to="/pricing" style={s.unlockLink}>Unlock results</Link>
-                </div>
-              </GlowCard>
-            </TiltCard>
-          ))}
+                </GlowCard>
+              </TiltCard>
+            ))
+          })()}
         </div>
       )}
 

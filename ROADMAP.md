@@ -74,7 +74,7 @@ The core loop (sign up -> business entry -> scan -> results -> pay) works end-to
 - [x] Extend `analyzeMention()` to extract `competitors_mentioned`
 - [x] Save competitor names into `scan_results.competitors_mentioned`
 - [x] Show competitor names in the dashboard report when returned by analysis
-- [ ] Use competitor counts in locked free-tier teasers
+- [x] Use competitor counts in locked free-tier teasers
 - **Files:** `backend/services/queryEngine.ts`, `backend/routes/scan.ts`, `frontend/src/pages/dashboard.tsx`
 
 ### P3. Preserve the exact business variant AI used
