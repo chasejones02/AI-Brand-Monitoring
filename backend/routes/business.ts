@@ -51,7 +51,9 @@ const CreateBusinessSchema = z.object({
   }
 })
 
-// POST /api/business — create business + queries in one shot (onboarding)
+// POST /api/business — create business + auto-generated tracking set (slot 1)
+// + its queries in one shot. The auto-generated set is named "Default" and
+// is the only set Free users have access to.
 router.post('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
   const parsed = CreateBusinessSchema.safeParse(req.body)
   if (!parsed.success) {
@@ -79,7 +81,6 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
     }))
   }
 
-  // Create the business
   const { data: business, error: bizError } = await supabase
     .from('businesses')
     .insert({
@@ -98,9 +99,21 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
     return
   }
 
-  // Insert queries
+  const { data: defaultSet, error: setError } = await supabase
+    .from('tracking_sets')
+    .insert({ business_id: business.id, slot_number: 1, name: 'Default' })
+    .select('id')
+    .single()
+
+  if (setError || !defaultSet) {
+    console.error('Business created but slot 1 tracking set failed:', setError)
+    res.status(500).json({ data: null, error: 'Failed to initialize tracking set' })
+    return
+  }
+
   const queryRows = queryInputs.map(query => ({
     business_id: business.id,
+    tracking_set_id: defaultSet.id,
     query_text: query.query_text,
     source: generate_queries ? 'generated' : 'custom',
     intent: generate_queries ? query.intent : null,
@@ -115,67 +128,14 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
     return
   }
 
-  res.status(201).json({ data: { business_id: business.id }, error: null })
+  res.status(201).json({
+    data: { business_id: business.id, default_set_id: defaultSet.id },
+    error: null,
+  })
 })
 
-// PUT /api/business/:id — replace active queries for a business
-const UpdateQueriesSchema = z.object({
-  queries: z.array(z.string().min(3).max(500)).min(1).max(10),
-})
-
-router.put('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
-  const businessId = req.params.id
-  const userId = req.userId!
-
-  const { data: business, error: fetchError } = await supabase
-    .from('businesses')
-    .select('id')
-    .eq('id', businessId)
-    .eq('user_id', userId)
-    .single()
-
-  if (fetchError || !business) {
-    res.status(404).json({ data: null, error: 'Business not found' })
-    return
-  }
-
-  const parsed = UpdateQueriesSchema.safeParse(req.body)
-  if (!parsed.success) {
-    res.status(400).json({ data: null, error: parsed.error.flatten() })
-    return
-  }
-
-  const { queries } = parsed.data
-
-  // Deactivate old queries
-  const { error: deactivateError } = await supabase
-    .from('queries')
-    .update({ is_active: false })
-    .eq('business_id', businessId)
-
-  if (deactivateError) {
-    res.status(500).json({ data: null, error: 'Failed to update queries' })
-    return
-  }
-
-  // Insert new active queries
-  const queryRows = queries.map(query_text => ({
-    business_id: businessId,
-    query_text,
-    is_active: true,
-    source: 'custom',
-  }))
-  const { error: insertError } = await supabase.from('queries').insert(queryRows)
-
-  if (insertError) {
-    res.status(500).json({ data: null, error: 'Failed to save new queries' })
-    return
-  }
-
-  res.json({ data: { business_id: businessId }, error: null })
-})
-
-// GET /api/business — list user's businesses
+// GET /api/business — list user's businesses with their tracking sets and
+// queries inlined. The dashboard uses this to bootstrap.
 router.get('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
   const userId = req.userId!
 
@@ -183,7 +143,10 @@ router.get('/', requireAuth, async (req: Request, res: Response): Promise<void> 
     .from('businesses')
     .select(`
       id, name, location, website, industry, created_at,
-      queries(id, query_text, is_active, source, intent, generation_reason)
+      tracking_sets(
+        id, slot_number, name, first_scanned_at, locked_until, created_at,
+        queries(id, query_text, is_active, source, intent, generation_reason)
+      )
     `)
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
@@ -193,7 +156,15 @@ router.get('/', requireAuth, async (req: Request, res: Response): Promise<void> 
     return
   }
 
-  res.json({ data, error: null })
+  // Sort tracking_sets by slot_number for predictable tab order.
+  const businesses = (data ?? []).map(b => ({
+    ...b,
+    tracking_sets: ((b as any).tracking_sets ?? []).sort(
+      (a: { slot_number: number }, z: { slot_number: number }) => a.slot_number - z.slot_number
+    ),
+  }))
+
+  res.json({ data: businesses, error: null })
 })
 
 export default router

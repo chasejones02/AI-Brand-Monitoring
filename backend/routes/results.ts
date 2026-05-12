@@ -14,8 +14,9 @@ router.get('/:scanId', requireAuth, async (req: Request, res: Response): Promise
   const { data: scan, error: scanError } = await supabase
     .from('scans')
     .select(`
-      id, status, visibility_score, triggered_by, started_at, completed_at,
-      businesses!inner(id, name, user_id)
+      id, status, visibility_score, triggered_by, started_at, completed_at, tracking_set_id,
+      businesses!inner(id, name, user_id),
+      tracking_sets(slot_number, name)
     `)
     .eq('id', scanId)
     .single()
@@ -93,6 +94,7 @@ router.get('/:scanId', requireAuth, async (req: Request, res: Response): Promise
 
   const scoreDetails = buildScoreDetails(results ?? [])
 
+  const setMeta = (scan as any).tracking_sets
   res.json({
     data: {
       scan_id: scan.id,
@@ -102,6 +104,9 @@ router.get('/:scanId', requireAuth, async (req: Request, res: Response): Promise
       started_at: scan.started_at,
       completed_at: scan.completed_at,
       score_details: scoreDetails,
+      tracking_set_id: scan.tracking_set_id ?? null,
+      tracking_set_slot: setMeta?.slot_number ?? null,
+      tracking_set_name: setMeta?.name ?? null,
       results: Object.values(byQuery),
     },
     error: null,
@@ -144,10 +149,13 @@ function buildScoreDetails(results: any[]) {
 }
 
 // GET /api/results/business/:businessId
-// Returns all scans for a business (history)
+// Returns scans for a business (history). Filterable by tracking set:
+//   GET /api/results/business/:id              → all scans
+//   GET /api/results/business/:id?set_id=UUID  → just that set's scans
 router.get('/business/:businessId', requireAuth, async (req: Request, res: Response): Promise<void> => {
   const { businessId } = req.params
   const userId = req.userId!
+  const setId = typeof req.query.set_id === 'string' ? req.query.set_id : null
 
   const { data: business, error: bizError } = await supabase
     .from('businesses')
@@ -161,12 +169,15 @@ router.get('/business/:businessId', requireAuth, async (req: Request, res: Respo
     return
   }
 
-  const { data: scans, error: scansError } = await supabase
+  let q = supabase
     .from('scans')
-    .select('id, status, visibility_score, triggered_by, started_at, completed_at')
+    .select('id, status, visibility_score, triggered_by, started_at, completed_at, tracking_set_id')
     .eq('business_id', businessId)
     .order('started_at', { ascending: false })
     .limit(20)
+  if (setId) q = q.eq('tracking_set_id', setId)
+
+  const { data: scans, error: scansError } = await q
 
   if (scansError) {
     res.status(500).json({ data: null, error: 'Failed to fetch scans' })
@@ -185,6 +196,7 @@ router.get('/business/:businessId/trends', requireAuth, async (req: Request, res
   const { businessId } = req.params
   const userId = req.userId!
   const limit = Math.min(parseInt(String(req.query.limit ?? '30'), 10) || 30, 30)
+  const setId = typeof req.query.set_id === 'string' ? req.query.set_id : null
 
   const { data: business, error: bizError } = await supabase
     .from('businesses')
@@ -200,13 +212,17 @@ router.get('/business/:businessId/trends', requireAuth, async (req: Request, res
 
   // Pull the last N completed scans (most recent first), then reverse
   // server-side so the frontend gets oldest-to-newest for trend rendering.
-  const { data: rawScans, error: scansError } = await supabase
+  // Filter to a single tracking set when ?set_id= is supplied — that's the
+  // apples-to-apples comparison the dashboard renders by default.
+  let scanQuery = supabase
     .from('scans')
-    .select('id, visibility_score, started_at, completed_at')
+    .select('id, visibility_score, started_at, completed_at, tracking_set_id')
     .eq('business_id', businessId)
     .eq('status', 'completed')
     .order('completed_at', { ascending: false })
     .limit(limit)
+  if (setId) scanQuery = scanQuery.eq('tracking_set_id', setId)
+  const { data: rawScans, error: scansError } = await scanQuery
 
   if (scansError) {
     res.status(500).json({ data: null, error: 'Failed to fetch scans' })
@@ -319,6 +335,7 @@ router.get('/business/:businessId/trends', requireAuth, async (req: Request, res
         visibility_score: s.visibility_score,
         completed_at: s.completed_at,
         started_at: s.started_at,
+        tracking_set_id: s.tracking_set_id ?? null,
       })),
       by_platform,
       by_query,

@@ -162,7 +162,7 @@ export function CrystalCursor({ active }: CrystalCursorProps) {
       style={{
         position: 'fixed',
         inset: 0,
-        zIndex: 1,
+        zIndex: 0,
         pointerEvents: 'none',
         opacity: active ? 1 : 0,
         transition: 'opacity 400ms ease',

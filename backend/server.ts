@@ -6,6 +6,7 @@ import resultsRouter from './routes/results.js'
 import businessRouter from './routes/business.js'
 import stripeRouter from './routes/stripe.js'
 import quotaRouter from './routes/quota.js'
+import trackingSetsRouter from './routes/trackingSets.js'
 import { supabase } from './services/supabase.js'
 
 const app = express()
@@ -32,6 +33,9 @@ app.use('/api/results', resultsRouter)
 app.use('/api/business', businessRouter)
 app.use('/api/stripe', stripeRouter)
 app.use('/api/quota', quotaRouter)
+// Mounts at /api so the router's own paths can include both /business/:id/...
+// (list/create) and /tracking-sets/:setId (update/delete) cleanly.
+app.use('/api', trackingSetsRouter)
 
 // 404 handler
 app.use((_req, res) => {

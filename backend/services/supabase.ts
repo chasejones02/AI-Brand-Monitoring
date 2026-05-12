@@ -34,9 +34,20 @@ export type Business = {
   created_at: string
 }
 
+export type TrackingSet = {
+  id: string
+  business_id: string
+  slot_number: number
+  name: string
+  first_scanned_at: string | null
+  locked_until: string | null
+  created_at: string
+}
+
 export type Query = {
   id: string
   business_id: string
+  tracking_set_id: string
   query_text: string
   is_active: boolean
   source: 'generated' | 'custom'
@@ -48,11 +59,19 @@ export type Query = {
 export type Scan = {
   id: string
   business_id: string
+  tracking_set_id: string | null
   status: 'pending' | 'running' | 'completed' | 'failed'
   visibility_score: number | null
   triggered_by: 'manual' | 'scheduled'
   started_at: string
   completed_at: string | null
+}
+
+export const TIER_SET_LIMITS: Record<string, number> = {
+  free: 1,
+  starter: 2,
+  growth: 3,
+  agency: 3,
 }
 
 export type ScanResult = {

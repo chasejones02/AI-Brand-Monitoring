@@ -73,6 +73,64 @@ router.post('/create-checkout', requireAuth, async (req: Request, res: Response)
   }
 })
 
+// POST /api/stripe/verify-session
+// Fallback for when the Stripe webhook hasn't (yet) reached us — e.g. local
+// dev without `stripe listen`, or a transient delivery delay in prod. The
+// /success page calls this with the session_id it received from Checkout.
+// We retrieve the session from Stripe, confirm the caller owns it, and flip
+// the profile to active. Idempotent: re-running on an already-active profile
+// is a no-op.
+router.post('/verify-session', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  const { session_id } = req.body
+  const userId = req.userId!
+
+  if (!session_id || typeof session_id !== 'string') {
+    res.status(400).json({ data: null, error: 'session_id is required' })
+    return
+  }
+
+  try {
+    const session = await stripe.checkout.sessions.retrieve(session_id)
+
+    // The session must belong to the authenticated user. Without this check,
+    // any signed-in user could claim someone else's payment by guessing IDs.
+    if (session.metadata?.supabase_user_id !== userId) {
+      res.status(403).json({ data: null, error: 'Session does not belong to this user' })
+      return
+    }
+
+    if (session.payment_status !== 'paid') {
+      res.json({ data: { status: session.payment_status, activated: false }, error: null })
+      return
+    }
+
+    const tier = session.metadata?.tier
+    if (!tier) {
+      res.status(400).json({ data: null, error: 'Session is missing tier metadata' })
+      return
+    }
+
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    await supabase
+      .from('profiles')
+      .update({
+        subscription_status: 'active',
+        subscription_tier: tier,
+        stripe_customer_id: session.customer as string,
+      })
+      .eq('id', userId)
+
+    res.json({ data: { status: 'paid', activated: true, tier }, error: null })
+  } catch (err: any) {
+    console.error('Stripe verify-session error:', err)
+    res.status(500).json({ data: null, error: 'Failed to verify session' })
+  }
+})
+
 // POST /api/stripe/webhook
 // Stripe sends events here — must use raw body for signature verification
 router.post('/webhook', async (req: Request, res: Response): Promise<void> => {

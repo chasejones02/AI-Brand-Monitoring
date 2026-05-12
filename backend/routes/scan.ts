@@ -9,10 +9,12 @@ const router = Router()
 
 const ScanRequestSchema = z.object({
   business_id: z.string().uuid(),
+  tracking_set_id: z.string().uuid().optional(),
 })
 
 // POST /api/scan
-// Triggers a full scan for a business across all configured AI platforms
+// Triggers a full scan for a business across all configured AI platforms.
+// Caller specifies which tracking set to scan against; defaults to slot 1.
 router.post('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
   const parsed = ScanRequestSchema.safeParse(req.body)
   if (!parsed.success) {
@@ -20,7 +22,7 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
     return
   }
 
-  const { business_id } = parsed.data
+  const { business_id, tracking_set_id } = parsed.data
   const userId = req.userId!
 
   // Check subscription — free users get one scan, active subscribers get unlimited
@@ -43,23 +45,43 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
     return
   }
 
-  // Load queries for this business
-  const { data: queries, error: queryError } = await supabase
-    .from('queries')
-    .select('id, query_text')
-    .eq('business_id', business_id)
-    .eq('is_active', true)
+  // Resolve the target tracking set so we know which queries to scan.
+  // The RPC also validates this, but we need the set_id here to load queries.
+  let targetSetId: string | null = tracking_set_id ?? null
+  if (!targetSetId) {
+    const { data: defaultSet } = await supabase
+      .from('tracking_sets')
+      .select('id')
+      .eq('business_id', business_id)
+      .order('slot_number', { ascending: true })
+      .limit(1)
+      .maybeSingle()
+    targetSetId = defaultSet?.id ?? null
+  }
 
-  if (queryError || !queries?.length) {
-    res.status(400).json({ data: null, error: 'No active queries found for this business' })
+  if (!targetSetId) {
+    res.status(400).json({ data: null, error: 'No tracking set found for this business' })
     return
   }
 
-  // Create a scan record atomically with free-tier enforcement.
+  // Load queries belonging to the target tracking set.
+  const { data: queries, error: queryError } = await supabase
+    .from('queries')
+    .select('id, query_text')
+    .eq('tracking_set_id', targetSetId)
+    .eq('is_active', true)
+
+  if (queryError || !queries?.length) {
+    res.status(400).json({ data: null, error: 'No active queries found for this tracking set' })
+    return
+  }
+
+  // Create a scan record atomically with tier-aware quota enforcement.
   const { data: scanCreateRows, error: scanError } = await supabase
     .rpc('create_scan_if_allowed', {
       p_business_id: business_id,
       p_user_id: userId,
+      p_tracking_set_id: targetSetId,
     })
 
   const scanCreate = Array.isArray(scanCreateRows) ? scanCreateRows[0] : null

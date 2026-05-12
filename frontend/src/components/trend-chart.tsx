@@ -4,6 +4,8 @@ import type { TrendScanPoint } from '../lib/api'
 interface TrendChartProps {
   scans: TrendScanPoint[]
   height?: number
+  /** Optional label rendered as the chart's section title (default "Visibility trend"). */
+  title?: string
 }
 
 const W = 800
@@ -20,7 +22,7 @@ function formatDate(iso: string | null): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export function TrendChart({ scans, height = 220 }: TrendChartProps) {
+export function TrendChart({ scans, height = 220, title = 'Visibility trend' }: TrendChartProps) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
 
   if (scans.length < 2) {
@@ -40,7 +42,7 @@ export function TrendChart({ scans, height = 220 }: TrendChartProps) {
           textAlign: 'center',
         }}
       >
-        Run another scan to see your visibility trend over time.
+        Run another scan on this set to see its visibility trend over time.
       </div>
     )
   }
@@ -58,7 +60,6 @@ export function TrendChart({ scans, height = 220 }: TrendChartProps) {
     .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
     .join(' ')
 
-  // Latest score determines the line color so it visually echoes the score dial.
   const latestScore = points[points.length - 1].score
   const lineColor = scoreColor(latestScore)
 
@@ -92,7 +93,7 @@ export function TrendChart({ scans, height = 220 }: TrendChartProps) {
             color: 'var(--accent)',
           }}
         >
-          Visibility trend
+          {title}
         </span>
         {active && (
           <span
@@ -102,7 +103,8 @@ export function TrendChart({ scans, height = 220 }: TrendChartProps) {
               color: 'var(--text-muted)',
             }}
           >
-            {formatDate(active.scan.completed_at ?? active.scan.started_at)} ·{' '}
+            {formatDate(active.scan.completed_at ?? active.scan.started_at)}
+            {' · '}
             <span style={{ color: scoreColor(active.score), fontWeight: 700 }}>
               {Math.round(active.score)}
             </span>
@@ -142,7 +144,6 @@ export function TrendChart({ scans, height = 220 }: TrendChartProps) {
           )
         })}
 
-        {/* Area fill under the line for visual weight */}
         <path
           d={`${path} L ${points[points.length - 1].x} ${PADDING.top + innerH} L ${points[0].x} ${PADDING.top + innerH} Z`}
           fill={lineColor}
@@ -170,7 +171,6 @@ export function TrendChart({ scans, height = 220 }: TrendChartProps) {
               strokeWidth="2"
               style={{ transition: 'r 0.15s' }}
             />
-            {/* Wide invisible hit-target */}
             <rect
               x={p.x - 18}
               y={PADDING.top}
@@ -183,7 +183,6 @@ export function TrendChart({ scans, height = 220 }: TrendChartProps) {
           </g>
         ))}
 
-        {/* X-axis date labels: first, middle, last */}
         {[0, Math.floor(points.length / 2), points.length - 1]
           .filter((v, i, arr) => arr.indexOf(v) === i)
           .map(i => (

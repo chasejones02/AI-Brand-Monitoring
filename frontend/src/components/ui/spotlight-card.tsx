@@ -65,9 +65,9 @@ const GlowCard: React.FC<GlowCardProps> = ({
         var(--spotlight-size) var(--spotlight-size) at
         calc(var(--x, -9999) * 1px)
         calc(var(--y, -9999) * 1px),
-        rgba(${BRAND}, 0.07), transparent
+        rgba(${BRAND}, 0.04), transparent
       )`,
-      backgroundColor: `rgba(${BRAND}, 0.015)`,
+      backgroundColor: `rgba(${BRAND}, 0.008)`,
       backgroundAttachment: 'scroll',
       backgroundSize: '100% 100%',
       backgroundPosition: '0 0',
@@ -106,7 +106,7 @@ const GlowCard: React.FC<GlowCardProps> = ({
       inset: calc(var(--border-size) * -1);
       padding: var(--border-size);
       border-radius: calc(var(--radius) * 1px);
-      background: rgba(${BRAND}, 0.38);
+      background: rgba(${BRAND}, 0.16);
       -webkit-mask:
         linear-gradient(#fff 0 0) content-box,
         linear-gradient(#fff 0 0);
@@ -128,8 +128,8 @@ const GlowCard: React.FC<GlowCardProps> = ({
         var(--spotlight-size) var(--spotlight-size) at
         calc(var(--x, -9999) * 1px)
         calc(var(--y, -9999) * 1px),
-        rgba(${BRAND}, 1)   0%,
-        rgba(${BRAND}, 0.5) 30%,
+        rgba(${BRAND}, 0.55) 0%,
+        rgba(${BRAND}, 0.22) 30%,
         transparent         65%
       );
       -webkit-mask:

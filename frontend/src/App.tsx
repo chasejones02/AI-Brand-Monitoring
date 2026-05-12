@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/auth-context'
 import { LandingPage } from './pages/landing'
 import AuthPage from './pages/auth'
@@ -14,16 +14,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   if (loading) return null
   if (!session) return <Navigate to="/auth" replace />
   return <>{children}</>
-}
-
-function HomeOnLoad() {
-  const navigate = useNavigate()
-  useEffect(() => {
-    if (window.location.pathname !== '/') {
-      navigate('/', { replace: true })
-    }
-  }, [])
-  return null
 }
 
 function AppRoutes() {
@@ -57,7 +47,6 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <HomeOnLoad />
         {!introShown && <EyeballIntro onComplete={handleIntroComplete} />}
         <AppRoutes />
       </AuthProvider>

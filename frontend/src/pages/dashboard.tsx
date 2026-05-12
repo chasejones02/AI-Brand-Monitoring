@@ -11,21 +11,31 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
 import { GlowCard } from '../components/ui/spotlight-card'
+import { TiltCard } from '../components/ui/tilt-card'
+import { CrystalCursor } from '../components/crystal-cursor'
 import { QuotaPill } from '../components/quota-pill'
 import { HistoryTrendsSection } from '../components/history-trends-section'
 import { TrendChart } from '../components/trend-chart'
+import { TrackingSetTabs } from '../components/tracking-set-tabs'
+import { TrackingSetEditor, type EditorMode } from '../components/tracking-set-editor'
+import { QueryAccordion } from '../components/query-accordion'
 import {
   getBusinesses,
   getBusinessHistory,
   getScanResults,
   createBusiness,
   triggerScan,
-  updateBusinessQueries,
   getQuota,
   getBusinessTrends,
+  getBusinessTrackingSets,
+  createTrackingSet,
+  updateTrackingSet,
+  deleteTrackingSet,
   ApiError,
   type QuotaStatus,
   type BusinessTrends,
+  type TrackingSet,
+  type BusinessWithTrackingSets,
 } from '../lib/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -70,26 +80,10 @@ interface ScanData {
   started_at: string
   completed_at: string | null
   score_details?: ScoreDetails
+  tracking_set_id?: string | null
+  tracking_set_slot?: number | null
+  tracking_set_name?: string | null
   results: QueryResult[]
-}
-
-interface BusinessQuery {
-  id: string
-  query_text: string
-  is_active: boolean
-  source?: 'generated' | 'custom'
-  intent?: string | null
-  generation_reason?: string | null
-}
-
-interface BusinessWithQueries {
-  id: string
-  name: string
-  location: string | null
-  website: string | null
-  industry: string | null
-  created_at: string
-  queries: BusinessQuery[]
 }
 
 interface ScanSummary {
@@ -102,7 +96,7 @@ interface ScanSummary {
 }
 
 type AppState = 'loading' | 'setup' | 'main'
-type MainMode = 'results' | 'new-scan' | 'no-scans'
+type MainMode = 'results' | 'no-scans'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -124,12 +118,6 @@ function scoreColor(score: number): string {
   if (score >= 70) return 'var(--green)'
   if (score >= 40) return 'var(--accent)'
   return 'var(--red)'
-}
-
-function sentimentIcon(sentiment: string | null) {
-  if (sentiment === 'positive') return { symbol: '↑', color: 'var(--green)' }
-  if (sentiment === 'negative') return { symbol: '↓', color: 'var(--red)' }
-  return { symbol: '→', color: 'var(--text-muted)' }
 }
 
 function formatScanLabel(scan: ScanSummary): string {
@@ -177,8 +165,8 @@ export default function DashboardPage() {
   const navigate = useNavigate()
 
   const [appState, setAppState] = useState<AppState>('loading')
-  const [businesses, setBusinesses] = useState<BusinessWithQueries[]>([])
-  const [activeBusiness, setActiveBusiness] = useState<BusinessWithQueries | null>(null)
+  const [businesses, setBusinesses] = useState<BusinessWithTrackingSets[]>([])
+  const [activeBusiness, setActiveBusiness] = useState<BusinessWithTrackingSets | null>(null)
   const [scanHistory, setScanHistory] = useState<ScanSummary[]>([])
   const [activeScanId, setActiveScanId] = useState<string | null>(null)
   const [mode, setMode] = useState<MainMode>('no-scans')
@@ -194,6 +182,25 @@ export default function DashboardPage() {
   const [trendsLoading, setTrendsLoading] = useState(false)
   const [trendsError, setTrendsError] = useState('')
 
+  // Tracking-set state. trackingSets is the source of truth for the tab strip
+  // and active set selection; the queries on activeBusiness.tracking_sets are
+  // a snapshot from the initial getBusinesses() call and may be slightly stale.
+  const [trackingSets, setTrackingSets] = useState<TrackingSet[]>([])
+  const [activeSetId, setActiveSetId] = useState<string | null>(null)
+  const [maxSets, setMaxSets] = useState(1)
+  const [canCreateMore, setCanCreateMore] = useState(false)
+  const [tier, setTier] = useState<'free' | 'starter' | 'growth' | 'agency'>('free')
+
+  // Set editor modal state — covers both create (new tab) and edit (unlocked set).
+  const [editorMode, setEditorMode] = useState<EditorMode | null>(null)
+  const [editorError, setEditorError] = useState('')
+
+  const [cursorActive, setCursorActive] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setCursorActive(true), 700)
+    return () => clearTimeout(t)
+  }, [])
+
   const refreshQuota = useCallback(async () => {
     try {
       const q = await getQuota()
@@ -203,17 +210,33 @@ export default function DashboardPage() {
     }
   }, [])
 
-  // Trends fetch — used by both the top-of-page chart and the history section.
-  // Resets when the active business or refresh key changes.
+  const refreshTrackingSets = useCallback(async (businessId: string): Promise<TrackingSet[]> => {
+    try {
+      const resp = await getBusinessTrackingSets(businessId)
+      setTrackingSets(resp.sets)
+      setMaxSets(resp.max_sets)
+      setCanCreateMore(resp.can_create_more)
+      setTier(resp.tier)
+      return resp.sets
+    } catch {
+      return []
+    }
+  }, [])
+
+  const activeSet = trackingSets.find(s => s.id === activeSetId) ?? null
+
+  // Trends fetch — scoped to the active tracking set so the chart only shows
+  // apples-to-apples comparisons. Re-runs when the active set, the active
+  // business, or the refresh key change.
   useEffect(() => {
-    if (!activeBusiness) {
+    if (!activeBusiness || !activeSetId) {
       setTrends(null)
       return
     }
     let cancelled = false
     setTrendsLoading(true)
     setTrendsError('')
-    getBusinessTrends(activeBusiness.id)
+    getBusinessTrends(activeBusiness.id, activeSetId)
       .then(data => {
         if (cancelled) return
         setTrends(data)
@@ -227,7 +250,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true
     }
-  }, [activeBusiness, trendsRefreshKey])
+  }, [activeBusiness, activeSetId, trendsRefreshKey])
 
   const MAX_POLLS = 120 // ~6 minutes at 3s intervals — defense-in-depth beyond backend timeout
   const isTerminalStatus = scan?.status === 'completed' || scan?.status === 'failed'
@@ -243,11 +266,12 @@ export default function DashboardPage() {
   // ── Initial load ──────────────────────────────────────────────────────────
   useEffect(() => {
     const urlScanId = searchParams.get('scanId')
+    const urlSetId = searchParams.get('setId')
     async function init() {
       try {
         refreshQuota()
         const raw = await getBusinesses()
-        const bizList: BusinessWithQueries[] = Array.isArray(raw) ? raw : []
+        const bizList: BusinessWithTrackingSets[] = Array.isArray(raw) ? raw : []
         if (bizList.length === 0) {
           setAppState('setup')
           return
@@ -256,7 +280,14 @@ export default function DashboardPage() {
         const biz = bizList[0]
         setActiveBusiness(biz)
 
-        const histData = await getBusinessHistory(biz.id)
+        const sets = await refreshTrackingSets(biz.id)
+        const initialSetId =
+          (urlSetId && sets.some(s => s.id === urlSetId) ? urlSetId : null) ??
+          sets[0]?.id ??
+          null
+        setActiveSetId(initialSetId)
+
+        const histData = await getBusinessHistory(biz.id, initialSetId ?? undefined)
         const scans: ScanSummary[] = histData?.scans ?? []
         setScanHistory(scans)
 
@@ -338,8 +369,13 @@ export default function DashboardPage() {
     setActiveScanId(null)
     setScanError('')
     setScanHistory([])
+    setTrackingSets([])
+    setActiveSetId(null)
     try {
-      const histData = await getBusinessHistory(biz.id)
+      const sets = await refreshTrackingSets(biz.id)
+      const firstSetId = sets[0]?.id ?? null
+      setActiveSetId(firstSetId)
+      const histData = await getBusinessHistory(biz.id, firstSetId ?? undefined)
       const scans: ScanSummary[] = histData?.scans ?? []
       setScanHistory(scans)
       if (scans.length === 0) {
@@ -353,31 +389,54 @@ export default function DashboardPage() {
     }
   }
 
+  // ── Set change ────────────────────────────────────────────────────────────
+  // Switching tabs swaps in this set's scan history + trend. Each set has
+  // its own independent timeline.
+  async function handleSetChange(setId: string) {
+    if (!activeBusiness || setId === activeSetId) return
+    setActiveSetId(setId)
+    setScan(null)
+    setActiveScanId(null)
+    setScanError('')
+    setScanHistory([])
+    try {
+      const histData = await getBusinessHistory(activeBusiness.id, setId)
+      const scans: ScanSummary[] = histData?.scans ?? []
+      setScanHistory(scans)
+      if (scans.length === 0) {
+        setMode('no-scans')
+      } else {
+        setActiveScanId(scans[0].id)
+        setMode('results')
+      }
+    } catch (err: any) {
+      setGlobalError(err.message ?? 'Failed to load set data')
+    }
+  }
+
   // ── Scan select ────────────────────────────────────────────────────────────
   function handleScanSelect(scanId: string) {
     setActiveScanId(scanId)
     setMode('results')
   }
 
-  // ── Retry scan (re-run same business without touching queries) ─────────────
-  async function handleRetryScan() {
-    if (!activeBusiness || isSubmitting) return
+  // ── Run scan ───────────────────────────────────────────────────────────────
+  // Tracking-set model: queries are locked at the set level, so "run scan"
+  // is a single button that scans the active set's existing queries. No more
+  // edit-then-scan combined flow.
+  async function handleRunScan() {
+    if (!activeBusiness || !activeSetId || isSubmitting) return
     setIsSubmitting(true)
-    // Clear ALL scan state BEFORE kicking off the new scan so no stale polling
-    // races can hit the old scanId while the trigger request is in flight.
     setActiveScanId(null)
     setScan(null)
     setScanError('')
     setPollCount(0)
     try {
-      const { scan_id } = await triggerScan(activeBusiness.id)
-      // Refresh history from the server so any orphaned/stale scans
-      // the backend reaped are reflected in the UI (not just our new one).
+      const { scan_id } = await triggerScan(activeBusiness.id, activeSetId)
       try {
-        const histData = await getBusinessHistory(activeBusiness.id)
+        const histData = await getBusinessHistory(activeBusiness.id, activeSetId)
         setScanHistory(histData?.scans ?? [])
       } catch {
-        // Non-fatal — fall back to optimistic prepend
         setScanHistory(prev => [{
           id: scan_id,
           status: 'running',
@@ -389,60 +448,9 @@ export default function DashboardPage() {
       }
       setActiveScanId(scan_id)
       setMode('results')
-      refreshQuota()
-      setTrendsRefreshKey(k => k + 1)
-    } catch (err: any) {
-      if (err instanceof ApiError && err.code === 'subscription_required') {
-        navigate('/pricing')
-        return
-      }
-      if (err instanceof ApiError && err.code === 'daily_quota_exceeded') {
-        refreshQuota()
-        setScanError(err.message)
-        return
-      }
-      setScanError(err.message ?? 'Failed to start scan')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  // ── New scan submit ────────────────────────────────────────────────────────
-  async function handleNewScanSubmit(queries: string[]) {
-    if (!activeBusiness || isSubmitting) return
-    setIsSubmitting(true)
-    try {
-      const existingActive = activeBusiness.queries
-        .filter(q => q.is_active)
-        .map(q => q.query_text)
-      const changed =
-        queries.length !== existingActive.length ||
-        queries.some(q => !existingActive.includes(q))
-
-      if (changed) {
-        await updateBusinessQueries(activeBusiness.id, queries)
-        setActiveBusiness(prev =>
-          prev
-            ? { ...prev, queries: queries.map((qt, i) => ({ id: `q${i}`, query_text: qt, is_active: true })) }
-            : null
-        )
-      }
-
-      const { scan_id } = await triggerScan(activeBusiness.id)
-      const newEntry: ScanSummary = {
-        id: scan_id,
-        status: 'running',
-        visibility_score: null,
-        triggered_by: 'manual',
-        started_at: new Date().toISOString(),
-        completed_at: null,
-      }
-      setScanHistory(prev => [newEntry, ...prev])
-      setActiveScanId(scan_id)
-      setScan(null)
-      setScanError('')
-      setPollCount(0)
-      setMode('results')
+      // First scan of a set starts the 30-day lock — refresh the set metadata
+      // so the tab's lock chip lights up immediately.
+      refreshTrackingSets(activeBusiness.id)
       refreshQuota()
       setTrendsRefreshKey(k => k + 1)
     } catch (err: any) {
@@ -462,6 +470,93 @@ export default function DashboardPage() {
     }
   }
 
+  // ── Tracking-set CRUD ─────────────────────────────────────────────────────
+  function openCreateEditor() {
+    if (!canCreateMore) {
+      navigate('/pricing')
+      return
+    }
+    setEditorError('')
+    setEditorMode({ kind: 'create' })
+  }
+
+  function openEditEditor() {
+    if (!activeSet) return
+    if (activeSet.is_locked) return
+    setEditorError('')
+    setEditorMode({ kind: 'edit', set: activeSet })
+  }
+
+  function closeEditor() {
+    if (isSubmitting) return
+    setEditorMode(null)
+    setEditorError('')
+  }
+
+  async function handleEditorSubmit(payload: { name: string; queries: string[] }) {
+    if (!activeBusiness || !editorMode) return
+    setIsSubmitting(true)
+    setEditorError('')
+    try {
+      if (editorMode.kind === 'create') {
+        const created = await createTrackingSet(activeBusiness.id, payload)
+        await refreshTrackingSets(activeBusiness.id)
+        setActiveSetId(created.id)
+        setScanHistory([])
+        setActiveScanId(null)
+        setScan(null)
+        setMode('no-scans')
+      } else {
+        await updateTrackingSet(editorMode.set.id, payload)
+        await refreshTrackingSets(activeBusiness.id)
+        setTrendsRefreshKey(k => k + 1)
+      }
+      setEditorMode(null)
+    } catch (err: any) {
+      setEditorError(err.message ?? 'Failed to save tracking set')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  async function handleRename(setId: string, name: string) {
+    if (!activeBusiness) return
+    try {
+      await updateTrackingSet(setId, { name })
+      await refreshTrackingSets(activeBusiness.id)
+    } catch (err: any) {
+      setGlobalError(err.message ?? 'Failed to rename set')
+    }
+  }
+
+  async function handleDeleteSet(setId: string) {
+    if (!activeBusiness) return
+    const target = trackingSets.find(s => s.id === setId)
+    if (!target || target.slot_number === 1) return
+    const ok = window.confirm(
+      `Delete "${target.name}"? All scans and queries in this set will be permanently removed.`
+    )
+    if (!ok) return
+    try {
+      await deleteTrackingSet(setId)
+      const remaining = await refreshTrackingSets(activeBusiness.id)
+      const newActive = remaining[0]?.id ?? null
+      setActiveSetId(newActive)
+      if (newActive) {
+        const histData = await getBusinessHistory(activeBusiness.id, newActive)
+        setScanHistory(histData?.scans ?? [])
+        if (histData?.scans?.length) {
+          setActiveScanId(histData.scans[0].id)
+          setMode('results')
+        } else {
+          setMode('no-scans')
+        }
+      }
+    } catch (err: any) {
+      setGlobalError(err.message ?? 'Failed to delete set')
+    }
+  }
+
   // ── Setup submit ───────────────────────────────────────────────────────────
   async function handleSetupSubmit(
     name: string,
@@ -471,18 +566,20 @@ export default function DashboardPage() {
   ) {
     setIsSubmitting(true)
     try {
-      const { business_id } = await createBusiness({
+      const { business_id, default_set_id } = await createBusiness({
         name,
         website: website || undefined,
         industry: industry || undefined,
         queries,
       })
-      const { scan_id } = await triggerScan(business_id)
+      const { scan_id } = await triggerScan(business_id, default_set_id)
       const raw = await getBusinesses()
-      const bizList: BusinessWithQueries[] = Array.isArray(raw) ? raw : []
+      const bizList: BusinessWithTrackingSets[] = Array.isArray(raw) ? raw : []
       setBusinesses(bizList)
       const newBiz = bizList.find(b => b.id === business_id) ?? bizList[0]
       setActiveBusiness(newBiz)
+      await refreshTrackingSets(business_id)
+      setActiveSetId(default_set_id)
       const newEntry: ScanSummary = {
         id: scan_id,
         status: 'running',
@@ -522,8 +619,8 @@ export default function DashboardPage() {
       <div style={s.page}>
         <nav style={s.nav}>
           <span style={s.navLogo}>
-            <img src="/logo-eye.png" alt="Visaion" style={{ height: '36px', width: 'auto', marginRight: '8px', verticalAlign: 'middle' }} />
-            Vis<span style={{ color: 'var(--accent)' }}>ai</span>on
+            <img src="/logo-eye.png" alt="Visaion" style={{ height: '40px', width: 'auto', display: 'block' }} />
+            <span>Vis<span style={{ color: 'var(--accent)' }}>ai</span>on</span>
           </span>
           <div style={s.navRight}>
             {user?.email && <span style={s.navEmail}>{user.email}</span>}
@@ -539,8 +636,14 @@ export default function DashboardPage() {
     )
   }
 
+  const setEditDisabledReason = activeSet?.is_locked
+    ? `Editable in ${activeSet.days_until_unlock} ${activeSet.days_until_unlock === 1 ? 'day' : 'days'}`
+    : null
+
   return (
     <div style={s.page}>
+      <CrystalCursor active={cursorActive} />
+
       <DashboardNav
         email={user?.email}
         onSignOut={signOut}
@@ -550,8 +653,7 @@ export default function DashboardPage() {
         scanHistory={scanHistory}
         activeScanId={activeScanId}
         onScanSelect={handleScanSelect}
-        onNewScan={() => setMode('new-scan')}
-        mode={mode}
+        onNewScan={handleRunScan}
         quota={quota}
       />
 
@@ -562,19 +664,69 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {mode === 'new-scan' && activeBusiness && (
-        <NewScanForm
-          business={activeBusiness}
-          onSubmit={handleNewScanSubmit}
-          onCancel={() => setMode(scanHistory.length > 0 ? 'results' : 'no-scans')}
-          isSubmitting={isSubmitting}
-        />
+      {activeBusiness && trackingSets.length > 0 && (
+        <div style={s.setTabsWrap}>
+          <TrackingSetTabs
+            sets={trackingSets}
+            activeSetId={activeSetId}
+            maxSets={maxSets}
+            canCreateMore={canCreateMore}
+            tier={tier}
+            onSelect={handleSetChange}
+            onAddSet={openCreateEditor}
+            onRename={handleRename}
+            onDeleteRequest={handleDeleteSet}
+          />
+
+          {activeSet && (
+            <div style={s.setActions}>
+              <div style={s.setActionsMeta}>
+                {activeSet.is_locked ? (
+                  <>
+                    <span style={{ ...s.setMetaDot, background: 'var(--text-dim)' }} />
+                    <span>
+                      Queries locked · {activeSet.days_until_unlock}{' '}
+                      {activeSet.days_until_unlock === 1 ? 'day' : 'days'} remaining
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ ...s.setMetaDot, background: 'var(--accent)' }} />
+                    <span>
+                      {activeSet.first_scanned_at
+                        ? 'Editable — next scan will start a fresh 30-day window.'
+                        : 'Queries will lock for 30 days on first scan.'}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              <div style={s.setActionsBtns}>
+                <button
+                  type="button"
+                  onClick={openEditEditor}
+                  disabled={!!setEditDisabledReason}
+                  title={setEditDisabledReason ?? 'Edit queries in this set'}
+                  style={{
+                    ...s.secondaryBtn,
+                    opacity: setEditDisabledReason ? 0.45 : 1,
+                    cursor: setEditDisabledReason ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  Edit queries
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {mode === 'no-scans' && (
         <NoScansState
           businessName={activeBusiness?.name}
-          onNewScan={() => setMode('new-scan')}
+          setName={activeSet?.name ?? null}
+          onNewScan={handleRunScan}
+          isRunning={isSubmitting}
         />
       )}
 
@@ -582,7 +734,10 @@ export default function DashboardPage() {
         <>
           {trends && trends.scans.length >= 2 && (
             <div style={{ ...s.content, paddingBottom: '0.5rem' }}>
-              <TrendChart scans={trends.scans} />
+              <TrendChart
+                scans={trends.scans}
+                title={`${activeSet?.name ?? 'Set'} · visibility trend`}
+              />
             </div>
           )}
           <ScanResultsView
@@ -591,8 +746,9 @@ export default function DashboardPage() {
             isRunning={isRunning}
             pollTimedOut={pollTimedOut}
             activeScanId={activeScanId}
-            onNewScan={() => setMode('new-scan')}
-            onRetry={handleRetryScan}
+            activeSet={activeSet}
+            onNewScan={handleRunScan}
+            onRetry={handleRunScan}
             isRetrying={isSubmitting}
           />
           {activeBusiness && scan?.status === 'completed' && scanHistory.length > 0 && (
@@ -609,6 +765,15 @@ export default function DashboardPage() {
           )}
         </>
       )}
+
+      <TrackingSetEditor
+        open={editorMode != null}
+        mode={editorMode ?? { kind: 'create' }}
+        onCancel={closeEditor}
+        onSubmit={handleEditorSubmit}
+        isSubmitting={isSubmitting}
+        error={editorError}
+      />
     </div>
   )
 }
@@ -618,14 +783,13 @@ export default function DashboardPage() {
 interface DashboardNavProps {
   email?: string
   onSignOut: () => void
-  businesses: BusinessWithQueries[]
-  activeBusiness: BusinessWithQueries | null
+  businesses: BusinessWithTrackingSets[]
+  activeBusiness: BusinessWithTrackingSets | null
   onBusinessChange: (id: string) => void
   scanHistory: ScanSummary[]
   activeScanId: string | null
   onScanSelect: (id: string) => void
   onNewScan: () => void
-  mode: MainMode
   quota: QuotaStatus | null
 }
 
@@ -639,7 +803,6 @@ function DashboardNav({
   activeScanId,
   onScanSelect,
   onNewScan,
-  mode,
   quota,
 }: DashboardNavProps) {
   const quotaExhausted = !!quota && quota.remaining <= 0
@@ -647,8 +810,8 @@ function DashboardNav({
     <nav style={s.nav}>
       <div style={s.navLeft}>
         <Link to="/" style={s.navLogo}>
-          <img src="/logo-eye.png" alt="Visaion" style={{ height: '36px', width: 'auto', marginRight: '8px', verticalAlign: 'middle' }} />
-          Vis<span style={{ color: 'var(--accent)' }}>ai</span>on
+          <img src="/logo-eye.png" alt="Visaion" style={{ height: '40px', width: 'auto', display: 'block' }} />
+          <span>Vis<span style={{ color: 'var(--accent)' }}>ai</span>on</span>
         </Link>
 
         {activeBusiness && (
@@ -673,7 +836,7 @@ function DashboardNav({
 
       <div style={s.navRight}>
         <QuotaPill quota={quota} />
-        {scanHistory.length > 0 && mode !== 'new-scan' && (
+        {scanHistory.length > 0 && (
           <select
             style={{ ...s.navSelect, maxWidth: '200px' }}
             value={activeScanId ?? ''}
@@ -694,9 +857,9 @@ function DashboardNav({
             opacity: quotaExhausted ? 0.5 : 1,
             cursor: quotaExhausted ? 'not-allowed' : 'pointer',
           }}
-          title={quotaExhausted ? 'Daily scan limit reached' : 'Run a new scan'}
+          title={quotaExhausted ? 'Daily scan limit reached' : 'Run a new scan on this set'}
         >
-          + New Scan
+          {quotaExhausted ? 'Quota reached' : '+ Run scan'}
         </button>
         {email && <span style={s.navEmail}>{email}</span>}
         <button onClick={onSignOut} style={s.signOutBtn}>Sign out</button>
@@ -838,115 +1001,39 @@ function BusinessSetupForm({ onSubmit, isSubmitting, error }: SetupFormProps) {
   )
 }
 
-// ─── NewScanForm ──────────────────────────────────────────────────────────────
-
-interface NewScanFormProps {
-  business: BusinessWithQueries
-  onSubmit: (queries: string[]) => void
-  onCancel: () => void
-  isSubmitting: boolean
-}
-
-function NewScanForm({ business, onSubmit, onCancel, isSubmitting }: NewScanFormProps) {
-  const defaultQueries = business.queries.filter(q => q.is_active).map(q => q.query_text)
-  const [queries, setQueries] = useState(defaultQueries.length > 0 ? defaultQueries : [''])
-  const [formError, setFormError] = useState('')
-
-  function addQuery() {
-    if (queries.length < 10) setQueries(prev => [...prev, ''])
-  }
-  function removeQuery(i: number) {
-    if (queries.length > 1) setQueries(prev => prev.filter((_, idx) => idx !== i))
-  }
-  function updateQuery(i: number, val: string) {
-    setQueries(prev => prev.map((q, idx) => (idx === i ? val : q)))
-  }
-
-  function handleSubmit() {
-    const validQueries = queries.map(q => q.trim()).filter(q => q.length >= 3)
-    if (validQueries.length === 0) { setFormError('Add at least one query (3+ characters)'); return }
-    setFormError('')
-    onSubmit(validQueries)
-  }
-
-  return (
-    <div style={s.formPage}>
-      <div style={{ ...s.formCard, maxWidth: '640px' }}>
-        <div style={s.formCardHeader}>
-          <p style={s.eyebrow}>New scan</p>
-          <h1 style={s.formCardTitle}>{business.name}</h1>
-          <p style={s.formCardSubtitle}>
-            Confirm or update the queries to run across AI platforms.
-          </p>
-        </div>
-
-        <div style={s.formBody}>
-          <div style={s.fieldGroup}>
-            <label style={s.fieldLabel}>
-              Target queries <span style={s.fieldOptional}>— edit before running</span>
-            </label>
-            <div style={s.queryInputList}>
-              {queries.map((q, i) => (
-                <div key={i} style={s.queryInputRow}>
-                  <span style={s.queryRowNum}>{i + 1}</span>
-                  <input
-                    type="text"
-                    placeholder="Enter a search query"
-                    value={q}
-                    onChange={e => updateQuery(i, e.target.value)}
-                    style={{ ...s.input, flex: 1, marginBottom: 0 }}
-                  />
-                  {queries.length > 1 && (
-                    <button onClick={() => removeQuery(i)} style={s.removeBtn}>×</button>
-                  )}
-                </div>
-              ))}
-            </div>
-            {queries.length < 10 && (
-              <button onClick={addQuery} style={s.addBtn}>+ Add another query</button>
-            )}
-          </div>
-
-          {formError && <p style={s.formError}>{formError}</p>}
-
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button onClick={onCancel} style={s.secondaryBtn}>Cancel</button>
-            <GlowCard customSize radius={8} className="!block !p-0 !shadow-none" style={{ flex: 1 }}>
-              <button
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                style={{ ...s.primaryBtn, opacity: isSubmitting ? 0.6 : 1 }}
-              >
-                {isSubmitting ? 'Starting scan…' : 'Run scan →'}
-              </button>
-            </GlowCard>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ─── NoScansState ─────────────────────────────────────────────────────────────
+// Empty state shown when a tracking set has no scans yet. The CTA fires a
+// scan against the set directly — no more intermediate "edit queries" step,
+// since edit is gated by the set's lock state and lives in its own modal.
 
 function NoScansState({
   businessName,
+  setName,
   onNewScan,
+  isRunning,
 }: {
   businessName?: string
+  setName: string | null
   onNewScan: () => void
+  isRunning: boolean
 }) {
   return (
     <div style={s.emptyState}>
       <p style={s.emptyTitle}>
-        {businessName ? `No scans yet for ${businessName}` : 'No scans yet'}
+        {setName
+          ? `No scans yet for "${setName}"`
+          : businessName
+          ? `No scans yet for ${businessName}`
+          : 'No scans yet'}
       </p>
       <p style={s.emptyText}>
-        Run your first scan to see how AI platforms mention your business.
+        Run your first scan to see how AI platforms mention your business for
+        the queries in this set. The set locks for 30 days after the first scan
+        so your trend stays apples-to-apples.
       </p>
       <GlowCard customSize radius={8} className="!block !p-0 !shadow-none">
-        <button onClick={onNewScan} style={s.primaryBtn}>
-          Run first scan →
+        <button onClick={onNewScan} disabled={isRunning} style={s.primaryBtn}>
+          {isRunning ? 'Starting scan…' : 'Run first scan →'}
         </button>
       </GlowCard>
     </div>
@@ -961,6 +1048,7 @@ function ScanResultsView({
   isRunning,
   pollTimedOut,
   activeScanId,
+  activeSet,
   onNewScan,
   onRetry,
   isRetrying,
@@ -970,6 +1058,7 @@ function ScanResultsView({
   isRunning: boolean
   pollTimedOut: boolean
   activeScanId: string | null
+  activeSet: TrackingSet | null
   onNewScan: () => void
   onRetry: () => void
   isRetrying: boolean
@@ -1115,53 +1204,76 @@ function ScanResultsView({
   const isPerplexityOnly = platforms.length === 1 && platforms[0] === 'perplexity'
   const allGenerated = scan.results.length > 0 && scan.results.every(r => r.source === 'generated')
 
+  // Resolve which tracking set this scan was actually run against — usually
+  // the active set, but may be an older one if the user is viewing a scan
+  // from before they switched sets.
+  const scanSetSlot = scan.tracking_set_slot ?? activeSet?.slot_number ?? null
+  const scanSetName = scan.tracking_set_name ?? activeSet?.name ?? null
+
   return (
     <div style={s.content}>
       {/* Score header */}
-      <div style={s.scoreSection}>
-        <div style={s.scoreLeft}>
-          <p style={s.eyebrow}>
-            {isPerplexityOnly ? 'Free Perplexity Visibility Report' : 'AI Visibility Report'}
-          </p>
-          <h1 style={s.businessName}>{scan.business_name}</h1>
-          <p style={s.scanMeta}>
-            Scanned{' '}
-            {new Date(scan.started_at).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            })}
-            {' · '}
-            {scan.results.length} quer{scan.results.length === 1 ? 'y' : 'ies'}
-            {' · '}
-            {platforms.map(p => PLATFORM_LABELS[p] ?? p).join(', ')}
-          </p>
-        </div>
-
-        <div style={s.scoreRight}>
-          <div style={s.scoreDial}>
-            <ScoreArc score={score} />
-            <div style={s.scoreCenter}>
-              <span style={{ ...s.scoreNumber, color: scoreColor(score) }}>
-                {Math.round(score)}
-              </span>
-              <span style={s.scoreLabel}>/ 100</span>
-            </div>
-          </div>
-          <p style={{ ...s.scoreGrade, color: scoreColor(score) }}>
-            {score >= 70
-              ? 'Strong visibility'
-              : score >= 40
-              ? 'Moderate visibility'
-              : 'Low visibility'}
-          </p>
-          {scan.score_details && (
-            <p style={s.scoreRawMath}>
-              {Math.round(scan.score_details.earned_points)} of {scan.score_details.max_points} possible pts
+      <TiltCard maxTilt={4} style={{ marginBottom: '2.5rem' }}>
+        <GlowCard customSize radius={14} className="!block !p-0">
+        <div style={{ ...s.scoreSection, marginBottom: 0 }}>
+          <div style={s.scoreLeft}>
+            <p style={s.eyebrow}>
+              {isPerplexityOnly ? 'Free Perplexity Visibility Report' : 'AI Visibility Report'}
             </p>
-          )}
+            <h1 style={s.businessName}>{scan.business_name}</h1>
+            <p style={s.scanMeta}>
+              Scanned{' '}
+              {new Date(scan.started_at).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+              {' · '}
+              {scan.results.length} quer{scan.results.length === 1 ? 'y' : 'ies'}
+              {' · '}
+              {platforms.map(p => PLATFORM_LABELS[p] ?? p).join(', ')}
+            </p>
+            {scanSetName && (
+              <p style={s.setInline}>
+                <span style={s.setInlineSlot}>
+                  S{scanSetSlot ?? '?'}
+                </span>
+                <span style={s.setInlineName}>{scanSetName}</span>
+                {activeSet?.is_locked && scanSetSlot === activeSet.slot_number && (
+                  <span style={s.setInlineLock}>
+                    Locked · {activeSet.days_until_unlock}d
+                  </span>
+                )}
+              </p>
+            )}
+          </div>
+
+          <div style={s.scoreRight}>
+            <div style={s.scoreDial}>
+              <ScoreArc score={score} />
+              <div style={s.scoreCenter}>
+                <span style={{ ...s.scoreNumber, color: scoreColor(score) }}>
+                  {Math.round(score)}
+                </span>
+                <span style={s.scoreLabel}>/ 100</span>
+              </div>
+            </div>
+            <p style={{ ...s.scoreGrade, color: scoreColor(score) }}>
+              {score >= 70
+                ? 'Strong visibility'
+                : score >= 40
+                ? 'Moderate visibility'
+                : 'Low visibility'}
+            </p>
+            {scan.score_details && (
+              <p style={s.scoreRawMath}>
+                {Math.round(scan.score_details.earned_points)} of {scan.score_details.max_points} possible pts
+              </p>
+            )}
+          </div>
         </div>
-      </div>
+        </GlowCard>
+      </TiltCard>
 
       {scan.score_details && (() => {
         const bestPos = bestMentionPosition(scan.results)
@@ -1169,121 +1281,144 @@ function ScanResultsView({
         const max = scan.score_details.max_points
         const resultCount = scan.score_details.result_count
         return (
-          <div style={s.scoreExplain}>
-            <div>
-              <p style={s.scoreExplainLabel}>How this score was calculated</p>
-              <p style={s.scoreExplainText}>
-                Each of your {resultCount} {resultCount === 1 ? 'result' : 'results'} can earn up to{' '}
-                <strong style={{ color: 'var(--text)' }}>18 points</strong> — 10 for being mentioned,
-                up to 5 for ranking, and up to 3 for sentiment. You earned{' '}
-                <strong style={{ color: 'var(--text)' }}>{earned} of {max}</strong> possible points,
-                which normalizes to <strong style={{ color: 'var(--text)' }}>{Math.round(score)} / 100</strong>.
-                {isPerplexityOnly ? ' Free scans cover Perplexity only — upgrade to add ChatGPT, Claude, and Gemini.' : ''}
-              </p>
-            </div>
-            <div style={s.scoreExplainGrid}>
-              <span>{pluralize(scan.score_details.mentioned_results, 'mention')}</span>
-              {bestPos != null && <span>best position #{bestPos}</span>}
-              <span>{pluralize(resultCount, 'data point')}</span>
-            </div>
-          </div>
+          <TiltCard maxTilt={3} style={{ marginBottom: '1.5rem' }}>
+            <GlowCard customSize radius={10} className="!block !p-0">
+              <div style={{ ...s.scoreExplain, marginBottom: 0 }}>
+                <div>
+                  <p style={s.scoreExplainLabel}>How this score was calculated</p>
+                  <p style={s.scoreExplainText}>
+                    Each of your {resultCount} {resultCount === 1 ? 'result' : 'results'} can earn up to{' '}
+                    <strong style={{ color: 'var(--text)' }}>18 points</strong> — 10 for being mentioned,
+                    up to 5 for ranking, and up to 3 for sentiment. You earned{' '}
+                    <strong style={{ color: 'var(--text)' }}>{earned} of {max}</strong> possible points,
+                    which normalizes to <strong style={{ color: 'var(--text)' }}>{Math.round(score)} / 100</strong>.
+                    {isPerplexityOnly ? ' Free scans cover Perplexity only — upgrade to add ChatGPT, Claude, and Gemini.' : ''}
+                  </p>
+                </div>
+                <div style={s.scoreExplainGrid}>
+                  <span>{pluralize(scan.score_details.mentioned_results, 'mention')}</span>
+                  {bestPos != null && <span>best position #{bestPos}</span>}
+                  <span>{pluralize(resultCount, 'data point')}</span>
+                </div>
+              </div>
+            </GlowCard>
+          </TiltCard>
         )
       })()}
 
       {scan.score_details && (
-        <div style={s.sentimentSummary}>
-          <div>
-            <p style={s.scoreExplainLabel}>Sentiment summary</p>
-            <p style={s.scoreExplainText}>{sentimentSummary(scan.score_details.sentiment_counts)}</p>
-          </div>
-          <div style={s.sentimentCounts}>
-            <span style={{ ...s.sentimentPill, borderColor: 'rgba(34,197,94,0.35)', color: 'var(--green)' }}>
-              {scan.score_details.sentiment_counts.positive} positive
-            </span>
-            <span style={{ ...s.sentimentPill, borderColor: 'rgba(148,163,184,0.3)', color: 'var(--text-muted)' }}>
-              {scan.score_details.sentiment_counts.neutral} neutral
-            </span>
-            <span style={{ ...s.sentimentPill, borderColor: 'rgba(239,68,68,0.35)', color: 'var(--red)' }}>
-              {scan.score_details.sentiment_counts.negative} negative
-            </span>
-          </div>
-        </div>
+        <TiltCard maxTilt={3} style={{ marginBottom: '1.5rem' }}>
+          <GlowCard customSize radius={10} className="!block !p-0">
+            <div style={{ ...s.sentimentSummary, marginBottom: 0 }}>
+              <div>
+                <p style={s.scoreExplainLabel}>Sentiment summary</p>
+                <p style={s.scoreExplainText}>{sentimentSummary(scan.score_details.sentiment_counts)}</p>
+              </div>
+              <div style={s.sentimentCounts}>
+                <span style={{ ...s.sentimentPill, borderColor: 'rgba(34,197,94,0.35)', color: 'var(--green)' }}>
+                  {scan.score_details.sentiment_counts.positive} positive
+                </span>
+                <span style={{ ...s.sentimentPill, borderColor: 'rgba(148,163,184,0.3)', color: 'var(--text-muted)' }}>
+                  {scan.score_details.sentiment_counts.neutral} neutral
+                </span>
+                <span style={{ ...s.sentimentPill, borderColor: 'rgba(239,68,68,0.35)', color: 'var(--red)' }}>
+                  {scan.score_details.sentiment_counts.negative} negative
+                </span>
+              </div>
+            </div>
+          </GlowCard>
+        </TiltCard>
       )}
 
       {/* Platform bar */}
       {platforms.length > 0 && (
-        <div style={s.platformBar}>
+        <div style={s.platformGrid}>
           {platforms.map(platform => {
             const mentions = scan.results.filter(r => r.platforms[platform]?.mentioned).length
             const total = scan.results.length
             const pct = total > 0 ? Math.round((mentions / total) * 100) : 0
             return (
-              <div key={platform} style={s.platformBarItem}>
-                <div style={s.platformBarHeader}>
-                  <span
-                    style={{
-                      ...s.platformDotLarge,
-                      background: PLATFORM_COLORS[platform] ?? 'var(--text-muted)',
-                    }}
-                  />
-                  <span style={s.platformBarName}>{PLATFORM_LABELS[platform] ?? platform}</span>
-                </div>
-                <div style={s.platformBarTrack}>
-                  <div
-                    style={{
-                      ...s.platformBarFill,
-                      width: `${pct}%`,
-                      background: PLATFORM_COLORS[platform] ?? 'var(--accent)',
-                    }}
-                  />
-                </div>
-                <span style={s.platformBarPct}>
-                  {mentions}/{total} queries{' '}
-                  <span style={{ color: 'var(--text-muted)' }}>mentioned</span>
-                </span>
-              </div>
+              <TiltCard key={platform} maxTilt={6} style={{ flex: '1 1 200px' }}>
+                <GlowCard customSize radius={10} className="!block !p-0 h-full">
+                  <div style={s.platformBarItem}>
+                    <div style={s.platformBarHeader}>
+                      <span
+                        style={{
+                          ...s.platformDotLarge,
+                          background: PLATFORM_COLORS[platform] ?? 'var(--text-muted)',
+                        }}
+                      />
+                      <span style={s.platformBarName}>{PLATFORM_LABELS[platform] ?? platform}</span>
+                    </div>
+                    <div style={s.platformBarTrack}>
+                      <div
+                        style={{
+                          ...s.platformBarFill,
+                          width: `${pct}%`,
+                          background: PLATFORM_COLORS[platform] ?? 'var(--accent)',
+                        }}
+                      />
+                    </div>
+                    <span style={s.platformBarPct}>
+                      {mentions}/{total} queries{' '}
+                      <span style={{ color: 'var(--text-muted)' }}>mentioned</span>
+                    </span>
+                  </div>
+                </GlowCard>
+              </TiltCard>
             )
           })}
           {isPerplexityOnly && ['openai', 'anthropic', 'gemini'].map(platform => (
-            <div key={`locked-${platform}`} style={{ ...s.platformBarItem, ...s.lockedPlatformItem }}>
-              <div style={s.platformBarHeader}>
-                <span
-                  style={{
-                    ...s.platformDotLarge,
-                    background: PLATFORM_COLORS[platform] ?? 'var(--text-muted)',
-                  }}
-                />
-                <span style={s.platformBarName}>{PLATFORM_LABELS[platform] ?? platform}</span>
-                <span style={s.lockBadge}>Locked</span>
-              </div>
-              <p style={s.lockedPlatformCopy}>
-                See what {PLATFORM_LABELS[platform] ?? platform} says about this business and which competitors it names.
-              </p>
-              <Link to="/pricing" style={s.unlockLink}>Unlock results</Link>
-            </div>
+            <TiltCard key={`locked-${platform}`} maxTilt={6} style={{ flex: '1 1 200px', opacity: 0.82 }}>
+              <GlowCard customSize radius={10} className="!block !p-0 h-full">
+                <div style={{ ...s.platformBarItem, background: 'linear-gradient(135deg, rgba(255,255,255,0.045), rgba(255,255,255,0.015))' }}>
+                  <div style={s.platformBarHeader}>
+                    <span
+                      style={{
+                        ...s.platformDotLarge,
+                        background: PLATFORM_COLORS[platform] ?? 'var(--text-muted)',
+                      }}
+                    />
+                    <span style={s.platformBarName}>{PLATFORM_LABELS[platform] ?? platform}</span>
+                    <span style={s.lockBadge}>Locked</span>
+                  </div>
+                  <p style={s.lockedPlatformCopy}>
+                    See what {PLATFORM_LABELS[platform] ?? platform} says about this business and which competitors it names.
+                  </p>
+                  <Link to="/pricing" style={s.unlockLink}>Unlock results</Link>
+                </div>
+              </GlowCard>
+            </TiltCard>
           ))}
         </div>
       )}
 
-      {/* Query list — compact rows so all queries are scannable at a glance.
-          Raw responses are intentionally omitted; surfacing them here would
-          undercut the standalone competitor-extraction value. */}
+      {/* Queries — tap to expand each row for full platform-by-platform
+          breakdown, score math, and competitors. This replaces the old
+          separate "Query Breakdown" section entirely. */}
       <div style={s.queriesSection}>
         <div style={s.queriesHeader}>
-          <h2 style={s.sectionTitle}>{allGenerated ? 'Generated Query Breakdown' : 'Query Breakdown'}</h2>
+          <h2 style={s.sectionTitle}>
+            {allGenerated ? 'Generated queries' : 'Queries'}
+          </h2>
           <span style={s.queriesCount}>
-            {scan.results.length} {scan.results.length === 1 ? 'query' : 'queries'}
+            {scan.results.length} {scan.results.length === 1 ? 'query' : 'queries'} ·{' '}
+            <span style={{ color: 'var(--text-dim)' }}>tap to expand</span>
           </span>
         </div>
-        <div style={s.queryList}>
+        <div style={s.accordionList}>
           {scan.results.map((result, i) => (
-            <QueryRow
-              key={result.query_id}
-              result={result}
-              index={i}
-              platforms={platforms}
-              isLast={i === scan.results.length - 1}
-            />
+            <TiltCard key={result.query_id} maxTilt={3}>
+              <GlowCard customSize radius={10} className="!block !p-0">
+                <QueryAccordion
+                  result={result}
+                  index={i}
+                  platforms={platforms}
+                  glowWrapped
+                  isFreeScan={isPerplexityOnly}
+                />
+              </GlowCard>
+            </TiltCard>
           ))}
         </div>
       </div>
@@ -1291,159 +1426,7 @@ function ScanResultsView({
   )
 }
 
-// ─── QueryRow ─────────────────────────────────────────────────────────────────
-// Compact row optimized for scanning many queries at once. Shows mention
-// status per platform, the competitors AI named alongside the business, and
-// the query's contribution to the visibility score. Raw AI responses are
-// deliberately omitted — exposing them here would devalue our competitor
-// extraction (users could just read the response themselves).
-
-function QueryRow({
-  result,
-  index,
-  platforms,
-  isLast,
-}: {
-  result: QueryResult
-  index: number
-  platforms: string[]
-  isLast: boolean
-}) {
-  // Sum each scoring component across all platforms — for free scans this
-  // equals the per-platform value; for paid scans it stacks across platforms
-  // so the breakdown explains the row's total. The unit-less per-component
-  // numbers (10/5/3 max per platform) are summed as-is so the math is honest:
-  // mention + position + sentiment = total.
-  const componentScore = (key: 'mention' | 'position' | 'sentiment') =>
-    platforms.reduce((sum, p) => sum + (result.platforms[p]?.scores[key] ?? 0), 0)
-  const mentionPts = componentScore('mention')
-  const positionPts = componentScore('position')
-  const sentimentPts = componentScore('sentiment')
-  const totalScore = mentionPts + positionPts + sentimentPts
-  const maxScore = platforms.length * 18
-  const anyMentioned = platforms.some(p => result.platforms[p]?.mentioned)
-  const competitors = Array.from(
-    new Set(platforms.flatMap(p => result.platforms[p]?.competitors_mentioned ?? []))
-  )
-
-  return (
-    <div
-      style={{
-        ...s.queryRow,
-        borderBottom: isLast ? 'none' : '1px solid var(--border-dim)',
-        animation: `fadeUp 0.35s cubic-bezier(.22,1,.36,1) ${Math.min(index, 12) * 0.04}s both`,
-      }}
-    >
-      <div style={s.queryRowTop}>
-        <span style={s.queryRowIndex}>{String(index + 1).padStart(2, '0')}</span>
-        <p style={s.queryRowText}>"{result.query_text}"</p>
-        <span
-          style={{
-            ...s.queryRowScore,
-            color: anyMentioned
-              ? scoreColor(maxScore > 0 ? (totalScore / maxScore) * 100 : 0)
-              : 'var(--text-dim)',
-          }}
-        >
-          {totalScore}
-          <span style={s.queryRowScoreUnit}> pts</span>
-        </span>
-      </div>
-
-      <div style={s.queryRowPlatforms}>
-        {platforms.map(platform => {
-          const pr = result.platforms[platform]
-          const label = PLATFORM_LABELS[platform] ?? platform
-          const color = PLATFORM_COLORS[platform] ?? 'var(--text-muted)'
-          const mentioned = !!pr?.mentioned
-          const { symbol, color: sentColor } = sentimentIcon(pr?.sentiment ?? null)
-          return (
-            <span
-              key={platform}
-              style={{
-                ...s.queryRowBadge,
-                background: mentioned ? 'rgba(255,255,255,0.025)' : 'transparent',
-                borderColor: mentioned ? color + '50' : 'var(--border-dim)',
-                opacity: mentioned ? 1 : 0.55,
-              }}
-            >
-              <span
-                style={{
-                  width: '6px',
-                  height: '6px',
-                  borderRadius: '50%',
-                  background: mentioned ? color : 'var(--text-dim)',
-                  flexShrink: 0,
-                }}
-              />
-              <span
-                style={{
-                  fontSize: '0.78rem',
-                  fontWeight: 500,
-                  color: mentioned ? 'var(--text)' : 'var(--text-muted)',
-                }}
-              >
-                {label}
-              </span>
-              {mentioned && pr?.mention_position && (
-                <span style={s.queryRowPos}>#{pr.mention_position}</span>
-              )}
-              {mentioned && (
-                <span
-                  style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: '0.85rem',
-                    fontWeight: 700,
-                    color: sentColor,
-                  }}
-                >
-                  {symbol}
-                </span>
-              )}
-            </span>
-          )
-        })}
-      </div>
-
-      {anyMentioned && (
-        <div style={s.queryRowBreakdown}>
-          <span style={s.queryRowBreakdownItem}>
-            <span style={s.queryRowBreakdownNum}>{mentionPts}</span> mention
-          </span>
-          <span style={s.queryRowBreakdownPlus}>+</span>
-          <span style={s.queryRowBreakdownItem}>
-            <span style={s.queryRowBreakdownNum}>{positionPts}</span> position
-          </span>
-          <span style={s.queryRowBreakdownPlus}>+</span>
-          <span style={s.queryRowBreakdownItem}>
-            <span
-              style={{
-                ...s.queryRowBreakdownNum,
-                color: sentimentPts < 0 ? 'var(--red)' : undefined,
-              }}
-            >
-              {sentimentPts < 0 ? `−${Math.abs(sentimentPts)}` : sentimentPts}
-            </span>{' '}
-            sentiment
-          </span>
-        </div>
-      )}
-
-      {competitors.length > 0 && (
-        <div style={s.queryRowCompetitors}>
-          <span style={s.queryRowCompLabel}>Mentioned alongside</span>
-          <div style={s.queryRowCompChips}>
-            {competitors.map(c => (
-              <span key={c} style={s.competitorChip}>
-                {c}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
+// QueryRow was replaced by QueryAccordion (see components/query-accordion.tsx).
 
 // ─── ScoreArc ─────────────────────────────────────────────────────────────────
 
@@ -1484,60 +1467,140 @@ const s: Record<string, React.CSSProperties> = {
     background: 'var(--bg)',
     fontFamily: "'Outfit', sans-serif",
     color: 'var(--text)',
+    paddingTop: '76px',
   },
   content: {
     maxWidth: '1100px',
     margin: '0 auto',
-    padding: '3rem 2rem',
+    padding: '2.5rem 2.5rem 4rem',
   },
 
-  // Nav
+  // Tracking set tabs strip — sits between nav and content
+  setTabsWrap: {
+    maxWidth: '1100px',
+    margin: '0 auto',
+    padding: '2rem 2rem 0',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '1rem',
+  },
+  setActions: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '0.75rem',
+    flexWrap: 'wrap' as const,
+    paddingTop: '0.4rem',
+  },
+  setActionsMeta: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
+    color: 'var(--text-muted)',
+    fontSize: '0.82rem',
+    flex: '1 1 auto',
+    minWidth: 0,
+  },
+  setMetaDot: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    flexShrink: 0,
+  },
+  setActionsBtns: {
+    display: 'flex',
+    gap: '0.6rem',
+  },
+
+  // Inline set tag inside the score header
+  setInline: {
+    margin: '0.85rem 0 0',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.55rem',
+    padding: '0.35rem 0.75rem',
+    background: 'rgba(240, 165, 0, 0.06)',
+    border: '1px solid rgba(240, 165, 0, 0.22)',
+    borderRadius: '99px',
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: '0.7rem',
+    color: 'var(--text-muted)',
+    letterSpacing: '0.04em',
+  },
+  setInlineSlot: {
+    color: 'var(--accent)',
+    fontWeight: 700,
+    letterSpacing: '0.1em',
+  },
+  setInlineName: {
+    color: 'var(--text)',
+    fontWeight: 600,
+  },
+  setInlineLock: {
+    color: 'var(--text-dim)',
+    paddingLeft: '0.35rem',
+    borderLeft: '1px solid var(--border)',
+    marginLeft: '0.1rem',
+  },
+
+  // Query accordion list (replaces the old queryList styles)
+  accordionList: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.5rem',
+  },
+
+  // Nav — inherits the global transparent/fixed nav style from globals.css.
+  // Inline styles here only add the flex layout; background/position/animation
+  // come from the `nav` CSS rule so it matches the landing page exactly.
   nav: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '0.85rem 2rem',
-    borderBottom: '1px solid var(--border)',
-    background: 'var(--surface)',
-    position: 'sticky' as const,
-    top: 0,
-    zIndex: 100,
+    padding: '1rem 2.5rem',
     gap: '1rem',
-    flexWrap: 'wrap' as const,
+    // position, background, top/left/right, z-index come from globals.css nav {}
   },
   navLeft: {
     display: 'flex',
     alignItems: 'center',
-    gap: '0.75rem',
+    gap: '0.85rem',
     flex: 1,
     minWidth: 0,
+    position: 'relative' as const,
+    zIndex: 1,
   },
   navLogo: {
-    fontFamily: "'Plus Jakarta Sans', sans-serif",
-    fontSize: '1.2rem',
-    color: 'var(--text)',
+    display: 'flex',
+    alignItems: 'center',
+    fontFamily: "'Outfit', sans-serif",
+    fontSize: '1.4rem',
+    fontWeight: 800,
+    letterSpacing: '-0.03em',
+    color: '#fff',
     textDecoration: 'none',
     flexShrink: 0,
+    gap: '0.4rem',
   },
   navDivider: {
-    color: 'var(--border)',
+    color: 'rgba(255,255,255,0.15)',
     fontSize: '1rem',
     flexShrink: 0,
   },
   navBusinessName: {
-    fontSize: '0.9rem',
+    fontSize: '0.88rem',
     fontWeight: 600,
-    color: 'var(--text)',
+    color: 'rgba(255,255,255,0.85)',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap' as const,
   },
   navSelect: {
-    background: 'var(--surface-2)',
-    border: '1px solid var(--border)',
+    background: 'rgba(255,255,255,0.07)',
+    border: '1px solid rgba(255,255,255,0.12)',
     borderRadius: '6px',
-    color: 'var(--text)',
-    padding: '0.35rem 1.8rem 0.35rem 0.7rem',
+    color: 'rgba(255,255,255,0.85)',
+    padding: '0.35rem 1.8rem 0.35rem 0.75rem',
     fontSize: '0.82rem',
     fontFamily: "'Outfit', sans-serif",
     cursor: 'pointer',
@@ -1553,29 +1616,32 @@ const s: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     gap: '0.75rem',
     flexShrink: 0,
+    position: 'relative' as const,
+    zIndex: 1,
   },
   newScanBtn: {
     background: 'var(--accent)',
     border: 'none',
     borderRadius: '6px',
     color: '#000',
-    padding: '0.4rem 0.9rem',
+    padding: '0.4rem 1rem',
     fontSize: '0.82rem',
-    fontWeight: 600,
+    fontWeight: 700,
     fontFamily: "'Outfit', sans-serif",
     cursor: 'pointer',
     whiteSpace: 'nowrap' as const,
+    letterSpacing: '0.01em',
   },
   navEmail: {
     fontSize: '0.78rem',
-    color: 'var(--text-muted)',
+    color: 'rgba(255,255,255,0.45)',
   },
   signOutBtn: {
-    background: 'none',
-    border: '1px solid var(--border)',
+    background: 'rgba(255,255,255,0.05)',
+    border: '1px solid rgba(255,255,255,0.1)',
     borderRadius: '6px',
-    color: 'var(--text-muted)',
-    padding: '0.35rem 0.8rem',
+    color: 'rgba(255,255,255,0.55)',
+    padding: '0.35rem 0.85rem',
     fontSize: '0.8rem',
     fontFamily: "'Outfit', sans-serif",
     cursor: 'pointer',
@@ -1883,8 +1949,8 @@ const s: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: '2rem',
-    marginBottom: '2.5rem',
+    gap: '2.5rem',
+    padding: '2rem 2.25rem',
     flexWrap: 'wrap' as const,
   },
   scoreLeft: {
@@ -1892,35 +1958,39 @@ const s: Record<string, React.CSSProperties> = {
     minWidth: '260px',
   },
   eyebrow: {
-    fontSize: '0.72rem',
-    fontWeight: 600,
-    letterSpacing: '0.12em',
+    fontSize: '0.7rem',
+    fontWeight: 700,
+    letterSpacing: '0.14em',
     textTransform: 'uppercase' as const,
     color: 'var(--accent)',
-    marginBottom: '0.6rem',
+    marginBottom: '0.5rem',
   },
   businessName: {
     fontFamily: "'Plus Jakarta Sans', sans-serif",
-    fontSize: 'clamp(2rem, 5vw, 3.2rem)',
-    fontWeight: 400,
-    lineHeight: 1.1,
-    marginBottom: '0.6rem',
+    fontSize: 'clamp(1.75rem, 4vw, 2.75rem)',
+    fontWeight: 700,
+    lineHeight: 1.08,
+    marginBottom: '0.5rem',
     color: 'var(--text)',
+    letterSpacing: '-0.02em',
   },
   scanMeta: {
-    fontSize: '0.82rem',
+    fontSize: '0.85rem',
     color: 'var(--text-muted)',
+    lineHeight: 1.5,
+    marginTop: '0.25rem',
   },
   scoreRight: {
     display: 'flex',
     flexDirection: 'column' as const,
     alignItems: 'center',
     gap: '0.5rem',
+    flexShrink: 0,
   },
   scoreDial: {
     position: 'relative' as const,
-    width: '140px',
-    height: '140px',
+    width: '148px',
+    height: '148px',
   },
   scoreCenter: {
     position: 'absolute' as const,
@@ -1932,87 +2002,98 @@ const s: Record<string, React.CSSProperties> = {
   },
   scoreNumber: {
     fontFamily: "'JetBrains Mono', monospace",
-    fontSize: '2.4rem',
+    fontSize: '2.6rem',
     fontWeight: 700,
     lineHeight: 1,
+    letterSpacing: '-0.02em',
   },
   scoreLabel: {
-    fontSize: '0.75rem',
+    fontSize: '0.78rem',
     color: 'var(--text-muted)',
     fontFamily: "'JetBrains Mono', monospace",
   },
   scoreGrade: {
-    fontSize: '0.8rem',
-    fontWeight: 600,
-    letterSpacing: '0.06em',
+    fontSize: '0.75rem',
+    fontWeight: 700,
+    letterSpacing: '0.1em',
     textTransform: 'uppercase' as const,
   },
   scoreRawMath: {
-    marginTop: '0.4rem',
     fontFamily: "'JetBrains Mono', monospace",
-    fontSize: '0.72rem',
+    fontSize: '0.75rem',
     color: 'var(--text-dim)',
-    letterSpacing: '0.02em',
+    letterSpacing: '0.01em',
   },
   scoreExplain: {
     display: 'flex',
     justifyContent: 'space-between',
-    gap: '1rem',
+    gap: '1.5rem',
     flexWrap: 'wrap' as const,
     background: 'var(--surface)',
     border: '1px solid var(--border)',
     borderRadius: 'var(--radius)',
-    padding: '1rem 1.25rem',
-    marginBottom: '1.5rem',
+    padding: '1.4rem 1.75rem',
+    marginBottom: '1.25rem',
   },
   scoreExplainLabel: {
-    fontSize: '0.72rem',
+    fontSize: '0.68rem',
     fontWeight: 700,
-    letterSpacing: '0.1em',
+    letterSpacing: '0.14em',
     textTransform: 'uppercase' as const,
     color: 'var(--accent)',
-    marginBottom: '0.35rem',
+    marginBottom: '0.4rem',
   },
   scoreExplainText: {
-    fontSize: '0.85rem',
+    fontSize: '0.9rem',
     color: 'var(--text-muted)',
-    lineHeight: 1.5,
+    lineHeight: 1.65,
   },
   scoreExplainGrid: {
     display: 'flex',
     alignItems: 'center',
-    gap: '0.6rem',
+    gap: '0.75rem',
     flexWrap: 'wrap' as const,
     fontFamily: "'JetBrains Mono', monospace",
-    fontSize: '0.78rem',
+    fontSize: '0.82rem',
     color: 'var(--text)',
+    fontWeight: 600,
   },
   sentimentSummary: {
     display: 'flex',
     justifyContent: 'space-between',
-    gap: '1rem',
+    alignItems: 'center',
+    gap: '1.5rem',
     flexWrap: 'wrap' as const,
-    background: 'rgba(255,255,255,0.025)',
+    background: 'rgba(255,255,255,0.02)',
     border: '1px solid var(--border)',
     borderRadius: 'var(--radius)',
-    padding: '1rem 1.25rem',
-    marginBottom: '1.5rem',
+    padding: '1.4rem 1.75rem',
+    marginBottom: '1.25rem',
   },
   sentimentCounts: {
     display: 'flex',
     alignItems: 'center',
-    gap: '0.5rem',
+    gap: '0.6rem',
     flexWrap: 'wrap' as const,
   },
   sentimentPill: {
     border: '1px solid',
     borderRadius: '999px',
-    padding: '0.25rem 0.6rem',
-    fontSize: '0.76rem',
+    padding: '0.3rem 0.8rem',
+    fontSize: '0.8rem',
     fontFamily: "'JetBrains Mono', monospace",
+    fontWeight: 600,
+    letterSpacing: '0.02em',
   },
 
-  // Platform bar
+  // Platform grid — each card is individually wrapped in TiltCard + GlowCard
+  platformGrid: {
+    display: 'flex',
+    flexWrap: 'wrap' as const,
+    gap: '1rem',
+    marginBottom: '2.5rem',
+  },
+  // Platform bar (kept for legacy reference)
   platformBar: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -2025,10 +2106,10 @@ const s: Record<string, React.CSSProperties> = {
   },
   platformBarItem: {
     background: 'var(--surface)',
-    padding: '1.25rem 1.5rem',
+    padding: '1.5rem 1.75rem',
     display: 'flex',
     flexDirection: 'column' as const,
-    gap: '0.6rem',
+    gap: '0.75rem',
   },
   platformBarHeader: {
     display: 'flex',
@@ -2042,9 +2123,10 @@ const s: Record<string, React.CSSProperties> = {
     flexShrink: 0,
   },
   platformBarName: {
-    fontSize: '0.85rem',
-    fontWeight: 600,
+    fontSize: '0.9rem',
+    fontWeight: 700,
     color: 'var(--text)',
+    letterSpacing: '0.01em',
   },
   platformBarTrack: {
     height: '4px',
@@ -2058,9 +2140,10 @@ const s: Record<string, React.CSSProperties> = {
     transition: 'width 0.8s ease',
   },
   platformBarPct: {
-    fontSize: '0.78rem',
+    fontSize: '0.82rem',
     fontFamily: "'JetBrains Mono', monospace",
     color: 'var(--text)',
+    fontWeight: 600,
   },
   lockedPlatformItem: {
     opacity: 0.82,
@@ -2094,14 +2177,14 @@ const s: Record<string, React.CSSProperties> = {
 
   // Query section
   queriesSection: {
-    marginTop: '0.5rem',
+    marginTop: '1rem',
   },
   queriesHeader: {
     display: 'flex',
     alignItems: 'baseline',
     justifyContent: 'space-between',
     gap: '1rem',
-    marginBottom: '1rem',
+    marginBottom: '1.25rem',
   },
   queriesCount: {
     fontFamily: "'JetBrains Mono', monospace",
@@ -2110,10 +2193,11 @@ const s: Record<string, React.CSSProperties> = {
   },
   sectionTitle: {
     fontFamily: "'Plus Jakarta Sans', sans-serif",
-    fontSize: '1.4rem',
-    fontWeight: 400,
+    fontSize: '1.5rem',
+    fontWeight: 700,
     color: 'var(--text)',
     marginBottom: 0,
+    letterSpacing: '-0.01em',
   },
   queryList: {
     display: 'flex',

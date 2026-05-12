@@ -3,18 +3,30 @@
  */
 
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
+import { verifyCheckoutSession } from '../lib/api'
 
 export default function SuccessPage() {
   const { user } = useAuth()
+  const [searchParams] = useSearchParams()
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    // Staggered reveal
     const t = setTimeout(() => setVisible(true), 80)
     return () => clearTimeout(t)
   }, [])
+
+  // Webhook-independent activation: ask the backend to verify the Stripe
+  // session and flip the profile. Safe to call even if the webhook already
+  // fired — the update is idempotent.
+  useEffect(() => {
+    const sessionId = searchParams.get('session_id')
+    if (!sessionId) return
+    verifyCheckoutSession(sessionId).catch(err => {
+      console.warn('Stripe session verification failed:', err)
+    })
+  }, [searchParams])
 
   return (
     <div style={s.page}>
