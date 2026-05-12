@@ -861,7 +861,7 @@ function DashboardNav({
         >
           {quotaExhausted ? 'Quota reached' : '+ Run scan'}
         </button>
-        {email && <span style={s.navEmail}>{email}</span>}
+        {email && <Link to="/account" style={s.navEmail}>{email}</Link>}
         <button onClick={onSignOut} style={s.signOutBtn}>Sign out</button>
       </div>
     </nav>
@@ -1635,6 +1635,8 @@ const s: Record<string, React.CSSProperties> = {
   navEmail: {
     fontSize: '0.78rem',
     color: 'rgba(255,255,255,0.45)',
+    textDecoration: 'none',
+    transition: 'color 0.15s',
   },
   signOutBtn: {
     background: 'rgba(255,255,255,0.05)',

@@ -140,6 +140,29 @@ export default function AuthPage() {
     }
   }
 
+  // Already signed in — show a spinner while the redirect fires so the
+  // login form never flashes in front of a logged-in user.
+  if (session && !isRecovery.current && !flipped) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--bg)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <div style={{
+          width: '28px',
+          height: '28px',
+          border: '2px solid #1e2b3a',
+          borderTopColor: '#c98f0a',
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+      </div>
+    )
+  }
+
   return (
     <div style={{ position: 'relative', minHeight: '100vh', overflow: 'hidden' }}>
       {/* Grid + crystal cursor background (matches landing page bottom) */}

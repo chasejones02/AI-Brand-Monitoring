@@ -54,9 +54,9 @@ The core loop (sign up -> business entry -> scan -> results -> pay) works end-to
 - **Files:** `frontend/src/pages/dashboard.tsx`, `frontend/src/components/{quota-pill,trend-chart,platform-sparkline,query-trend-row,scan-history-list,history-trends-section}.tsx`, `backend/routes/{quota,scan,results}.ts`, `supabase/migrations/20260510000000_scan_quotas.sql`
 
 ### 8. Subscription management page
-- [ ] Integrate Stripe Customer Portal (`stripe.billingPortal.sessions.create`)
-- [ ] Add a new frontend page/route for subscription management (upgrade, downgrade, cancel)
-- **Files:** New route in `backend/routes/stripe.ts`, new page in `frontend/src/pages/`
+- [x] Integrate Stripe Customer Portal (`stripe.billingPortal.sessions.create`)
+- [x] Add a new frontend page/route for subscription management (upgrade, downgrade, cancel)
+- **Files:** New route in `backend/routes/stripe.ts`, new page in `frontend/src/pages/account.tsx`
 
 ---
 

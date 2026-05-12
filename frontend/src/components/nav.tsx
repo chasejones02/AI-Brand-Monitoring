@@ -1,12 +1,15 @@
 /**
  * Nav — Fixed top navigation.
- * Logo + Pricing + How it works + Sign in. CTA routes to /analyze.
+ * Auth-aware: signed-in users see Dashboard + Account instead of Sign in.
  */
 
 import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/auth-context'
 
 export function Nav({ authPage = false }: { authPage?: boolean }) {
   const navigate = useNavigate()
+  const { session, loading } = useAuth()
+  const isSignedIn = !loading && !!session
 
   return (
     <nav>
@@ -41,12 +44,24 @@ export function Nav({ authPage = false }: { authPage?: boolean }) {
             <ul className="nav-links">
               <li><Link to="/">Home</Link></li>
               <li><Link to="/pricing">Pricing</Link></li>
-              <li><Link to="/analyze">Generate scan</Link></li>
-              <li><Link to="/auth">Sign in</Link></li>
+              {isSignedIn ? (
+                <>
+                  <li><Link to="/dashboard">Dashboard</Link></li>
+                  <li><Link to="/account">Account</Link></li>
+                </>
+              ) : (
+                <>
+                  <li><Link to="/analyze">Generate scan</Link></li>
+                  <li><Link to="/auth">Sign in</Link></li>
+                </>
+              )}
             </ul>
 
-            <button className="btn-nav" onClick={() => navigate('/analyze')}>
-              Check Your Visibility
+            <button
+              className="btn-nav"
+              onClick={() => navigate(isSignedIn ? '/dashboard' : '/analyze')}
+            >
+              {isSignedIn ? 'Go to Dashboard' : 'Check Your Visibility'}
             </button>
           </>
         )}

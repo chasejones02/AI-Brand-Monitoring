@@ -182,6 +182,20 @@ export async function verifyCheckoutSession(sessionId: string): Promise<{
   return data
 }
 
+export async function getSubscription(): Promise<{
+  status: 'free' | 'active' | 'canceled' | 'past_due'
+  tier: 'free' | 'starter' | 'growth' | 'agency'
+  has_customer: boolean
+}> {
+  const { data } = await authFetch('/api/stripe/subscription')
+  return data
+}
+
+export async function createPortalSession(): Promise<{ url: string }> {
+  const { data } = await authFetch('/api/stripe/create-portal', { method: 'POST' })
+  return data
+}
+
 // ─── Quota ───────────────────────────────────────────────────────────────────
 
 export interface QuotaStatus {

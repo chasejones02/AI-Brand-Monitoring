@@ -6,11 +6,12 @@
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/auth-context'
 import { createBusiness, triggerScan } from '../lib/api'
 
 export function HeroForm() {
   const navigate = useNavigate()
+  const { session } = useAuth()
   const [bizName, setBizName]     = useState('')
   const [location, setLocation]   = useState('')
   const [description, setDescription] = useState('')
@@ -28,7 +29,6 @@ export function HeroForm() {
     setError('')
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         const params = new URLSearchParams({
           name: bizName.trim(),

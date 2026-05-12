@@ -131,6 +131,78 @@ router.post('/verify-session', requireAuth, async (req: Request, res: Response):
   }
 })
 
+// GET /api/stripe/subscription
+// Returns the current user's subscription tier and status from their profile.
+router.get('/subscription', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  const userId = req.userId!
+
+  try {
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('subscription_status, subscription_tier, stripe_customer_id')
+      .eq('id', userId)
+      .single()
+
+    if (error || !profile) {
+      res.status(404).json({ data: null, error: 'Profile not found' })
+      return
+    }
+
+    res.json({
+      data: {
+        status: profile.subscription_status ?? 'free',
+        tier: profile.subscription_tier ?? 'free',
+        has_customer: !!profile.stripe_customer_id,
+      },
+      error: null,
+    })
+  } catch (err: any) {
+    console.error('Subscription fetch error:', err)
+    res.status(500).json({ data: null, error: 'Failed to fetch subscription' })
+  }
+})
+
+// POST /api/stripe/create-portal
+// Creates a Stripe Customer Portal session so the user can manage their
+// subscription (upgrade, downgrade, cancel, update payment method).
+router.post('/create-portal', requireAuth, async (req: Request, res: Response): Promise<void> => {
+  const userId = req.userId!
+  const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5173'
+
+  try {
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('stripe_customer_id')
+      .eq('id', userId)
+      .single()
+
+    if (!profile?.stripe_customer_id) {
+      res.status(400).json({ data: null, error: 'No billing account found. Subscribe to a plan first.' })
+      return
+    }
+
+    const session = await stripe.billingPortal.sessions.create({
+      customer: profile.stripe_customer_id,
+      return_url: `${frontendUrl}/account`,
+    })
+
+    res.json({ data: { url: session.url }, error: null })
+  } catch (err: any) {
+    console.error('Stripe portal error:', err)
+    res.status(500).json({ data: null, error: 'Failed to create billing portal session' })
+  }
+})
+
 // POST /api/stripe/webhook
 // Stripe sends events here — must use raw body for signature verification
 router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
