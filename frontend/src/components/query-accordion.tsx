@@ -7,6 +7,7 @@ interface PlatformResult {
   mention_position: number | null
   sentiment: 'positive' | 'neutral' | 'negative' | null
   competitors_mentioned: string[]
+  variant_used: string | null
   raw_response: string | null
   scores: { mention: number; position: number; sentiment: number; total: number; max: number }
 }
@@ -175,6 +176,26 @@ export function QueryAccordion({ result, index, platforms, defaultOpen = false, 
               )
             })}
           </div>
+
+          {(() => {
+            const variants = platforms
+              .filter(p => result.platforms[p]?.mentioned && result.platforms[p]?.variant_used)
+              .map(p => ({ platform: p, variant: result.platforms[p]!.variant_used! }))
+            return variants.length > 0 ? (
+              <div style={styles.variants}>
+                <span style={styles.scoreMathLabel}>AI referred to this business as</span>
+                <div style={styles.variantList}>
+                  {variants.map(({ platform, variant }) => (
+                    <span key={platform} style={styles.variantItem}>
+                      <span style={{ color: PLATFORM_COLORS[platform] ?? 'var(--text-muted)', fontSize: '0.55rem' }}>●</span>
+                      <span style={{ color: 'var(--text-dim)', fontSize: '0.78rem' }}>{PLATFORM_LABELS[platform] ?? platform}:</span>
+                      <span style={{ fontStyle: 'italic' }}>"{variant}"</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : null
+          })()}
 
           {anyMentioned && (
             <div style={styles.scoreMath}>
@@ -496,6 +517,24 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     fontSize: '0.85rem',
     lineHeight: 1.55,
+    color: 'var(--text-muted)',
+  },
+  variants: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.45rem',
+  },
+  variantList: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.3rem',
+  },
+  variantItem: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.4rem',
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: '0.82rem',
     color: 'var(--text-muted)',
   },
 }

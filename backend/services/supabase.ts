@@ -84,6 +84,7 @@ export type ScanResult = {
   mention_position: number | null
   sentiment: 'positive' | 'neutral' | 'negative' | null
   competitors_mentioned: string[]
+  variant_used: string | null
   mention_score: number
   position_score: number
   sentiment_score: number

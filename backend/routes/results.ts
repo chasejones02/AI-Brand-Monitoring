@@ -51,7 +51,7 @@ router.get('/:scanId', requireAuth, async (req: Request, res: Response): Promise
     .from('scan_results')
     .select(`
       id, platform, raw_response, mentioned, mention_position, sentiment,
-      competitors_mentioned, mention_score, position_score, sentiment_score,
+      competitors_mentioned, variant_used, mention_score, position_score, sentiment_score,
       queries!inner(id, query_text, source, intent, generation_reason)
     `)
     .eq('scan_id', scanId)
@@ -81,6 +81,7 @@ router.get('/:scanId', requireAuth, async (req: Request, res: Response): Promise
       mention_position: r.mention_position,
       sentiment: r.sentiment,
       competitors_mentioned: r.competitors_mentioned,
+      variant_used: r.variant_used ?? null,
       raw_response: r.raw_response,
       scores: {
         mention: r.mention_score,

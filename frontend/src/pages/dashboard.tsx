@@ -45,6 +45,7 @@ interface PlatformResult {
   mention_position: number | null
   sentiment: 'positive' | 'neutral' | 'negative' | null
   competitors_mentioned: string[]
+  variant_used: string | null
   raw_response: string | null
   scores: { mention: number; position: number; sentiment: number; total: number; max: number }
 }

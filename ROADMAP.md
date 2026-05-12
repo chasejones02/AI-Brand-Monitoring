@@ -78,9 +78,9 @@ The core loop (sign up -> business entry -> scan -> results -> pay) works end-to
 - **Files:** `backend/services/queryEngine.ts`, `backend/routes/scan.ts`, `frontend/src/pages/dashboard.tsx`
 
 ### P3. Preserve the exact business variant AI used
-- [ ] Add `variant_used` to `scan_results`
-- [ ] Save `analysis.variant_used` during scans
-- [ ] Return and display the exact variant used in the report
+- [x] Add `variant_used` to `scan_results`
+- [x] Save `analysis.variant_used` during scans
+- [x] Return and display the exact variant used in the report
 - **Files:** `supabase/migrations/`, `backend/services/supabase.ts`, `backend/routes/scan.ts`, `backend/routes/results.ts`, `frontend/src/pages/dashboard.tsx`
 
 ### P4. Add pre-scan query review

@@ -202,6 +202,7 @@ async function runScan(
         mention_position: analysis.position_index,
         sentiment: analysis.sentiment,
         competitors_mentioned: analysis.competitors_mentioned,
+        variant_used: analysis.variant_used ?? null,
         ...scores,
       })
     }
