@@ -3505,6 +3505,22 @@
       text-transform: none;
       margin-bottom: 0.4rem;
     }
+    .analyze-form label { display: flex; flex-direction: column; gap: 0.18rem; }
+    .form-label-hint {
+      font-size: 0.72rem;
+      font-weight: 400;
+      color: var(--accent);
+      letter-spacing: 0.01em;
+      text-transform: none;
+      opacity: 0.85;
+    }
+    .form-field-hint {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-top: 0.35rem;
+      margin-bottom: 0;
+    }
     .analyze-error {
       font-size: 0.82rem;
       color: var(--red);

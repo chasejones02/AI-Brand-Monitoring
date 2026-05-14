@@ -88,17 +88,23 @@ export function HeroForm() {
       </div>
 
       <div className="form-group">
-        <label htmlFor="biz-desc">Short Description</label>
+        <label htmlFor="biz-desc">
+          What does your business do?
+          <span className="form-label-hint">Be specific — better description = more accurate scan</span>
+        </label>
         <textarea
           id="biz-desc"
           name="description"
-          placeholder="Example: residential roofing company specializing in storm repair"
+          placeholder="e.g. residential roofing company specializing in storm damage repair and insurance claims"
           rows={3}
           required
           minLength={10}
           value={description}
           onChange={e => setDescription(e.target.value)}
         />
+        <p className="form-field-hint">
+          The queries AI uses to find your business are generated from this description. The more specific you are, the more relevant your results.
+        </p>
       </div>
 
       {error && <p className="analyze-error">{error}</p>}

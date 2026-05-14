@@ -143,7 +143,7 @@ export function Pricing() {
               onClick={() => handleCheckout('starter')}
               disabled={loading !== null}
             >
-              {loading === 'starter' ? 'Redirecting…' : 'Start 7-day free trial'}
+              {loading === 'starter' ? 'Redirecting…' : 'Get started today'}
             </button>
           </GlowCard>
 
@@ -173,7 +173,7 @@ export function Pricing() {
               onClick={() => handleCheckout('growth')}
               disabled={loading !== null}
             >
-              {loading === 'growth' ? 'Redirecting…' : 'Start 7-day free trial'}
+              {loading === 'growth' ? 'Redirecting…' : 'Get started today'}
             </button>
           </GlowCard>
         </div>
