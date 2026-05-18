@@ -3,14 +3,20 @@
  */
 
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
 import { verifyCheckoutSession } from '../lib/api'
 
 export default function SuccessPage() {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [visible, setVisible] = useState(false)
+
+  // When the user came here via "upgrade from preview", Stripe's success_url
+  // includes the tracking-set ID. We forward them straight to the dashboard
+  // focused on that set so they don't lose their place.
+  const returnSetId = searchParams.get('setId')
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 80)
@@ -19,14 +25,22 @@ export default function SuccessPage() {
 
   // Webhook-independent activation: ask the backend to verify the Stripe
   // session and flip the profile. Safe to call even if the webhook already
-  // fired — the update is idempotent.
+  // fired — the update is idempotent. When verification succeeds AND we have
+  // a setId carried through from the preview flow, redirect to the dashboard
+  // so the user lands on their queries instead of staying on this card.
   useEffect(() => {
     const sessionId = searchParams.get('session_id')
     if (!sessionId) return
-    verifyCheckoutSession(sessionId).catch(err => {
-      console.warn('Stripe session verification failed:', err)
-    })
-  }, [searchParams])
+    verifyCheckoutSession(sessionId)
+      .then(result => {
+        if (result?.activated && returnSetId) {
+          navigate(`/dashboard?setId=${returnSetId}&welcome=1`, { replace: true })
+        }
+      })
+      .catch(err => {
+        console.warn('Stripe session verification failed:', err)
+      })
+  }, [searchParams, navigate, returnSetId])
 
   return (
     <div style={s.page}>

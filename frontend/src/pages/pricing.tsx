@@ -1,10 +1,16 @@
 import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
 import { createCheckoutSession } from '../lib/api'
 import { Nav } from '../components/nav'
 import { CrystalCursor } from '../components/crystal-cursor'
 import { TiltCard } from '../components/ui/tilt-card'
+
+interface PricingReturnState {
+  returnTo?: string
+  returnLabel?: string
+  returnSetId?: string
+}
 
 const check = (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round">
@@ -35,11 +41,17 @@ type BillingPeriod = 'monthly' | 'annual'
 export default function PricingPage() {
   const { session } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams()
   const canceled = searchParams.get('canceled') === 'true'
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [billing, setBilling] = useState<BillingPeriod>('annual')
+
+  const returnState = (location.state ?? null) as PricingReturnState | null
+  const returnTo = returnState?.returnTo
+  const returnLabel = returnState?.returnLabel ?? 'where you were'
+  const returnSetId = returnState?.returnSetId
 
   const prices = { starter: billing === 'annual' ? 24 : 29, growth: billing === 'annual' ? 41 : 49 }
 
@@ -52,7 +64,7 @@ export default function PricingPage() {
     setLoading(tier)
     setError('')
     try {
-      const { url } = await createCheckoutSession(checkoutTier)
+      const { url } = await createCheckoutSession(checkoutTier, { returnSetId })
       window.location.href = url
     } catch (err: any) {
       setError(err.message ?? 'Something went wrong. Please try again.')
@@ -66,11 +78,23 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="pp-page">
+    <div className={`pp-page${returnTo ? ' pp-page-with-return' : ''}`}>
       <div className="landing-clean-bg" aria-hidden />
       <CrystalCursor active />
 
       <Nav />
+
+      {returnTo && (
+        <div className="pp-return-strip" role="region" aria-label="Return navigation">
+          <Link to={returnTo} className="pp-return-link">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+            Back to {returnLabel}
+          </Link>
+          <span className="pp-return-hint">No commitment — keep browsing if you'd rather upgrade.</span>
+        </div>
+      )}
 
       <header className="pp-header">
         <h1 className="pp-title">Know what AI says about you.</h1>

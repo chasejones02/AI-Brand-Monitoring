@@ -21,14 +21,26 @@ function normalizeDbTier(tier: string): string {
 }
 
 // POST /api/stripe/create-checkout
-// Body: { tier: 'starter' | 'starter_annual' | 'growth' | 'growth_annual' }
+// Body: {
+//   tier: 'starter' | 'starter_annual' | 'growth' | 'growth_annual',
+//   return_set_id?: string  // optional tracking_set UUID. When present, the
+//                           // /success page uses it to send the user straight
+//                           // back to the dashboard focused on the set they
+//                           // were previewing before they upgraded.
+// }
 router.post('/create-checkout', requireAuth, async (req: Request, res: Response): Promise<void> => {
-  const { tier } = req.body
+  const { tier, return_set_id } = req.body
 
   if (!tier || !PRICE_MAP[tier]) {
     res.status(400).json({ data: null, error: 'Invalid tier. Must be starter, starter_annual, growth, or growth_annual.' })
     return
   }
+
+  // UUID sanity check — anything else is dropped so the success_url stays clean.
+  const returnSetId =
+    typeof return_set_id === 'string' && /^[0-9a-f-]{36}$/i.test(return_set_id)
+      ? return_set_id
+      : null
 
   const priceId = PRICE_MAP[tier]
   const userId = req.userId!
@@ -63,13 +75,21 @@ router.post('/create-checkout', requireAuth, async (req: Request, res: Response)
         .eq('id', userId)
     }
 
+    const successUrl = returnSetId
+      ? `${frontendUrl}/success?session_id={CHECKOUT_SESSION_ID}&setId=${returnSetId}`
+      : `${frontendUrl}/success?session_id={CHECKOUT_SESSION_ID}`
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${frontendUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: successUrl,
       cancel_url: `${frontendUrl}/?canceled=true`,
-      metadata: { supabase_user_id: userId, tier: normalizeDbTier(tier) },
+      metadata: {
+        supabase_user_id: userId,
+        tier: normalizeDbTier(tier),
+        ...(returnSetId ? { return_set_id: returnSetId } : {}),
+      },
     })
 
     res.json({ data: { url: session.url }, error: null })

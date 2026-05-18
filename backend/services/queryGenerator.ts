@@ -7,7 +7,7 @@ const openai = process.env.OPENAI_API_KEY
 
 export type GeneratedQuery = {
   query_text: string
-  intent: 'category' | 'local_comparison' | 'problem' | 'recommendation' | 'brand'
+  intent: 'category' | 'local_comparison' | 'problem' | 'recommendation' | 'attribute'
   reason: string
 }
 
@@ -23,15 +23,7 @@ const INTENTS: GeneratedQuery['intent'][] = [
   'local_comparison',
   'problem',
   'recommendation',
-  'brand',
-]
-
-const INTENT_ORDER: GeneratedQuery['intent'][] = [
-  'category',
-  'local_comparison',
-  'problem',
-  'recommendation',
-  'brand',
+  'attribute',
 ]
 
 function normalizeCount(count?: number): number {
@@ -52,66 +44,71 @@ function includesBusinessName(query: string, businessName: string): boolean {
   return query.toLowerCase().includes(businessName.toLowerCase())
 }
 
-const CATEGORY_STOPWORDS = new Set([
-  'and',
-  'the',
-  'for',
-  'near',
-  'with',
-  'shop',
-  'shops',
-  'shopping',
-  'store',
-  'stores',
-  'clothes',
-  'clothing',
-  'company',
-  'companies',
-  'business',
-  'businesses',
-  'service',
-  'services',
-  'place',
-  'places',
-])
-
-function distinctiveCategoryTerms(description: string): string[] {
-  return description
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .split(/\s+/)
-    .filter(term => term.length >= 4 && !CATEGORY_STOPWORDS.has(term))
+// Split a distilled category into independent facets so multi-category
+// businesses (e.g. "bar and club", "pizza and pasta", "salon/spa") produce
+// varied queries instead of forcing every query to mention every facet.
+function splitFacets(category: string): string[] {
+  const parts = category
+    .split(/\s+(?:and|or|&)\s+|\s*[/,]\s*/i)
+    .map(s => s.trim())
+    .filter(Boolean)
+  return parts.length > 0 ? parts : [category.trim()]
 }
 
-function preservesCategoryLanguage(query: string, description: string): boolean {
-  const terms = distinctiveCategoryTerms(description)
-  if (terms.length === 0) return true
-  const lower = query.toLowerCase()
-  return terms.every(term => lower.includes(term))
+// Heuristic for distilling a clean category noun phrase out of a free-form
+// description. Only used when the LLM is unavailable or its call fails — the
+// happy path is that the LLM returns a `category` field directly.
+function cleanCategoryFromDescription(description: string, location: string): string {
+  let text = description.trim().toLowerCase()
+  if (!text) return ''
+
+  // 1. Take the first comma-separated chunk — descriptions like
+  //    "fast food shop, we sell burgers and fries..." carry the useful noun
+  //    phrase up front.
+  text = text.split(',')[0]?.trim() ?? text
+
+  // 2. Strip first-person preambles ("we sell X" → "X").
+  text = text.replace(
+    /^(we(?:'re| are)?|i(?:'m| am)?|the)\s+(sell|offer|provide|serve|do|make|are|a|an)\s+/i,
+    ''
+  )
+  text = text.replace(/^(we|i)\s+/i, '')
+
+  // 3. Strip an embedded location suffix like "in brookings sd" if the
+  //    user's location is repeated inside the description.
+  const anchor = locationAnchor(location)
+  if (anchor) {
+    text = text.replace(new RegExp(`\\s+in\\s+${anchor}.*$`, 'i'), '')
+  }
+
+  // 4. Strip street/landmark suffixes ("on main street", "near downtown").
+  text = text.replace(/\s+(on|near|at|by)\s+[a-z0-9\s]+$/i, '')
+
+  text = text.trim().replace(/\s+/g, ' ')
+
+  // 5. If we ended up with something unreasonably long, keep the first six
+  //    words so templates don't read like a paragraph.
+  const words = text.split(' ')
+  if (words.length > 6) text = words.slice(0, 6).join(' ')
+
+  return text
 }
 
 function dedupeAndLimit(
   queries: GeneratedQuery[],
   count: number,
   location: string,
-  businessName: string,
-  description: string
+  businessName: string
 ): GeneratedQuery[] {
   const seen = new Set<string>()
   const clean: GeneratedQuery[] = []
-  let brandCount = 0
 
   for (const query of queries) {
     const text = query.query_text.trim().replace(/\s+/g, ' ')
     const key = text.toLowerCase()
     if (text.length < 3 || text.length > 500 || seen.has(key)) continue
     if (!includesLocation(text, location)) continue
-    if (query.intent !== 'brand' && includesBusinessName(text, businessName)) continue
-    if (query.intent !== 'brand' && !preservesCategoryLanguage(text, description)) continue
-    if (query.intent === 'brand') {
-      if (brandCount >= 1) continue
-      brandCount += 1
-    }
+    if (includesBusinessName(text, businessName)) continue
     seen.add(key)
     clean.push({
       query_text: text,
@@ -124,64 +121,59 @@ function dedupeAndLimit(
   return clean
 }
 
-function fallbackQueries(input: Pick<GenerateInput, 'name' | 'location' | 'description'>, count: number): GeneratedQuery[] {
-  const category = input.description.trim()
+// Safety-net template set used only when the LLM is unavailable or returns
+// too few valid queries. Templates rotate through the description's facets so
+// "bar and club" produces "best bar..." + "top rated club..." rather than the
+// same phrase five times in a row.
+function fallbackQueries(
+  input: { name: string; location: string; category: string },
+  count: number
+): GeneratedQuery[] {
+  const category = input.category.trim()
   const location = input.location.trim()
+  const facets = splitFacets(category)
+  const pick = (i: number) => facets[i % facets.length] || category
 
   return dedupeAndLimit([
     {
-      query_text: `best ${category} in ${location}`,
+      query_text: `best ${pick(0)} in ${location}`,
       intent: 'category',
-      reason: 'Tests whether AI includes the business in a broad local best-of recommendation.',
+      reason: 'Tests visibility in a broad local best-of search — the most common AI prompt for finding a new business.',
     },
     {
-      query_text: `compare ${category} in ${location}`,
+      query_text: `top rated ${pick(1)} in ${location}`,
       intent: 'local_comparison',
-      reason: 'Checks visibility in comparison-style local searches with rating intent.',
+      reason: 'Checks visibility in comparison-style searches with rating intent.',
     },
     {
-      query_text: `who should I hire for ${category} in ${location}`,
+      query_text: `popular ${pick(2)} in ${location}`,
       intent: 'recommendation',
-      reason: 'Simulates a customer asking AI for a direct hiring recommendation.',
+      reason: 'Simulates a customer asking AI for a recommendation of well-known options.',
     },
     {
-      query_text: `where can I find ${category} in ${location}`,
+      query_text: `where to find ${pick(3)} in ${location}`,
       intent: 'problem',
-      reason: 'Captures a high-intent discovery search while preserving the stated business category.',
+      reason: 'Captures a high-intent discovery search where the customer knows what they want but not where to go.',
     },
     {
-      query_text: `is ${input.name} in ${location} any good`,
-      intent: 'brand',
-      reason: 'Measures what AI says when the customer already knows the brand name.',
+      query_text: `affordable ${pick(4)} in ${location}`,
+      intent: 'attribute',
+      reason: 'Tests visibility on price-sensitive searches — one of the most common consumer attribute filters.',
     },
-  ], count, location, input.name, input.description)
+  ], count, location, input.name)
 }
 
-function fillMissingIntents(
+// Fill the LLM's output up to the target count by appending fallback templates.
+// No intent matching — we just want variety, not a rigid 1-of-each split.
+function fillToCount(
   clean: GeneratedQuery[],
   fallback: GeneratedQuery[],
   count: number,
   location: string,
-  businessName: string,
-  description: string
+  businessName: string
 ): GeneratedQuery[] {
-  let merged = [...clean]
-
-  for (const intent of INTENT_ORDER) {
-    if (merged.length >= count) break
-    if (merged.some(query => query.intent === intent)) continue
-
-    const candidate = fallback.find(query => query.intent === intent)
-    if (candidate) {
-      merged = dedupeAndLimit([...merged, candidate], count, location, businessName, description)
-    }
-  }
-
-  if (merged.length < count) {
-    merged = dedupeAndLimit([...merged, ...fallback], count, location, businessName, description)
-  }
-
-  return merged
+  if (clean.length >= count) return clean
+  return dedupeAndLimit([...clean, ...fallback], count, location, businessName)
 }
 
 export async function generateQueriesForBusiness(input: GenerateInput): Promise<GeneratedQuery[]> {
@@ -191,34 +183,42 @@ export async function generateQueriesForBusiness(input: GenerateInput): Promise<
   const description = input.description.trim()
 
   if (!openai) {
-    return fallbackQueries({ name, location, description }, count)
+    const category = cleanCategoryFromDescription(description, location) || description
+    return fallbackQueries({ name, location, category }, count)
   }
 
-  const prompt = `Generate ${count} realistic customer search queries for an AI visibility scan.
+  const prompt = `You are generating realistic customer searches for an AI visibility scan. The goal: ${count} different prompts this business would HOPE to appear in if a stranger searched them on ChatGPT, Gemini, Claude, or Perplexity.
 
 Business name: ${name}
 Location: ${location}
-Short description/category: ${description}
+Business description (free-form, may be a full sentence): ${description}
 
-Rules:
-- These should be queries a real customer might ask ChatGPT, Gemini, Claude, or Perplexity.
-- For a 5-query scan, create exactly this mix:
-  1 category/local discovery query
-  1 comparison query
-  1 problem/need query
-  1 recommendation/hiring query
-  1 direct brand-check query
-- Only one query may use the business name directly. The other queries should describe the category/service, not the brand.
-- Do not make claims about the business.
-- Every query must include the city/location.
-- Preserve the short description's category language closely. Do not narrow, broaden, or swap in adjacent categories.
-- Avoid generic wording like "businesses like"; use the short description as the service/category.
-- Return ONLY valid JSON with this shape:
+STEP 1 — Distill the description into a clean, short CATEGORY noun phrase (2–5 words). If the business covers multiple distinct categories, keep them all — you'll vary across them in Step 2.
+  "we make wood-fired pizzas and pastas" → "wood-fired pizza and pasta restaurant"
+  "fast food shop, we sell burgers and fries on main street in brookings sd" → "burger restaurant"
+  "bar and club" → "bar and club"
+  "residential roofing company specializing in storm damage repair" → "residential roofers"
+
+STEP 2 — Generate ${count} DIFFERENT customer searches. Think about how a real person types into AI when they DON'T know which specific business to use.
+
+Hard rules — non-negotiable:
+- The business name "${name}" MUST NOT appear in any query.
+- Every query MUST include the city: "${locationAnchor(location)}".
+- Do not duplicate the location or restate trivia from the description (e.g. "on main street").
+
+Variety rules — this is where the queries actually become useful:
+- VARY phrasing across the ${count}. Do not repeat the same template (e.g. "best X in city") five times with different words. Mix discovery ("best X"), comparison ("top rated X", "X vs X"), problem-led ("where to go for X", "good X near downtown"), broader category ("nightlife", "places to eat lunch"), attribute-led ("casual X", "late-night X", "affordable X"), and review-led ("X reviews", "highly recommended X").
+- If the description covers multiple facets (e.g. "bar and club", "salon and spa", "pizza and pasta"), SPLIT them across the queries. One query might be about bars, another about clubs, another about the broader scene ("nightlife", "places to dance"). Do NOT force every single query to mention every facet.
+- Synonyms and broader category words are encouraged when natural (e.g. "burger spots" for a burger restaurant, "drinks" for a bar, "nightlife" for a club). The point is realism — a real customer wouldn't repeat the exact same wording in every search.
+- Avoid awkward forced phrasings like "who should I hire for [bar]" — use whatever phrasing feels natural for the category.
+
+Return ONLY valid JSON with this exact shape:
 {
+  "category": "string — the distilled category noun phrase from Step 1",
   "queries": [
     {
       "query_text": "string",
-      "intent": "category | local_comparison | problem | recommendation | brand",
+      "intent": "category | local_comparison | problem | recommendation | attribute",
       "reason": "short plain-English reason this query was chosen"
     }
   ]
@@ -235,22 +235,25 @@ Rules:
 
     const parsed = JSON.parse(response.choices[0]?.message?.content ?? '{}')
     const generated = Array.isArray(parsed.queries) ? parsed.queries : []
-    const clean = dedupeAndLimit(generated, count, location, name, description)
+    const llmCategory = typeof parsed.category === 'string' ? parsed.category.trim() : ''
+    const category =
+      llmCategory ||
+      cleanCategoryFromDescription(description, location) ||
+      description
+
+    const clean = dedupeAndLimit(generated, count, location, name)
 
     if (clean.length >= count) return clean
-    if (clean.length >= 3) {
-      return fillMissingIntents(
-        clean,
-        fallbackQueries({ name, location, description }, count),
-        count,
-        location,
-        name,
-        description
-      )
-    }
-    return fallbackQueries({ name, location, description }, count)
+    return fillToCount(
+      clean,
+      fallbackQueries({ name, location, category }, count),
+      count,
+      location,
+      name
+    )
   } catch (err) {
     console.warn('generateQueriesForBusiness failed, using fallback templates:', err)
-    return fallbackQueries({ name, location, description }, count)
+    const category = cleanCategoryFromDescription(description, location) || description
+    return fallbackQueries({ name, location, category }, count)
   }
 }

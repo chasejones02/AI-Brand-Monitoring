@@ -8,6 +8,7 @@ import SuccessPage from './pages/success'
 import PricingPage from './pages/pricing'
 import AnalyzePage from './pages/analyze'
 import AccountPage from './pages/account'
+import PreviewPage from './pages/preview'
 import { EyeballIntro } from './components/eyeball-intro'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -45,6 +46,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/preview/:businessId"
+        element={
+          <ProtectedRoute>
+            <PreviewPage />
           </ProtectedRoute>
         }
       />

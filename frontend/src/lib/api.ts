@@ -111,6 +111,14 @@ export interface BusinessWithTrackingSets {
   tracking_sets: TrackingSet[]
 }
 
+export interface PreviewQuery {
+  id: string
+  query_text: string
+  source: 'generated' | 'custom'
+  intent: string | null
+  generation_reason: string | null
+}
+
 export async function createBusiness(payload: {
   name: string
   location?: string
@@ -120,7 +128,12 @@ export async function createBusiness(payload: {
   queries?: string[]
   generate_queries?: boolean
   query_count?: number
-}): Promise<{ business_id: string; default_set_id: string }> {
+}): Promise<{
+  business_id: string
+  default_set_id: string
+  tier: 'free' | 'starter' | 'growth' | 'agency'
+  queries: PreviewQuery[]
+}> {
   const { data } = await authFetch('/api/business', {
     method: 'POST',
     body: JSON.stringify(payload),
@@ -169,10 +182,16 @@ export async function getBusinessHistory(businessId: string, trackingSetId?: str
 
 // ─── Stripe ──────────────────────────────────────────────────────────────────
 
-export async function createCheckoutSession(tier: 'starter' | 'starter_annual' | 'growth' | 'growth_annual'): Promise<{ url: string }> {
+export async function createCheckoutSession(
+  tier: 'starter' | 'starter_annual' | 'growth' | 'growth_annual',
+  options: { returnSetId?: string } = {}
+): Promise<{ url: string }> {
   const { data } = await authFetch('/api/stripe/create-checkout', {
     method: 'POST',
-    body: JSON.stringify({ tier }),
+    body: JSON.stringify({
+      tier,
+      ...(options.returnSetId ? { return_set_id: options.returnSetId } : {}),
+    }),
   })
   return data
 }

@@ -148,7 +148,10 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
     generation_reason: generate_queries ? query.reason : null,
   }))
 
-  const { error: queryError } = await supabase.from('queries').insert(queryRows)
+  const { data: insertedQueries, error: queryError } = await supabase
+    .from('queries')
+    .insert(queryRows)
+    .select('id, query_text, source, intent, generation_reason')
 
   if (queryError) {
     console.error('Business created but failed to save queries:', queryError)
@@ -157,7 +160,12 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
   }
 
   res.status(201).json({
-    data: { business_id: business.id, default_set_id: defaultSet.id },
+    data: {
+      business_id: business.id,
+      default_set_id: defaultSet.id,
+      tier,
+      queries: insertedQueries ?? [],
+    },
     error: null,
   })
 })

@@ -7,7 +7,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/auth-context'
-import { createBusiness, triggerScan } from '../lib/api'
+import { createBusiness } from '../lib/api'
 import { Nav } from '../components/nav'
 import { LoginForm } from '../components/ui/login-form'
 import { CrystalCursor } from '../components/crystal-cursor'
@@ -126,15 +126,16 @@ export default function AuthPage() {
         setError('Add a short description of what your business does.')
         return
       }
-      const { business_id } = await createBusiness({
+      const { business_id, default_set_id, tier, queries } = await createBusiness({
         name: data.name,
         location: data.location,
         description: data.description,
         generate_queries: true,
         query_count: 5,
       })
-      const { scan_id } = await triggerScan(business_id)
-      navigate(`/dashboard?scanId=${scan_id}`)
+      navigate(`/preview/${business_id}`, {
+        state: { queries, tier, defaultSetId: default_set_id },
+      })
     } catch {
       navigate('/dashboard')
     }

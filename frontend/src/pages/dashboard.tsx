@@ -36,6 +36,7 @@ import {
   type QuotaStatus,
   type BusinessTrends,
   type TrackingSet,
+  type TrackingSetQuery,
   type BusinessWithTrackingSets,
   type BusinessesResponse,
 } from '../lib/api'
@@ -814,8 +815,14 @@ export default function DashboardPage() {
         <NoScansState
           businessName={activeBusiness?.name}
           setName={activeSet?.name ?? null}
+          queries={activeSet?.queries ?? []}
           onNewScan={handleRunScan}
+          onEdit={openEditEditor}
+          editDisabled={!!setEditDisabledReason}
+          editDisabledReason={setEditDisabledReason ?? null}
           isRunning={isSubmitting}
+          showWelcome={searchParams.get('welcome') === '1'}
+          tier={tier}
         />
       )}
 
@@ -1122,16 +1129,44 @@ function BusinessSetupForm({ onSubmit, onCancel, isSubmitting, error, title }: S
 function NoScansState({
   businessName,
   setName,
+  queries,
   onNewScan,
+  onEdit,
+  editDisabled,
+  editDisabledReason,
   isRunning,
+  showWelcome,
+  tier,
 }: {
   businessName?: string
   setName: string | null
+  queries: TrackingSetQuery[]
   onNewScan: () => void
+  onEdit: () => void
+  editDisabled: boolean
+  editDisabledReason: string | null
   isRunning: boolean
+  showWelcome: boolean
+  tier: 'free' | 'starter' | 'growth' | 'agency'
 }) {
+  const hasQueries = queries.length > 0
+  const tierLabel = tier === 'free' ? 'Free' : tier[0].toUpperCase() + tier.slice(1)
+
   return (
-    <div style={s.emptyState}>
+    <div style={hasQueries ? s.noScansWide : s.emptyState}>
+      {showWelcome && (
+        <div style={s.welcomeBanner}>
+          <span style={s.welcomeCheck} aria-hidden>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </span>
+          <span>
+            You're on <strong>{tierLabel}</strong>. Edit any of these queries before your first scan — or run them as-is.
+          </span>
+        </div>
+      )}
+
       <p style={s.emptyTitle}>
         {setName
           ? `No scans yet for "${setName}"`
@@ -1144,6 +1179,42 @@ function NoScansState({
         the queries in this set. The set locks for 30 days after the first scan
         so your trend stays apples-to-apples.
       </p>
+
+      {hasQueries && (
+        <div style={s.queriesPreview}>
+          <div style={s.queriesPreviewHeader}>
+            <span style={s.queriesPreviewLabel}>
+              Your queries · {queries.length}
+            </span>
+            <button
+              type="button"
+              onClick={onEdit}
+              disabled={editDisabled}
+              title={editDisabledReason ?? 'Edit these queries'}
+              style={{
+                ...s.queriesPreviewEdit,
+                opacity: editDisabled ? 0.45 : 1,
+                cursor: editDisabled ? 'not-allowed' : 'pointer',
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+              </svg>
+              Edit
+            </button>
+          </div>
+          <ol style={s.queriesPreviewList}>
+            {queries.map((q, i) => (
+              <li key={q.id} style={s.queriesPreviewItem}>
+                <span style={s.queriesPreviewIdx}>{String(i + 1).padStart(2, '0')}</span>
+                <span style={s.queriesPreviewText}>{q.query_text}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
       <GlowCard customSize radius={8} className="!block !p-0 !shadow-none">
         <button onClick={onNewScan} disabled={isRunning} style={s.primaryBtn}>
           {isRunning ? 'Starting scan…' : 'Run first scan →'}
@@ -2013,6 +2084,99 @@ const s: Record<string, React.CSSProperties> = {
     margin: '15vh auto 0',
     textAlign: 'center' as const,
     padding: '2rem',
+  },
+  noScansWide: {
+    maxWidth: '640px',
+    margin: '6vh auto 0',
+    textAlign: 'center' as const,
+    padding: '2rem',
+  },
+  welcomeBanner: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.55rem',
+    padding: '0.45rem 0.9rem 0.45rem 0.7rem',
+    marginBottom: '1.5rem',
+    borderRadius: '999px',
+    background: 'rgba(34,197,94,0.08)',
+    border: '1px solid rgba(34,197,94,0.25)',
+    color: 'var(--text)',
+    fontSize: '0.82rem',
+    lineHeight: 1.4,
+  },
+  welcomeCheck: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '18px',
+    height: '18px',
+    borderRadius: '50%',
+    background: 'rgba(34,197,94,0.2)',
+    color: 'var(--green)',
+    flexShrink: 0,
+  },
+  queriesPreview: {
+    margin: '0 0 1.75rem',
+    padding: '0.85rem 0.95rem 0.6rem',
+    background: 'rgba(14,18,24,0.7)',
+    border: '1px solid var(--border)',
+    borderRadius: '10px',
+    textAlign: 'left' as const,
+  },
+  queriesPreviewHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: '0.55rem',
+    paddingBottom: '0.55rem',
+    borderBottom: '1px solid var(--border)',
+  },
+  queriesPreviewLabel: {
+    fontSize: '0.72rem',
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase' as const,
+    color: 'var(--text-muted)',
+    fontWeight: 600,
+  },
+  queriesPreviewEdit: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.35rem',
+    padding: '0.3rem 0.65rem',
+    background: 'transparent',
+    border: '1px solid var(--border)',
+    borderRadius: '6px',
+    color: 'var(--accent)',
+    fontSize: '0.78rem',
+    fontFamily: "'Outfit', sans-serif",
+    fontWeight: 600,
+    transition: 'border-color 0.2s, color 0.2s',
+  },
+  queriesPreviewList: {
+    margin: 0,
+    padding: 0,
+    listStyle: 'none',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.15rem',
+  },
+  queriesPreviewItem: {
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '0.8rem',
+    padding: '0.5rem 0.25rem',
+    borderBottom: '1px dashed rgba(255,255,255,0.04)',
+  },
+  queriesPreviewIdx: {
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: '0.72rem',
+    color: 'var(--text-dim)',
+    minWidth: '22px',
+  },
+  queriesPreviewText: {
+    fontSize: '0.92rem',
+    color: 'var(--text)',
+    lineHeight: 1.45,
   },
   emptyTitle: {
     fontFamily: "'Plus Jakarta Sans', sans-serif",

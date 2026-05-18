@@ -7,7 +7,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
-import { createBusiness, triggerScan } from '../lib/api'
+import { createBusiness } from '../lib/api'
 
 export function HeroForm() {
   const navigate = useNavigate()
@@ -39,15 +39,16 @@ export function HeroForm() {
         return
       }
 
-      const { business_id } = await createBusiness({
+      const { business_id, default_set_id, tier, queries } = await createBusiness({
         name: bizName.trim(),
         location: location.trim(),
         description: description.trim(),
         generate_queries: true,
         query_count: 5,
       })
-      const { scan_id } = await triggerScan(business_id)
-      navigate(`/dashboard?scanId=${scan_id}`)
+      navigate(`/preview/${business_id}`, {
+        state: { queries, tier, defaultSetId: default_set_id },
+      })
     } catch (err: any) {
       setError(err.message ?? 'Something went wrong. Please try again.')
     } finally {
@@ -113,10 +114,10 @@ export function HeroForm() {
         {isSubmitting ? (
           <>
             <div className="spinner" />
-            Analyzing...
+            Generating prompts…
           </>
         ) : (
-          'Analyze My Brand'
+          'Generate My Prompts'
         )}
       </button>
     </form>
