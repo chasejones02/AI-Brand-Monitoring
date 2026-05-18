@@ -67,8 +67,8 @@ export function Pricing() {
     <section className="pricing-section" id="pricing">
       <div className="container">
         <div className="section-label">Pricing</div>
-        <h2>Know what AI says about you.</h2>
-        <p className="section-sub">Your competitors are already checking. Pick the plan that fits.</p>
+        <h2>Every day you're invisible to AI, a competitor closes the deal.</h2>
+        <p className="section-sub">Your competitors are already being recommended by ChatGPT, Claude, Gemini, and Perplexity. The question is by how much.</p>
 
         {canceled && (
           <div className="pricing-canceled-banner">
@@ -128,14 +128,14 @@ export function Pricing() {
             {billing === 'annual' && (
               <p className="pricing-annual-note">Billed annually — ${prices.starter * 12}/yr</p>
             )}
-            <p className="pricing-desc">For solo businesses that can't afford to be invisible to AI.</p>
+            <p className="pricing-desc">For solo businesses that can't afford to keep guessing what AI tells buyers.</p>
             <ul className="pricing-features">
-              <li>{check} All 4 platforms: ChatGPT, Claude, Gemini & Perplexity</li>
-              <li>{check} 1 scan per day — catch ranking shifts same day</li>
+              <li>{check} Stop flying blind on all 4 platforms: ChatGPT, Claude, Gemini & Perplexity</li>
+              <li>{check} Catch a ranking drop the same day — not after a quarter of lost leads</li>
               <li>{check} 2 query sets — auto-generated + 1 you control</li>
-              <li>{check} 3 competitors tracked per scan</li>
-              <li>{check} Plain-English visibility score breakdown</li>
-              <li>{check} 3 prioritized recommendations per scan</li>
+              <li>{check} See exactly which 3 competitors are stealing your AI placements</li>
+              <li>{check} Plain-English visibility score — no point totals to decode</li>
+              <li>{check} 3 prioritized fixes per scan so you're not guessing what to change</li>
               <li>{check} 1 business profile</li>
             </ul>
             <button
@@ -143,7 +143,7 @@ export function Pricing() {
               onClick={() => handleCheckout('starter')}
               disabled={loading !== null}
             >
-              {loading === 'starter' ? 'Redirecting…' : 'Get started today'}
+              {loading === 'starter' ? 'Redirecting…' : 'Stop losing AI-driven deals'}
             </button>
           </GlowCard>
 
@@ -159,21 +159,21 @@ export function Pricing() {
             {billing === 'annual' && (
               <p className="pricing-annual-note">Billed annually — ${prices.growth * 12}/yr</p>
             )}
-            <p className="pricing-desc">For growing businesses serious about owning their AI presence.</p>
+            <p className="pricing-desc">For businesses that refuse to lose deals they never knew were on the table.</p>
             <ul className="pricing-features">
               <li>{check} Everything in Starter</li>
-              <li>{check} 5 scans per day — spot drops before they cost you</li>
-              <li>{check} 3 business profiles — track each one independently</li>
+              <li>{check} 5 scans per day — spot drops before they cost you a month of revenue</li>
+              <li>{check} 3 business profiles — every brand you own, none left exposed</li>
               <li>{check} 3 query sets per business (auto + 2 custom)</li>
-              <li>{check} Full trend history with per-platform & per-query charts</li>
-              <li>{check} 7 recommendations ranked by impact per scan</li>
+              <li>{check} Full trend history — prove what's working before competitors copy it</li>
+              <li>{check} 7 recommendations ranked by impact — fix the costliest gap first</li>
             </ul>
             <button
               className="btn-pricing featured-btn"
               onClick={() => handleCheckout('growth')}
               disabled={loading !== null}
             >
-              {loading === 'growth' ? 'Redirecting…' : 'Get started today'}
+              {loading === 'growth' ? 'Redirecting…' : 'Stop losing AI-driven deals'}
             </button>
           </GlowCard>
         </div>

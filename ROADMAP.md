@@ -102,13 +102,13 @@ The core loop (sign up -> business entry -> scan -> results -> pay) works end-to
 - **Files:** `backend/services/scorer.ts`, `backend/routes/results.ts`, `frontend/src/pages/dashboard.tsx`
 
 ### P7. Align pricing tiers for launch
-- [ ] Drop Agency from launch pricing UI and checkout options
-- [ ] Launch with Free, Starter, and Growth only
-- [ ] Default pricing page billing toggle to annual
-- [ ] Set annual prices: Starter $24/mo billed annually, Growth $41/mo billed annually
-- [ ] Mark Growth as "Most Popular"
-- [ ] Use loss-aversion copy for paid features
-- [ ] Add social proof/testimonials to pricing page
+- [x] Drop Agency from launch pricing UI and checkout options
+- [x] Launch with Free, Starter, and Growth only
+- [x] Default pricing page billing toggle to annual
+- [x] Set annual prices: Starter $24/mo billed annually, Growth $41/mo billed annually
+- [x] Mark Growth as "Most Popular"
+- [x] Use loss-aversion copy for paid features
+- [x] Add social proof/testimonials to pricing page
 - **Files:** `frontend/src/components/pricing.tsx`, `frontend/src/pages/pricing.tsx`, `backend/routes/stripe.ts`
 
 ---
