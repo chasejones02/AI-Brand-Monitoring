@@ -213,16 +213,19 @@ If the analysis call fails, `fallbackMentionAnalysis()` in `queryEngine.ts` kick
 
 ---
 
-## Scoring Algorithm (v1 — keep simple)
+## Scoring Algorithm (v2 — smooth position curve)
 
 ```
 AI Visibility Score = (mention_score + position_score + sentiment_score) / max_possible * 100
 
 mention_score:   +10 if business is mentioned (via AI analysis, not regex)
-position_score:  +5 if mentioned first, +3 if top 3, +1 if mentioned at all
+position_score:  5 / log2(pos + 1), capped at position 20. Base 1 if mentioned but position unknown.
+                 (pos 1 = 5.00, pos 2 ≈ 3.15, pos 3 ≈ 2.50, pos 5 ≈ 1.93, pos 10 ≈ 1.45)
 sentiment_score: +3 positive, +1 neutral, -2 negative
 Max per result:  18 points
 ```
+
+Scans completed before 2026-05-18 use v1 (cliff-style position scoring: +5/+3/+1). New scans use v2. `score_details.formula_version` indicates which formula a scan was scored with.
 
 Score ranges:
 - 0–20:   Not Visible — AI almost never mentions this business for these queries

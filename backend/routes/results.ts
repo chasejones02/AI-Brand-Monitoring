@@ -161,9 +161,9 @@ function buildScoreDetails(results: any[]) {
   )
 
   return {
-    formula_version: 'v1',
+    formula_version: 'v2',
     formula:
-      'AI Visibility Score = earned points / max points * 100. Each query/platform result can earn 10 mention points, up to 5 position points, and up to 3 sentiment points.',
+      'AI Visibility Score = earned points / max points * 100. Each query/platform result can earn 10 mention points, up to 5 position points (smooth log decay — #1 scores 5, #2 ≈ 3.15, #3 ≈ 2.50, dropping off toward 1 as position increases), and up to 3 sentiment points.',
     result_count,
     mentioned_results,
     sentiment_counts,

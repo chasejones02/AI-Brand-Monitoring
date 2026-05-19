@@ -84,9 +84,9 @@ The core loop (sign up -> business entry -> scan -> results -> pay) works end-to
 - **Files:** `supabase/migrations/`, `backend/services/supabase.ts`, `backend/routes/scan.ts`, `backend/routes/results.ts`, `frontend/src/pages/dashboard.tsx`
 
 ### P4. Add pre-scan query review
-- [ ] Free users see the five auto-generated queries as a read-only preview before the scan starts
-- [ ] Starter/Growth users can edit generated queries before running the scan
-- [ ] Avoid burning a free scan until the user confirms the preview
+- [x] Free users see the five auto-generated queries as a read-only preview before the scan starts
+- [x] Starter/Growth users can edit generated queries before running the scan
+- [x] Avoid burning a free scan until the user confirms the preview
 - **Files:** `frontend/src/components/hero-form.tsx`, `frontend/src/pages/dashboard.tsx`, `backend/routes/business.ts`
 
 ### P5. Add rule-based recommendations
@@ -96,10 +96,10 @@ The core loop (sign up -> business entry -> scan -> results -> pay) works end-to
 - **Files:** `backend/services/recommendationEngine.ts`, `backend/routes/scan.ts`, `backend/routes/results.ts`, `frontend/src/components/recommendations-panel.tsx`
 
 ### P6. Improve scoring clarity and quality
-- [ ] Replace cliff-style position scoring with a smoother curve
+- [x] Replace cliff-style position scoring with a smoother curve
 - [ ] Add score confidence based on number of query/platform data points (Growth-exclusive in UI)
 - [ ] Add industry benchmark score copy/data model for Growth
-- **Files:** `backend/services/scorer.ts`, `backend/routes/results.ts`, `frontend/src/pages/dashboard.tsx`
+- **Files:** `backend/services/scorer.ts`, `backend/routes/results.ts`, `frontend/src/pages/dashboard.tsx`, `supabase/migrations/20260518000000_smooth_position_score.sql`
 
 ### P7. Align pricing tiers for launch
 - [x] Drop Agency from launch pricing UI and checkout options

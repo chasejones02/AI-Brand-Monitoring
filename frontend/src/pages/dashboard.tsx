@@ -110,7 +110,7 @@ interface ScanSummary {
   completed_at: string | null
 }
 
-type AppState = 'loading' | 'setup' | 'main'
+type AppState = 'loading' | 'main'
 type MainMode = 'results' | 'no-scans'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -298,7 +298,7 @@ export default function DashboardPage() {
         const raw = await getBusinesses()
         const bizList = applyBusinessesResponse(raw)
         if (bizList.length === 0) {
-          setAppState('setup')
+          navigate('/analyze', { replace: true })
           return
         }
         const biz = bizList[0]
@@ -583,50 +583,6 @@ export default function DashboardPage() {
     }
   }
 
-  // ── Setup submit ───────────────────────────────────────────────────────────
-  async function handleSetupSubmit(
-    name: string,
-    website: string,
-    industry: string,
-    queries: string[]
-  ) {
-    setIsSubmitting(true)
-    try {
-      const { business_id, default_set_id } = await createBusiness({
-        name,
-        website: website || undefined,
-        industry: industry || undefined,
-        queries,
-      })
-      const { scan_id } = await triggerScan(business_id, default_set_id)
-      const raw = await getBusinesses()
-      const bizList = applyBusinessesResponse(raw)
-      const newBiz = bizList.find(b => b.id === business_id) ?? bizList[0]
-      setActiveBusiness(newBiz)
-      await refreshTrackingSets(business_id)
-      setActiveSetId(default_set_id)
-      const newEntry: ScanSummary = {
-        id: scan_id,
-        status: 'running',
-        visibility_score: null,
-        triggered_by: 'manual',
-        started_at: new Date().toISOString(),
-        completed_at: null,
-      }
-      setScanHistory([newEntry])
-      setActiveScanId(scan_id)
-      setScan(null)
-      setScanError('')
-      setPollCount(0)
-      setMode('results')
-      setAppState('main')
-    } catch (err: any) {
-      setGlobalError(err.message ?? 'Failed to set up business')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
   // ── Add additional business (Growth users) ────────────────────────────────
   async function handleAddBusiness(name: string, website: string, industry: string, queries: string[]) {
     setIsSubmitting(true)
@@ -693,28 +649,6 @@ export default function DashboardPage() {
           title={`Add business (${businesses.length + 1} of ${maxBusinesses})`}
           onSubmit={handleAddBusiness}
           onCancel={() => { setShowAddBusiness(false); setGlobalError('') }}
-          isSubmitting={isSubmitting}
-          error={globalError}
-        />
-      </div>
-    )
-  }
-
-  if (appState === 'setup') {
-    return (
-      <div style={s.page}>
-        <nav style={s.nav}>
-          <span style={s.navLogo}>
-            <img src="/logo-eye.png" alt="Visaion" style={{ height: '40px', width: 'auto', display: 'block' }} />
-            <span>Vis<span style={{ color: 'var(--accent)' }}>ai</span>on</span>
-          </span>
-          <div style={s.navRight}>
-            {user?.email && <span style={s.navEmail}>{user.email}</span>}
-            <button onClick={signOut} style={s.signOutBtn}>Sign out</button>
-          </div>
-        </nav>
-        <BusinessSetupForm
-          onSubmit={handleSetupSubmit}
           isSubmitting={isSubmitting}
           error={globalError}
         />

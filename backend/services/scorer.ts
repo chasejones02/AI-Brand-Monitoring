@@ -1,9 +1,12 @@
 import type { ScanResult } from './supabase.js'
 
-// Scoring per CLAUDE.md v1 algorithm
+// Scoring v2:
 // mention_score:   +10 per platform that mentions the business
-// position_score:  +5 if first, +3 if top 3, +1 if mentioned at all
+// position_score:  5 / log2(pos + 1), capped at position 20, base 1 if mentioned but position unknown
 // sentiment_score: +3 positive, +1 neutral, -2 negative
+
+const POSITION_MAX = 5
+const POSITION_CAP = 20
 
 export type ParsedResponse = {
   mentioned: boolean
@@ -21,9 +24,12 @@ export function scoreResult(parsed: ParsedResponse): {
 
   let position_score = 0
   if (parsed.mentioned) {
-    if (parsed.mention_position === 1) position_score = 5
-    else if (parsed.mention_position !== null && parsed.mention_position <= 3) position_score = 3
-    else position_score = 1
+    if (parsed.mention_position != null && parsed.mention_position >= 1) {
+      const pos = Math.min(parsed.mention_position, POSITION_CAP)
+      position_score = Math.round((POSITION_MAX / Math.log2(pos + 1)) * 100) / 100
+    } else {
+      position_score = 1
+    }
   }
 
   let sentiment_score = 0
