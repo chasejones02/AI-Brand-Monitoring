@@ -1,4 +1,9 @@
-import 'dotenv/config'
+// MUST come before any import that reads process.env at module-init time
+// (services/supabase.ts, routes/stripe.ts, etc.). ESM evaluates imports in
+// source order, so this file's top-level validate() call runs first and
+// exits the process with a friendly message if anything is misconfigured.
+import { env } from './config/env.js'
+
 import express from 'express'
 import cors from 'cors'
 import scanRouter from './routes/scan.js'
@@ -11,7 +16,7 @@ import { supabase } from './services/supabase.js'
 import { globalApiLimiter, scanLimiter, checkoutLimiter } from './middleware/rateLimit.js'
 
 const app = express()
-const PORT = process.env.PORT ?? 3001
+const PORT = env.PORT
 
 // Trust the first reverse-proxy hop (Railway/Render/Vercel) so express-rate-limit
 // keys by the real client IP from X-Forwarded-For instead of the proxy's IP.
