@@ -97,8 +97,8 @@ The core loop (sign up -> business entry -> scan -> results -> pay) works end-to
 
 ### P6. Improve scoring clarity and quality
 - [x] Replace cliff-style position scoring with a smoother curve
-- [ ] Add score confidence based on number of query/platform data points (Growth-exclusive in UI)
-- [ ] Add industry benchmark score copy/data model for Growth
+- [~] ~~Score confidence indicator~~ — deferred. Not adding.
+- [~] ~~Industry benchmark for Growth~~ — deferred until we have real scan data to compute meaningful averages. Hardcoded copy would be dishonest at launch.
 - **Files:** `backend/services/scorer.ts`, `backend/routes/results.ts`, `frontend/src/pages/dashboard.tsx`, `supabase/migrations/20260518000000_smooth_position_score.sql`
 
 ### P7. Align pricing tiers for launch
@@ -115,7 +115,7 @@ The core loop (sign up -> business entry -> scan -> results -> pay) works end-to
 
 ## Strong-to-Have (before or shortly after launch)
 
-- [ ] **Rate limiting** - Add `express-rate-limit` to all API endpoints. Prevents OpenAI bill abuse.
+- [x] **Rate limiting** - `express-rate-limit` applied: global 100/min floodwall on `/api/*` (skips Stripe webhook), 5/min on `/api/scan`, 10/min on `/api/stripe/create-checkout`. `trust proxy` set to 1 for Railway/Render/Vercel.
 - [ ] **Startup env validation** - Validate all required env vars on boot. Fail fast, not on first use.
 - [ ] **Error tracking** - Add Sentry (free tier) so broken scans in production are visible.
 
@@ -187,9 +187,7 @@ Currently developing against Stripe **test mode** (sandbox). Before flipping to 
 - [x] Track up to 5 competitors with scores
 - [x] Historical trend graphs (overall + per-platform + per-query)
 - [ ] Weekly email digest
-- [ ] Industry benchmark
 - [ ] Sentiment trend over time
-- [ ] Confidence indicator per score
 
 ### Agency - dropped for launch
 - [x] Do not launch Agency until multi-business profiles exist in schema, backend, and UI.
