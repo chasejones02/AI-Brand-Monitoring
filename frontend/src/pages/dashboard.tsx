@@ -24,7 +24,6 @@ import {
   getBusinesses,
   getBusinessHistory,
   getScanResults,
-  createBusiness,
   triggerScan,
   getQuota,
   getBusinessTrends,
@@ -207,7 +206,6 @@ export default function DashboardPage() {
   const [tier, setTier] = useState<'free' | 'starter' | 'growth' | 'agency'>('free')
   const [canAddBusiness, setCanAddBusiness] = useState(false)
   const [maxBusinesses, setMaxBusinesses] = useState(1)
-  const [showAddBusiness, setShowAddBusiness] = useState(false)
 
   // Set editor modal state — covers both create (new tab) and edit (unlocked set).
   const [editorMode, setEditorMode] = useState<EditorMode | null>(null)
@@ -583,36 +581,6 @@ export default function DashboardPage() {
     }
   }
 
-  // ── Add additional business (Growth users) ────────────────────────────────
-  async function handleAddBusiness(name: string, website: string, industry: string, queries: string[]) {
-    setIsSubmitting(true)
-    setGlobalError('')
-    try {
-      const { business_id, default_set_id } = await createBusiness({
-        name,
-        website: website || undefined,
-        industry: industry || undefined,
-        queries,
-      })
-      const raw = await getBusinesses()
-      const bizList = applyBusinessesResponse(raw)
-      const newBiz = bizList.find(b => b.id === business_id) ?? bizList[0]
-      setActiveBusiness(newBiz)
-      const sets = await refreshTrackingSets(business_id)
-      setActiveSetId(default_set_id ?? sets[0]?.id ?? null)
-      setScanHistory([])
-      setScan(null)
-      setActiveScanId(null)
-      setScanError('')
-      setMode('no-scans')
-      setShowAddBusiness(false)
-    } catch (err: any) {
-      setGlobalError(err.message ?? 'Failed to create business')
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
   // ── Render ─────────────────────────────────────────────────────────────────
   if (appState === 'loading') {
     return (
@@ -621,37 +589,6 @@ export default function DashboardPage() {
           <div style={s.loadingSpinner} />
           <p style={s.loadingText}>Loading dashboard…</p>
         </div>
-      </div>
-    )
-  }
-
-  if (showAddBusiness) {
-    return (
-      <div style={s.page}>
-        <CrystalCursor active={cursorActive} />
-        <DashboardNav
-          email={user?.email}
-          onSignOut={signOut}
-          businesses={businesses}
-          activeBusiness={activeBusiness}
-          onBusinessChange={handleBusinessChange}
-          scanHistory={[]}
-          activeScanId={null}
-          onScanSelect={() => {}}
-          onNewScan={() => {}}
-          quota={null}
-          canAddBusiness={false}
-          onAddBusiness={() => {}}
-          businessCount={businesses.length}
-          maxBusinesses={maxBusinesses}
-        />
-        <BusinessSetupForm
-          title={`Add business (${businesses.length + 1} of ${maxBusinesses})`}
-          onSubmit={handleAddBusiness}
-          onCancel={() => { setShowAddBusiness(false); setGlobalError('') }}
-          isSubmitting={isSubmitting}
-          error={globalError}
-        />
       </div>
     )
   }
@@ -676,7 +613,7 @@ export default function DashboardPage() {
         onNewScan={handleRunScan}
         quota={quota}
         canAddBusiness={canAddBusiness}
-        onAddBusiness={() => setShowAddBusiness(true)}
+        onAddBusiness={() => navigate('/analyze')}
         businessCount={businesses.length}
         maxBusinesses={maxBusinesses}
       />
@@ -912,146 +849,6 @@ function DashboardNav({
         <button onClick={onSignOut} style={s.signOutBtn}>Sign out</button>
       </div>
     </nav>
-  )
-}
-
-// ─── BusinessSetupForm ────────────────────────────────────────────────────────
-
-interface SetupFormProps {
-  onSubmit: (name: string, website: string, industry: string, queries: string[]) => void
-  onCancel?: () => void
-  isSubmitting: boolean
-  error: string
-  title?: string
-}
-
-function BusinessSetupForm({ onSubmit, onCancel, isSubmitting, error, title }: SetupFormProps) {
-  const [name, setName] = useState('')
-  const [website, setWebsite] = useState('')
-  const [industry, setIndustry] = useState('')
-  const [queries, setQueries] = useState([''])
-  const [formError, setFormError] = useState('')
-
-  function addQuery() {
-    if (queries.length < 10) setQueries(prev => [...prev, ''])
-  }
-  function removeQuery(i: number) {
-    if (queries.length > 1) setQueries(prev => prev.filter((_, idx) => idx !== i))
-  }
-  function updateQuery(i: number, val: string) {
-    setQueries(prev => prev.map((q, idx) => (idx === i ? val : q)))
-  }
-
-  function handleSubmit() {
-    const trimName = name.trim()
-    if (!trimName) { setFormError('Company name is required'); return }
-    const validQueries = queries.map(q => q.trim()).filter(q => q.length >= 3)
-    if (validQueries.length === 0) { setFormError('Add at least one query (3+ characters)'); return }
-    setFormError('')
-    onSubmit(trimName, website.trim(), industry.trim(), validQueries)
-  }
-
-  return (
-    <div style={s.formPage}>
-      <div style={s.formCard}>
-        <div style={s.formCardHeader}>
-          {onCancel && (
-            <button onClick={onCancel} style={s.formCancelBtn}>
-              ← Back
-            </button>
-          )}
-          <p style={s.eyebrow}>{title ? 'Business profile' : 'Welcome'}</p>
-          <h1 style={s.formCardTitle}>{title ?? 'Set up your business'}</h1>
-          <p style={s.formCardSubtitle}>
-            Tell us about your company so we can track how AI platforms mention you.
-          </p>
-        </div>
-
-        <div style={s.formBody}>
-          <div style={s.fieldGroup}>
-            <label style={s.fieldLabel}>
-              Company name <span style={{ color: 'var(--accent)' }}>*</span>
-            </label>
-            <input
-              type="text"
-              placeholder="Acme Inc."
-              value={name}
-              onChange={e => setName(e.target.value)}
-              style={s.input}
-              autoFocus
-            />
-          </div>
-
-          <div style={s.fieldRow}>
-            <div style={s.fieldGroup}>
-              <label style={s.fieldLabel}>
-                Website <span style={s.fieldOptional}>(optional)</span>
-              </label>
-              <input
-                type="url"
-                placeholder="https://example.com"
-                value={website}
-                onChange={e => setWebsite(e.target.value)}
-                style={s.input}
-              />
-            </div>
-            <div style={s.fieldGroup}>
-              <label style={s.fieldLabel}>
-                Industry <span style={s.fieldOptional}>(optional)</span>
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. SaaS, Local Services"
-                value={industry}
-                onChange={e => setIndustry(e.target.value)}
-                style={s.input}
-              />
-            </div>
-          </div>
-
-          <div style={s.fieldGroup}>
-            <label style={s.fieldLabel}>
-              Target queries{' '}
-              <span style={s.fieldOptional}>— what would customers search to find you?</span>
-            </label>
-            <div style={s.queryInputList}>
-              {queries.map((q, i) => (
-                <div key={i} style={s.queryInputRow}>
-                  <span style={s.queryRowNum}>{i + 1}</span>
-                  <input
-                    type="text"
-                    placeholder={`e.g. best ${industry || 'software'} for small business`}
-                    value={q}
-                    onChange={e => updateQuery(i, e.target.value)}
-                    style={{ ...s.input, flex: 1, marginBottom: 0 }}
-                  />
-                  {queries.length > 1 && (
-                    <button onClick={() => removeQuery(i)} style={s.removeBtn}>×</button>
-                  )}
-                </div>
-              ))}
-            </div>
-            {queries.length < 10 && (
-              <button onClick={addQuery} style={s.addBtn}>+ Add another query</button>
-            )}
-          </div>
-
-          {(formError || error) && (
-            <p style={s.formError}>{formError || error}</p>
-          )}
-
-          <GlowCard customSize radius={8} className="!block !p-0 !shadow-none">
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              style={{ ...s.primaryBtn, opacity: isSubmitting ? 0.6 : 1 }}
-            >
-              {isSubmitting ? 'Setting up…' : 'Start monitoring →'}
-            </button>
-          </GlowCard>
-        </div>
-      </div>
-    </div>
   )
 }
 
