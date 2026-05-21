@@ -17,15 +17,21 @@ const realSecret = (label: string, prefixHint?: string) =>
       `${label} still looks like the placeholder from .env.example`
     )
 
-const aiKey = (label: string) =>
+// AI provider keys are intentionally allowed to be left as placeholders —
+// projects often start with one provider and add others later. Coerce any
+// missing/placeholder value to undefined here so the at-least-one refinement
+// below sees an accurate picture, and queryEngine.ts's isRealKey() check
+// continues to gate runtime use.
+const aiKey = () =>
   z
     .string()
-    .min(20, `${label} looks too short to be a real value`)
-    .refine(
-      (v) => !v.includes('REPLACE') && !v.endsWith('...'),
-      `${label} still looks like the placeholder from .env.example`
-    )
     .optional()
+    .transform((v) => {
+      if (!v) return undefined
+      if (v.length < 20) return undefined
+      if (v.includes('REPLACE') || v.endsWith('...')) return undefined
+      return v
+    })
 
 const envSchema = z
   .object({
@@ -73,10 +79,18 @@ const envSchema = z
 
     // AI providers — each is independently optional; refinement below requires
     // at least one to be configured so scans aren't dead on arrival.
-    OPENAI_API_KEY: aiKey('OPENAI_API_KEY'),
-    ANTHROPIC_API_KEY: aiKey('ANTHROPIC_API_KEY'),
-    PERPLEXITY_API_KEY: aiKey('PERPLEXITY_API_KEY'),
-    GEMINI_API_KEY: aiKey('GEMINI_API_KEY'),
+    OPENAI_API_KEY: aiKey(),
+    ANTHROPIC_API_KEY: aiKey(),
+    PERPLEXITY_API_KEY: aiKey(),
+    GEMINI_API_KEY: aiKey(),
+
+    // Sentry — optional; if unset or empty, the SDK no-ops and the app runs
+    // unchanged. Coerce '' to undefined so an empty line in .env doesn't fail.
+    SENTRY_DSN: z
+      .string()
+      .url()
+      .optional()
+      .or(z.literal('').transform(() => undefined)),
   })
   .refine(
     (env) =>

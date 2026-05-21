@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express'
+import * as Sentry from '@sentry/node'
 import Stripe from 'stripe'
 import { requireAuth } from '../middleware/auth.js'
 import { createClient } from '@supabase/supabase-js'
@@ -249,6 +250,9 @@ router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
     )
   } catch (err: any) {
     console.error('Webhook signature verification failed:', err.message)
+    Sentry.captureException(err, {
+      tags: { area: 'stripe_webhook', reason: 'signature_verification' },
+    })
     res.status(400).json({ error: `Webhook error: ${err.message}` })
     return
   }
@@ -272,6 +276,9 @@ router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
       return
     }
     console.error('Failed to record Stripe event for idempotency:', dedupError)
+    Sentry.captureException(new Error(`Stripe webhook idempotency insert failed: ${dedupError.message}`), {
+      tags: { area: 'stripe_webhook', event_id: event.id, event_type: event.type },
+    })
     res.status(500).json({ error: 'Failed to record event' })
     return
   }

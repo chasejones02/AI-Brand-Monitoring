@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Sentry } from './lib/sentry'
 import { AuthProvider, useAuth } from './contexts/auth-context'
 import { LandingPage } from './pages/landing'
 import AuthPage from './pages/auth'
@@ -10,6 +11,45 @@ import AnalyzePage from './pages/analyze'
 import AccountPage from './pages/account'
 import PreviewPage from './pages/preview'
 import { EyeballIntro } from './components/eyeball-intro'
+
+function ErrorFallback({ resetError }: { resetError: () => void }) {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'var(--bg)',
+      color: 'var(--text)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px',
+    }}>
+      <div style={{ maxWidth: '440px', textAlign: 'center' }}>
+        <div style={{ fontFamily: 'Instrument Serif, serif', fontSize: '40px', lineHeight: 1.1, marginBottom: '16px' }}>
+          Something went wrong.
+        </div>
+        <div style={{ color: 'var(--text-muted)', marginBottom: '24px', lineHeight: 1.5 }}>
+          We've been notified and will look into it. Try reloading — if it keeps happening, drop us a line.
+        </div>
+        <button
+          onClick={() => { resetError(); window.location.reload() }}
+          style={{
+            background: 'var(--accent)',
+            color: '#000',
+            border: 'none',
+            padding: '10px 20px',
+            fontFamily: 'inherit',
+            fontSize: '14px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            borderRadius: '4px',
+          }}
+        >
+          Reload page
+        </button>
+      </div>
+    </div>
+  )
+}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth()
@@ -80,11 +120,13 @@ export default function App() {
   }
 
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        {!introShown && <EyeballIntro onComplete={handleIntroComplete} />}
-        <AppRoutes />
-      </AuthProvider>
-    </BrowserRouter>
+    <Sentry.ErrorBoundary fallback={({ resetError }) => <ErrorFallback resetError={resetError} />}>
+      <BrowserRouter>
+        <AuthProvider>
+          {!introShown && <EyeballIntro onComplete={handleIntroComplete} />}
+          <AppRoutes />
+        </AuthProvider>
+      </BrowserRouter>
+    </Sentry.ErrorBoundary>
   )
 }

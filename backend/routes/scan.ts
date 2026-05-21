@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express'
+import * as Sentry from '@sentry/node'
 import { z } from 'zod'
 import { requireAuth } from '../middleware/auth.js'
 import { supabase } from '../services/supabase.js'
@@ -122,9 +123,15 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
   // Return the scan ID immediately so frontend can poll
   res.status(202).json({ data: { scan_id: scanCreate.scan_id }, error: null })
 
-  // Run the scan asynchronously (fire and forget)
+  // Run the scan asynchronously (fire and forget).
+  // The HTTP response has already been sent, so any error here is invisible
+  // to the user — Sentry is the only way we'll know it happened.
   runScan(scanCreate.scan_id, business.name, business.location, queries, isFree).catch(err => {
     console.error(`Scan ${scanCreate.scan_id} failed:`, err)
+    Sentry.captureException(err, {
+      tags: { area: 'scan_runner', scan_id: scanCreate.scan_id },
+      user: { id: userId },
+    })
   })
 })
 
@@ -137,6 +144,10 @@ async function runScan(
 ) {
   const timeout = setTimeout(async () => {
     console.error(`Scan ${scanId} timed out after 5 minutes`)
+    Sentry.captureMessage(`Scan timed out after 5 minutes`, {
+      level: 'warning',
+      tags: { area: 'scan_runner', scan_id: scanId, reason: 'timeout' },
+    })
     await supabase
       .from('scans')
       .update({ status: 'failed', completed_at: new Date().toISOString() })
@@ -241,6 +252,10 @@ async function runScan(
     console.log(`[scan ${scanId}] generated ${recommendations.length} recommendations`)
   } catch (err) {
     console.error(`[scan ${scanId}] recommendation generation failed (non-fatal):`, err)
+    Sentry.captureException(err, {
+      level: 'warning',
+      tags: { area: 'recommendation_engine', scan_id: scanId },
+    })
   }
 
   // Mark scan complete
@@ -257,6 +272,9 @@ async function runScan(
   } catch (err) {
     clearTimeout(timeout)
     console.error(`Scan ${scanId} unhandled error:`, err)
+    Sentry.captureException(err, {
+      tags: { area: 'scan_runner', scan_id: scanId },
+    })
     await supabase
       .from('scans')
       .update({ status: 'failed', completed_at: new Date().toISOString() })

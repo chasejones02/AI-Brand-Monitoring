@@ -4,6 +4,11 @@
 // exits the process with a friendly message if anything is misconfigured.
 import { env } from './config/env.js'
 
+// Sentry init must happen before any module it instruments (express, http).
+// Loaded immediately after env validation since it depends on SENTRY_DSN.
+import './instrument.js'
+import * as Sentry from '@sentry/node'
+
 import express from 'express'
 import cors from 'cors'
 import scanRouter from './routes/scan.js'
@@ -53,10 +58,15 @@ app.use('/api/quota', quotaRouter)
 // (list/create) and /tracking-sets/:setId (update/delete) cleanly.
 app.use('/api', trackingSetsRouter)
 
-// 404 handler
+// 404 handler — regular middleware, intercepts unmatched routes
 app.use((_req, res) => {
   res.status(404).json({ data: null, error: 'Not found' })
 })
+
+// Sentry error handler — must come after routes, before any custom error
+// middleware. No-ops when SENTRY_DSN is unset. Captures any error thrown
+// from a route handler and reports it before responding.
+Sentry.setupExpressErrorHandler(app)
 
 // Reap orphaned scans — any scan still in pending/running state when the
 // server starts was interrupted by a previous crash/restart. Mark as failed

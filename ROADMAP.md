@@ -117,7 +117,7 @@ The core loop (sign up -> business entry -> scan -> results -> pay) works end-to
 
 - [x] **Rate limiting** - `express-rate-limit` applied: global 100/min floodwall on `/api/*` (skips Stripe webhook), 5/min on `/api/scan`, 10/min on `/api/stripe/create-checkout`. `trust proxy` set to 1 for Railway/Render/Vercel.
 - [x] **Startup env validation** - Zod schema in `backend/config/env.ts` validates all env vars at module-init time. Exits with a per-field error list if anything is missing, malformed, or still set to a `.env.example` placeholder. Enforces Stripe key prefixes (`sk_test_`/`sk_live_`, `whsec_`, `price_`) and requires at least one AI provider key. Warns when `NODE_ENV=production` is paired with test Stripe key or localhost frontend URL.
-- [ ] **Error tracking** - Add Sentry (free tier) so broken scans in production are visible.
+- [x] **Error tracking** - Sentry wired via `backend/instrument.ts` (loads after env validation, before any instrumented module). Express error handler mounted, manual `captureException` calls added to the silent-failure spots: background `runScan` rejection, scan timeout, recommendation engine failure, Stripe webhook signature/idempotency errors. `beforeSend` scrubs request bodies, auth/cookie headers, and user emails. `SENTRY_DSN` is optional — SDK no-ops when unset.
 
 ---
 
