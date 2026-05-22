@@ -26,9 +26,22 @@ const gemini = process.env.GEMINI_API_KEY
 
 export type Platform = 'openai' | 'anthropic' | 'perplexity' | 'gemini'
 
+export type Citation = {
+  uri: string
+  title: string | null
+}
+
+export type UsageMetrics = {
+  input_tokens: number
+  output_tokens: number
+  search_calls: number
+}
+
 export type QueryResult = {
   platform: Platform
   raw_response: string
+  citations?: Citation[]
+  usage?: UsageMetrics
   error?: string
 }
 
@@ -36,17 +49,54 @@ export type QueryContext = {
   location?: string | null
 }
 
-async function queryOpenAI(prompt: string): Promise<string> {
+// Live web search via Responses API + web_search tool. gpt-4.1-mini balances
+// cost and quality for "list businesses in X" style prompts — gpt-5.5 ran
+// ~$0.84/scan in early testing because it's agentic (multiple searches per
+// query) and pricey per token. If we see quality regress, step up to
+// 'gpt-4.1'. search_context_size: 'low' caps the hidden search-context tokens.
+const OPENAI_MODEL = 'gpt-4.1-mini'
+
+async function queryOpenAI(prompt: string): Promise<{ text: string; citations: Citation[]; usage: UsageMetrics }> {
   if (!openai) throw new Error('OpenAI API key not configured')
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [{ role: 'user', content: prompt }],
-    max_tokens: 500,
-    temperature: 0.7,
+  const response = await openai.responses.create({
+    model: OPENAI_MODEL,
+    tools: [{ type: 'web_search', search_context_size: 'low' }],
+    input: prompt,
   })
 
-  return response.choices[0]?.message?.content ?? ''
+  const text = response.output_text ?? ''
+
+  const seen = new Set<string>()
+  const citations: Citation[] = []
+  let search_calls = 0
+  for (const item of response.output ?? []) {
+    if (item.type === 'web_search_call') {
+      search_calls += 1
+      continue
+    }
+    if (item.type !== 'message') continue
+    for (const content of item.content ?? []) {
+      if (content.type !== 'output_text') continue
+      for (const ann of content.annotations ?? []) {
+        if (ann.type !== 'url_citation') continue
+        if (seen.has(ann.url)) continue
+        seen.add(ann.url)
+        citations.push({ uri: ann.url, title: ann.title || null })
+        if (citations.length >= 10) break
+      }
+    }
+  }
+
+  return {
+    text,
+    citations,
+    usage: {
+      input_tokens: response.usage?.input_tokens ?? 0,
+      output_tokens: response.usage?.output_tokens ?? 0,
+      search_calls,
+    },
+  }
 }
 
 const US_STATE_NAMES: Record<string, string> = {
@@ -117,7 +167,7 @@ function parseUserLocation(location?: string | null) {
   }
 }
 
-async function queryPerplexity(prompt: string, context?: QueryContext): Promise<string> {
+async function queryPerplexity(prompt: string, context?: QueryContext): Promise<{ text: string; usage: UsageMetrics }> {
   if (!perplexity) throw new Error('Perplexity API key not configured')
 
   const userLocation = parseUserLocation(context?.location)
@@ -147,10 +197,18 @@ async function queryPerplexity(prompt: string, context?: QueryContext): Promise<
     ...(request as any),
   } as any)
 
-  return response.choices[0]?.message?.content ?? ''
+  // Perplexity bills per request (search built into model), so search_calls = 1.
+  return {
+    text: response.choices[0]?.message?.content ?? '',
+    usage: {
+      input_tokens: response.usage?.prompt_tokens ?? 0,
+      output_tokens: response.usage?.completion_tokens ?? 0,
+      search_calls: 1,
+    },
+  }
 }
 
-async function queryAnthropic(prompt: string): Promise<string> {
+async function queryAnthropic(prompt: string): Promise<{ text: string; usage: UsageMetrics }> {
   if (!anthropic) throw new Error('Anthropic API key not configured')
 
   const response = await anthropic.messages.create({
@@ -160,23 +218,61 @@ async function queryAnthropic(prompt: string): Promise<string> {
   })
 
   const block = response.content[0]
-  if (block.type !== 'text') return ''
-  return block.text
+  const text = block?.type === 'text' ? block.text : ''
+  return {
+    text,
+    usage: {
+      input_tokens: response.usage?.input_tokens ?? 0,
+      output_tokens: response.usage?.output_tokens ?? 0,
+      search_calls: 0,
+    },
+  }
 }
 
-async function queryGemini(prompt: string): Promise<string> {
+async function queryGemini(prompt: string): Promise<{ text: string; citations: Citation[]; usage: UsageMetrics }> {
   if (!gemini) throw new Error('Gemini API key not configured')
 
+  // Grounding with Google Search — Gemini issues live web queries before
+  // synthesizing, which is essential for surfacing small/local businesses
+  // that aren't in the training data. Free tier: 1,500 grounded RPD shared
+  // across the 2.5 family; paid overage is $35 per 1k grounded prompts.
+  // 2.5 bills per grounded prompt, not per query, so search_calls is 0 or 1.
   const response = await gemini.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-flash',
     contents: prompt,
     config: {
-      maxOutputTokens: 500,
+      tools: [{ googleSearch: {} }],
+      maxOutputTokens: 1024,
       temperature: 0.7,
     },
   })
 
-  return response.text ?? ''
+  const text = response.text ?? ''
+  const groundingMetadata: any = response.candidates?.[0]?.groundingMetadata
+  const chunks: any[] = Array.isArray(groundingMetadata?.groundingChunks)
+    ? groundingMetadata.groundingChunks
+    : []
+
+  const seen = new Set<string>()
+  const citations: Citation[] = []
+  for (const chunk of chunks) {
+    const uri = chunk?.web?.uri
+    if (typeof uri !== 'string' || !uri || seen.has(uri)) continue
+    seen.add(uri)
+    const title = typeof chunk?.web?.title === 'string' ? chunk.web.title : null
+    citations.push({ uri, title })
+    if (citations.length >= 10) break
+  }
+
+  return {
+    text,
+    citations,
+    usage: {
+      input_tokens: response.usageMetadata?.promptTokenCount ?? 0,
+      output_tokens: response.usageMetadata?.candidatesTokenCount ?? 0,
+      search_calls: groundingMetadata ? 1 : 0,
+    },
+  }
 }
 
 // Send the user's query as-is — adding extra instructions changes how the AI responds
@@ -195,17 +291,17 @@ export async function runQueryOnPlatforms(
   const results = await Promise.allSettled(
     platforms.map(async (platform): Promise<QueryResult> => {
       if (platform === 'openai') {
-        const raw_response = await queryOpenAI(prompt)
-        return { platform, raw_response }
+        const { text, citations, usage } = await queryOpenAI(prompt)
+        return { platform, raw_response: text, citations, usage }
       } else if (platform === 'anthropic') {
-        const raw_response = await queryAnthropic(prompt)
-        return { platform, raw_response }
+        const { text, usage } = await queryAnthropic(prompt)
+        return { platform, raw_response: text, usage }
       } else if (platform === 'perplexity') {
-        const raw_response = await queryPerplexity(prompt, context)
-        return { platform, raw_response }
+        const { text, usage } = await queryPerplexity(prompt, context)
+        return { platform, raw_response: text, usage }
       } else if (platform === 'gemini') {
-        const raw_response = await queryGemini(prompt)
-        return { platform, raw_response }
+        const { text, citations, usage } = await queryGemini(prompt)
+        return { platform, raw_response: text, citations, usage }
       }
       throw new Error(`Unknown platform: ${platform}`)
     })

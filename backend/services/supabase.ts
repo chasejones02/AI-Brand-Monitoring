@@ -81,6 +81,11 @@ export const TIER_BUSINESS_LIMITS: Record<string, number> = {
   agency: 10,
 }
 
+export type ScanResultCitation = {
+  uri: string
+  title: string | null
+}
+
 export type ScanResult = {
   id: string
   scan_id: string
@@ -92,6 +97,7 @@ export type ScanResult = {
   sentiment: 'positive' | 'neutral' | 'negative' | null
   competitors_mentioned: string[]
   variant_used: string | null
+  citations: ScanResultCitation[] | null
   mention_score: number
   position_score: number
   sentiment_score: number

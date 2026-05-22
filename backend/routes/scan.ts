@@ -3,9 +3,10 @@ import * as Sentry from '@sentry/node'
 import { z } from 'zod'
 import { requireAuth } from '../middleware/auth.js'
 import { supabase } from '../services/supabase.js'
-import { runQueryOnPlatforms, getAvailablePlatforms, analyzeMention } from '../services/queryEngine.js'
+import { runQueryOnPlatforms, getAvailablePlatforms, analyzeMention, type Platform, type UsageMetrics } from '../services/queryEngine.js'
 import { scoreResult, calculateVisibilityScore } from '../services/scorer.js'
 import { generateRecommendations } from '../services/recommendationEngine.js'
+import { formatCostLine, type ScanUsage } from '../services/scanCost.js'
 
 const router = Router()
 
@@ -177,6 +178,7 @@ async function runScan(
 
   const allResults: any[] = []
   const platformErrors: Record<string, string> = {}
+  const usageByPlatform: ScanUsage = {}
 
   for (const query of queries) {
     const platformResults = await runQueryOnPlatforms(query.query_text, platforms, {
@@ -184,6 +186,19 @@ async function runScan(
     })
 
     for (const pr of platformResults) {
+      if (pr.usage) {
+        const existing: UsageMetrics = usageByPlatform[pr.platform as Platform] ?? {
+          input_tokens: 0,
+          output_tokens: 0,
+          search_calls: 0,
+        }
+        usageByPlatform[pr.platform as Platform] = {
+          input_tokens: existing.input_tokens + pr.usage.input_tokens,
+          output_tokens: existing.output_tokens + pr.usage.output_tokens,
+          search_calls: existing.search_calls + pr.usage.search_calls,
+        }
+      }
+
       if (pr.error) {
         console.warn(`Platform ${pr.platform} error for query ${query.id}:`, pr.error)
         platformErrors[pr.platform] = pr.error
@@ -215,6 +230,7 @@ async function runScan(
         sentiment: analysis.sentiment,
         competitors_mentioned: analysis.competitors_mentioned,
         variant_used: analysis.variant_used ?? null,
+        citations: pr.citations && pr.citations.length > 0 ? pr.citations : null,
         ...scores,
       })
     }
@@ -260,12 +276,17 @@ async function runScan(
 
   // Mark scan complete
   clearTimeout(timeout)
+  const hasUsage = Object.keys(usageByPlatform).length > 0
+  if (hasUsage) {
+    console.log(`[scan ${scanId}] estimated cost: ${formatCostLine(usageByPlatform)}`)
+  }
   await supabase
     .from('scans')
     .update({
       status: 'completed',
       visibility_score,
       recommendations: recommendations.length > 0 ? recommendations : null,
+      usage_metrics: hasUsage ? usageByPlatform : null,
       completed_at: new Date().toISOString(),
     })
     .eq('id', scanId)

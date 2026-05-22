@@ -2,14 +2,37 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 
 // Shared types — must match the shape used by the dashboard's ScanData.
+interface Citation {
+  uri: string
+  title: string | null
+}
+
 interface PlatformResult {
   mentioned: boolean
   mention_position: number | null
   sentiment: 'positive' | 'neutral' | 'negative' | null
   competitors_mentioned: string[]
   variant_used: string | null
+  citations: Citation[] | null
   raw_response: string | null
   scores: { mention: number; position: number; sentiment: number; total: number; max: number }
+}
+
+// Per Google's Grounding ToS, each platform's citation strip must say where
+// the sources came from. OpenAI's docs also require inline citations be
+// "clearly visible and clickable" when web_search is used. Claude grounding
+// will land here later with its own attribution.
+const CITATION_ATTRIBUTION: Record<string, string> = {
+  gemini: 'Sources via Google Search',
+  openai: 'Sources cited by ChatGPT',
+}
+
+function hostFromUri(uri: string): string {
+  try {
+    return new URL(uri).hostname.replace(/^www\./, '')
+  } catch {
+    return uri
+  }
 }
 
 export interface QueryResultLike {
@@ -195,6 +218,56 @@ export function QueryAccordion({ result, index, platforms, defaultOpen = false, 
                 </div>
               </div>
             ) : null
+          })()}
+
+          {(() => {
+            const platformsWithCitations = platforms
+              .map(p => ({
+                platform: p,
+                citations: result.platforms[p]?.citations ?? null,
+              }))
+              .filter(({ citations }) => Array.isArray(citations) && citations.length > 0) as {
+              platform: string
+              citations: Citation[]
+            }[]
+            if (platformsWithCitations.length === 0) return null
+            return (
+              <div style={styles.sources}>
+                {platformsWithCitations.map(({ platform, citations }) => (
+                  <div key={platform} style={styles.sourcesGroup}>
+                    <span style={styles.scoreMathLabel}>
+                      {CITATION_ATTRIBUTION[platform] ?? `Sources cited by ${PLATFORM_LABELS[platform] ?? platform}`}
+                    </span>
+                    <div style={styles.sourcesList}>
+                      {citations.slice(0, 8).map(c => (
+                        <a
+                          key={c.uri}
+                          href={c.uri}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={styles.sourceLink}
+                          title={c.title ?? c.uri}
+                        >
+                          <span
+                            style={{
+                              width: '5px',
+                              height: '5px',
+                              borderRadius: '50%',
+                              background: PLATFORM_COLORS[platform] ?? 'var(--text-muted)',
+                              flexShrink: 0,
+                            }}
+                          />
+                          <span style={styles.sourceHost}>{hostFromUri(c.uri)}</span>
+                          {c.title && (
+                            <span style={styles.sourceTitle}>{c.title}</span>
+                          )}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
           })()}
 
           {anyMentioned && (
@@ -536,5 +609,47 @@ const styles: Record<string, React.CSSProperties> = {
     fontFamily: "'JetBrains Mono', monospace",
     fontSize: '0.82rem',
     color: 'var(--text-muted)',
+  },
+  sources: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.65rem',
+  },
+  sourcesGroup: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.4rem',
+  },
+  sourcesList: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.25rem',
+  },
+  sourceLink: {
+    display: 'inline-flex',
+    alignItems: 'baseline',
+    gap: '0.45rem',
+    padding: '0.25rem 0.5rem',
+    background: 'rgba(255,255,255,0.018)',
+    border: '1px solid var(--border-dim)',
+    borderRadius: '6px',
+    fontSize: '0.78rem',
+    color: 'var(--text-muted)',
+    textDecoration: 'none',
+    transition: 'border-color 0.15s, background 0.15s',
+    overflow: 'hidden',
+  },
+  sourceHost: {
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: '0.74rem',
+    color: 'var(--text)',
+    fontWeight: 600,
+    flexShrink: 0,
+  },
+  sourceTitle: {
+    color: 'var(--text-muted)',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap' as const,
   },
 }

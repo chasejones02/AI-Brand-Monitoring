@@ -42,12 +42,18 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+interface Citation {
+  uri: string
+  title: string | null
+}
+
 interface PlatformResult {
   mentioned: boolean
   mention_position: number | null
   sentiment: 'positive' | 'neutral' | 'negative' | null
   competitors_mentioned: string[]
   variant_used: string | null
+  citations: Citation[] | null
   raw_response: string | null
   scores: { mention: number; position: number; sentiment: number; total: number; max: number }
 }
