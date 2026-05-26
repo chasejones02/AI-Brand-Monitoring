@@ -85,6 +85,7 @@ export interface Recommendation {
   priority: number
   title: string
   body: string | null
+  evidence: string | null
   impact: 'high' | 'medium' | 'low'
   platform: 'all' | 'perplexity' | 'openai' | 'anthropic' | 'gemini'
   locked?: boolean
@@ -194,6 +195,9 @@ export default function DashboardPage() {
   const [scan, setScan] = useState<ScanData | null>(null)
   const [scanError, setScanError] = useState('')
   const [pollCount, setPollCount] = useState(0)
+  // Recommendations land asynchronously after the scan is marked complete, so
+  // we keep polling for a short window once status flips to 'completed'.
+  const [recsPollCount, setRecsPollCount] = useState(0)
   const [globalError, setGlobalError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [quota, setQuota] = useState<QuotaStatus | null>(null)
@@ -283,13 +287,23 @@ export default function DashboardPage() {
   }, [activeBusiness, activeSetId, trendsRefreshKey])
 
   const MAX_POLLS = 120 // ~6 minutes at 3s intervals — defense-in-depth beyond backend timeout
+  const MAX_RECS_POLLS = 40 // ~2 minutes of post-completion polling while we wait on gpt-5 recommendations
   const isTerminalStatus = scan?.status === 'completed' || scan?.status === 'failed'
+  // After the scan completes, recommendations are generated asynchronously by
+  // a fire-and-forget gpt-5 call. Keep polling until they land or we hit the cap.
+  const isWaitingForRecs = !!(
+    scan?.status === 'completed' &&
+    (!scan.recommendations || scan.recommendations.length === 0) &&
+    recsPollCount < MAX_RECS_POLLS
+  )
   const isRunning = !!(
     activeScanId &&
     !scanError &&
-    !isTerminalStatus &&
-    pollCount < MAX_POLLS &&
-    (!scan || scan.status === 'pending' || scan.status === 'running')
+    (
+      (!isTerminalStatus && pollCount < MAX_POLLS &&
+        (!scan || scan.status === 'pending' || scan.status === 'running')) ||
+      isWaitingForRecs
+    )
   )
   const pollTimedOut = !!(activeScanId && !isTerminalStatus && !scanError && pollCount >= MAX_POLLS)
 
@@ -377,6 +391,7 @@ export default function DashboardPage() {
     setScan(null)
     setScanError('')
     setPollCount(0)
+    setRecsPollCount(0)
     fetchScan(activeScanId)
   }, [activeScanId, fetchScan])
 
@@ -384,10 +399,14 @@ export default function DashboardPage() {
     if (!isRunning || !activeScanId) return
     const timer = setTimeout(() => {
       fetchScan(activeScanId)
-      setPollCount(c => c + 1)
+      if (isWaitingForRecs) {
+        setRecsPollCount(c => c + 1)
+      } else {
+        setPollCount(c => c + 1)
+      }
     }, 3000)
     return () => clearTimeout(timer)
-  }, [isRunning, pollCount, activeScanId, fetchScan])
+  }, [isRunning, isWaitingForRecs, pollCount, recsPollCount, activeScanId, fetchScan])
 
   // ── Business change ────────────────────────────────────────────────────────
   async function handleBusinessChange(bizId: string) {

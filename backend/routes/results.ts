@@ -19,7 +19,7 @@ function gateRecommendations(recs: Recommendation[], tier: string) {
   const limit = TIER_REC_LIMITS[tier] ?? 1
   return recs.map(r => r.priority <= limit
     ? r
-    : { priority: r.priority, title: r.title, body: null, impact: r.impact, platform: r.platform, locked: true }
+    : { priority: r.priority, title: r.title, body: null, evidence: null, impact: r.impact, platform: r.platform, locked: true }
   )
 }
 

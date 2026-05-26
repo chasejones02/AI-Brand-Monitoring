@@ -105,7 +105,15 @@ export function RecommendationsPanel({ recommendations, tier }: RecommendationsP
                     </div>
                   </div>
                 ) : (
-                  <p style={s.cardDesc}>{rec.body}</p>
+                  <>
+                    <p style={s.cardDesc}>{rec.body}</p>
+                    {rec.evidence && (
+                      <div style={s.evidenceBlock}>
+                        <span style={s.evidenceLabel}>Because</span>
+                        <p style={s.evidenceText}>{rec.evidence}</p>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -255,6 +263,29 @@ const s: Record<string, React.CSSProperties> = {
     fontSize: '0.875rem',
     color: 'var(--text-muted)',
     lineHeight: 1.65,
+  },
+  evidenceBlock: {
+    marginTop: '0.35rem',
+    paddingLeft: '0.75rem',
+    borderLeft: '2px solid rgba(240,165,0,0.35)',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.2rem',
+  },
+  evidenceLabel: {
+    fontSize: '0.6rem',
+    fontWeight: 700,
+    letterSpacing: '0.14em',
+    textTransform: 'uppercase' as const,
+    color: 'var(--accent)',
+    fontFamily: "'JetBrains Mono', monospace",
+  },
+  evidenceText: {
+    margin: 0,
+    fontSize: '0.8rem',
+    color: 'var(--text-dim)',
+    lineHeight: 1.6,
+    fontStyle: 'italic' as const,
   },
   lockedBody: {
     padding: '0.25rem 0',

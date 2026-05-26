@@ -253,28 +253,10 @@ async function runScan(
   // Calculate overall visibility score
   const visibility_score = calculateVisibilityScore(allResults)
 
-  // Generate recommendations (non-fatal — scan completes even if this fails)
-  let recommendations: object[] = []
-  try {
-    const recInputs = allResults.map(r => ({
-      query_text: queries.find(q => q.id === r.query_id)?.query_text ?? '',
-      platform: r.platform,
-      mentioned: r.mentioned,
-      mention_position: r.mention_position,
-      sentiment: r.sentiment,
-      competitors_mentioned: r.competitors_mentioned ?? [],
-    }))
-    recommendations = await generateRecommendations(businessName, recInputs, visibility_score)
-    console.log(`[scan ${scanId}] generated ${recommendations.length} recommendations`)
-  } catch (err) {
-    console.error(`[scan ${scanId}] recommendation generation failed (non-fatal):`, err)
-    Sentry.captureException(err, {
-      level: 'warning',
-      tags: { area: 'recommendation_engine', scan_id: scanId },
-    })
-  }
-
-  // Mark scan complete
+  // Mark scan complete BEFORE generating recommendations. gpt-5 is a reasoning
+  // model and the recommendation call can take 30-90+ seconds; blocking the
+  // scan on it caused the 5-minute timeout to fire. The frontend polls every
+  // 3s and will pick up recommendations whenever they land.
   clearTimeout(timeout)
   const hasUsage = Object.keys(usageByPlatform).length > 0
   if (hasUsage) {
@@ -285,11 +267,38 @@ async function runScan(
     .update({
       status: 'completed',
       visibility_score,
-      recommendations: recommendations.length > 0 ? recommendations : null,
       usage_metrics: hasUsage ? usageByPlatform : null,
       completed_at: new Date().toISOString(),
     })
     .eq('id', scanId)
+
+  // Fire-and-forget: generate recommendations in the background and patch the
+  // row when ready. Non-fatal — if it fails, the scan is still considered done.
+  const recInputs = allResults.map(r => ({
+    query_text: queries.find(q => q.id === r.query_id)?.query_text ?? '',
+    platform: r.platform,
+    mentioned: r.mentioned,
+    mention_position: r.mention_position,
+    sentiment: r.sentiment,
+    competitors_mentioned: r.competitors_mentioned ?? [],
+    raw_response: r.raw_response ?? null,
+  }))
+  generateRecommendations(businessName, recInputs, visibility_score)
+    .then(async recs => {
+      if (recs.length === 0) return
+      console.log(`[scan ${scanId}] generated ${recs.length} recommendations`)
+      await supabase
+        .from('scans')
+        .update({ recommendations: recs })
+        .eq('id', scanId)
+    })
+    .catch(err => {
+      console.error(`[scan ${scanId}] recommendation generation failed (non-fatal):`, err)
+      Sentry.captureException(err, {
+        level: 'warning',
+        tags: { area: 'recommendation_engine', scan_id: scanId },
+      })
+    })
   } catch (err) {
     clearTimeout(timeout)
     console.error(`Scan ${scanId} unhandled error:`, err)
