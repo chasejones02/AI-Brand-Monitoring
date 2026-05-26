@@ -35,9 +35,21 @@ function locationAnchor(location: string): string {
   return location.split(',')[0]?.trim().toLowerCase() || location.trim().toLowerCase()
 }
 
+function locationState(location: string): string {
+  return location.split(',')[1]?.trim().toLowerCase() || ''
+}
+
+// A query is considered location-valid only if it mentions BOTH the city
+// and the state. Many town names repeat across states (Brookings exists in
+// SD, OR, etc.), and without the state the AI platform can return results
+// from the wrong town entirely.
 function includesLocation(query: string, location: string): boolean {
   const anchor = locationAnchor(location)
-  return anchor.length > 0 && query.toLowerCase().includes(anchor)
+  const state = locationState(location)
+  const q = query.toLowerCase()
+  if (!anchor || !q.includes(anchor)) return false
+  if (!state) return true
+  return q.includes(state)
 }
 
 function includesBusinessName(query: string, businessName: string): boolean {
@@ -203,7 +215,7 @@ STEP 2 — Generate ${count} DIFFERENT customer searches. Think about how a real
 
 Hard rules — non-negotiable:
 - The business name "${name}" MUST NOT appear in any query.
-- Every query MUST include the city: "${locationAnchor(location)}".
+- Every query MUST include BOTH the city AND the state from this location: "${location}". Write both pieces in each query (e.g. "best burgers in ${locationAnchor(location)}, ${locationState(location) || 'STATE'}"). Many towns share names across states — without the state the AI returns results from the wrong town.
 - Do not duplicate the location or restate trivia from the description (e.g. "on main street").
 
 Variety rules — this is where the queries actually become useful:

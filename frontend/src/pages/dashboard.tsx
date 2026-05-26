@@ -723,6 +723,7 @@ export default function DashboardPage() {
             onNewScan={handleRunScan}
             onRetry={handleRunScan}
             isRetrying={isSubmitting}
+            tier={tier}
           />
           {activeBusiness && scan?.status === 'completed' && scanHistory.length > 0 && (
             <div style={s.content}>
@@ -973,6 +974,7 @@ function ScanResultsView({
   onNewScan,
   onRetry,
   isRetrying,
+  tier,
 }: {
   scan: ScanData | null
   scanError: string
@@ -983,6 +985,7 @@ function ScanResultsView({
   onNewScan: () => void
   onRetry: () => void
   isRetrying: boolean
+  tier: 'free' | 'starter' | 'growth' | 'agency'
 }) {
   if (scanError) {
     const lower = scanError.toLowerCase()
@@ -1078,7 +1081,7 @@ function ScanResultsView({
         </div>
         <h2 style={s.runningTitle}>Scanning AI platforms…</h2>
         <p style={s.runningText}>
-          Querying the available scan platform for{' '}
+          Querying {tier === 'free' ? 'Perplexity' : 'ChatGPT, Gemini, Claude, and Perplexity'} for{' '}
           <strong style={{ color: 'var(--text)' }}>
             {scan?.business_name ?? 'your business'}
           </strong>
@@ -1086,7 +1089,7 @@ function ScanResultsView({
           This usually takes 15–60 seconds.
         </p>
         <div style={s.platformPills}>
-          {['Perplexity'].map(p => (
+          {(tier === 'free' ? ['Perplexity'] : ['ChatGPT', 'Gemini', 'Claude', 'Perplexity']).map(p => (
             <span key={p} style={s.platformPillRunning}>
               <span style={s.platformDot} />
               {p}
