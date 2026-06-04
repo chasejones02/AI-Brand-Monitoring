@@ -169,8 +169,41 @@ router.post('/verify-session', requireAuth, async (req: Request, res: Response):
   }
 })
 
+// Map a Stripe subscription status to the four states the app tracks. Stripe
+// has more granular statuses ('trialing', 'unpaid', 'incomplete', etc.) than we
+// surface, so collapse them here.
+function mapStripeStatus(status: Stripe.Subscription.Status): 'free' | 'active' | 'canceled' | 'past_due' {
+  switch (status) {
+    case 'active':
+    case 'trialing':
+      return 'active'
+    case 'past_due':
+    case 'unpaid':
+      return 'past_due'
+    case 'canceled':
+    case 'incomplete_expired':
+      return 'canceled'
+    default:
+      // 'incomplete' / 'paused' — treat as not-yet-entitled.
+      return 'free'
+  }
+}
+
+// Pick the subscription that best represents the customer's entitlement: prefer
+// a live one (active/trialing/past_due), else fall back to the most recent.
+function pickRelevantSubscription(subs: Stripe.Subscription[]): Stripe.Subscription | null {
+  if (subs.length === 0) return null
+  const live = subs.find(s => ['active', 'trialing', 'past_due', 'unpaid'].includes(s.status))
+  if (live) return live
+  return [...subs].sort((a, b) => b.created - a.created)[0]
+}
+
 // GET /api/stripe/subscription
-// Returns the current user's subscription tier and status from their profile.
+// Returns the current user's subscription tier and status. The profile columns
+// are a cache that drifts whenever a webhook is missed (local dev without
+// `stripe listen`, transient delivery failures). To keep the account page
+// honest, we reconcile against Stripe as the source of truth whenever the user
+// has a Stripe customer, and self-heal the cached profile if it drifted.
 router.get('/subscription', requireAuth, async (req: Request, res: Response): Promise<void> => {
   const userId = req.userId!
 
@@ -191,11 +224,49 @@ router.get('/subscription', requireAuth, async (req: Request, res: Response): Pr
       return
     }
 
+    let status: string = profile.subscription_status ?? 'free'
+    let tier: string = profile.subscription_tier ?? 'free'
+    const customerId: string | null = profile.stripe_customer_id ?? null
+
+    if (customerId) {
+      try {
+        const subs = await stripe.subscriptions.list({
+          customer: customerId,
+          status: 'all',
+          limit: 10,
+        })
+        const relevant = pickRelevantSubscription(subs.data)
+        if (relevant) {
+          const liveStatus = mapStripeStatus(relevant.status)
+          const priceId = relevant.items?.data?.[0]?.price?.id
+          const liveTier =
+            liveStatus === 'canceled'
+              ? 'free'
+              : (priceId && PRICE_TO_TIER[priceId]) || tier
+
+          // Self-heal the cache when Stripe disagrees, so the rest of the app
+          // (quota, scan gating) sees the corrected entitlement too.
+          if (liveStatus !== status || liveTier !== tier) {
+            await supabase
+              .from('profiles')
+              .update({ subscription_status: liveStatus, subscription_tier: liveTier })
+              .eq('id', userId)
+          }
+          status = liveStatus
+          tier = liveTier
+        }
+      } catch (stripeErr) {
+        // Stripe lookup failed — fall back to the cached profile values rather
+        // than failing the whole request.
+        console.warn('Stripe subscription reconcile failed, using cached profile:', stripeErr)
+      }
+    }
+
     res.json({
       data: {
-        status: profile.subscription_status ?? 'free',
-        tier: profile.subscription_tier ?? 'free',
-        has_customer: !!profile.stripe_customer_id,
+        status,
+        tier,
+        has_customer: !!customerId,
       },
       error: null,
     })

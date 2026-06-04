@@ -102,16 +102,22 @@ export default function AccountPage() {
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([getSubscription(), getQuota()])
-      .then(([s, q]) => {
+    // Fetch independently — a quota failure must NOT hide the plan. Using
+    // Promise.all here previously meant any quota error rejected the whole
+    // load, leaving `sub` null and rendering an active subscriber as "Free".
+    Promise.allSettled([getSubscription(), getQuota()])
+      .then(([subRes, quotaRes]) => {
         if (cancelled) return
-        setSub(s)
-        setQuota(q)
-        setLoading(false)
-      })
-      .catch(err => {
-        if (cancelled) return
-        setError(err.message ?? 'Failed to load account')
+        if (subRes.status === 'fulfilled') {
+          setSub(subRes.value)
+        } else {
+          // Only the subscription is essential to this page — surface its error.
+          setError(subRes.reason?.message ?? 'Failed to load subscription')
+        }
+        if (quotaRes.status === 'fulfilled') {
+          setQuota(quotaRes.value)
+        }
+        // Quota failures are non-fatal: the usage card simply hides.
         setLoading(false)
       })
     return () => { cancelled = true }

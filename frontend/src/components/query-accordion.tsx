@@ -74,9 +74,15 @@ function scoreColor(score: number): string {
 }
 
 function sentimentIcon(sentiment: string | null) {
-  if (sentiment === 'positive') return { symbol: '↑', color: 'var(--green)' }
-  if (sentiment === 'negative') return { symbol: '↓', color: 'var(--red)' }
-  return { symbol: '→', color: 'var(--text-muted)' }
+  if (sentiment === 'positive') return { symbol: '↑', label: 'Positive', color: 'var(--green)' }
+  if (sentiment === 'negative') return { symbol: '↓', label: 'Negative', color: 'var(--red)' }
+  return { symbol: '→', label: 'Neutral', color: 'var(--text-muted)' }
+}
+
+// Sentiment points carry a sign (+3 / +1 / −2). Render the minus as a true
+// minus glyph so it lines up with the rest of the monospace numbers.
+function formatSentimentPts(pts: number): string {
+  return pts < 0 ? `−${Math.abs(pts)}` : `+${pts}`
 }
 
 // Collapsed by default. Tap header to expand. Shows full per-platform
@@ -84,6 +90,7 @@ function sentimentIcon(sentiment: string | null) {
 // replacement for the old QueryRow + separate "Query Breakdown" section.
 export function QueryAccordion({ result, index, platforms, defaultOpen = false, glowWrapped = false, isFreeScan = false }: QueryAccordionProps) {
   const [open, setOpen] = useState(defaultOpen)
+  const [showSources, setShowSources] = useState(false)
 
   const componentScore = (key: 'mention' | 'position' | 'sentiment') =>
     platforms.reduce((sum, p) => sum + (result.platforms[p]?.scores[key] ?? 0), 0)
@@ -159,7 +166,7 @@ export function QueryAccordion({ result, index, platforms, defaultOpen = false, 
               const label = PLATFORM_LABELS[platform] ?? platform
               const color = PLATFORM_COLORS[platform] ?? 'var(--text-muted)'
               const mentioned = !!pr?.mentioned
-              const { symbol, color: sentColor } = sentimentIcon(pr?.sentiment ?? null)
+              const { symbol, label: sentLabel, color: sentColor } = sentimentIcon(pr?.sentiment ?? null)
               return (
                 <div
                   key={platform}
@@ -184,15 +191,12 @@ export function QueryAccordion({ result, index, platforms, defaultOpen = false, 
                     <span style={styles.platformPos}>#{pr.mention_position}</span>
                   )}
                   {mentioned && (
-                    <span
-                      style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: '0.85rem',
-                        fontWeight: 700,
-                        color: sentColor,
-                      }}
-                    >
-                      {symbol}
+                    <span style={{ ...styles.platformSentiment, color: sentColor }}>
+                      <span style={{ fontWeight: 700 }}>{symbol}</span>
+                      {sentLabel}
+                      <span style={styles.platformSentimentPts}>
+                        {formatSentimentPts(pr?.scores.sentiment ?? 0)}
+                      </span>
                     </span>
                   )}
                 </div>
@@ -231,9 +235,31 @@ export function QueryAccordion({ result, index, platforms, defaultOpen = false, 
               citations: Citation[]
             }[]
             if (platformsWithCitations.length === 0) return null
+            const totalSources = platformsWithCitations.reduce(
+              (sum, { citations }) => sum + citations.length,
+              0
+            )
             return (
               <div style={styles.sources}>
-                {platformsWithCitations.map(({ platform, citations }) => (
+                <button
+                  type="button"
+                  onClick={() => setShowSources(s => !s)}
+                  style={styles.sourcesToggle}
+                  aria-expanded={showSources}
+                >
+                  <span
+                    style={{
+                      ...styles.sourcesToggleChevron,
+                      transform: showSources ? 'rotate(90deg)' : 'rotate(0deg)',
+                    }}
+                  >
+                    ›
+                  </span>
+                  {showSources
+                    ? 'Hide sources'
+                    : `Show ${totalSources} source${totalSources === 1 ? '' : 's'}`}
+                </button>
+                {showSources && platformsWithCitations.map(({ platform, citations }) => (
                   <div key={platform} style={styles.sourcesGroup}>
                     <span style={styles.scoreMathLabel}>
                       {CITATION_ATTRIBUTION[platform] ?? `Sources cited by ${PLATFORM_LABELS[platform] ?? platform}`}
@@ -495,6 +521,18 @@ const styles: Record<string, React.CSSProperties> = {
     color: 'var(--text-muted)',
     fontFamily: "'JetBrains Mono', monospace",
   },
+  platformSentiment: {
+    display: 'inline-flex',
+    alignItems: 'baseline',
+    gap: '0.25rem',
+    fontSize: '0.72rem',
+    fontWeight: 600,
+  },
+  platformSentimentPts: {
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: '0.7rem',
+    fontWeight: 700,
+  },
   scoreMath: {
     display: 'flex',
     flexDirection: 'column',
@@ -614,6 +652,29 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     flexDirection: 'column' as const,
     gap: '0.65rem',
+  },
+  sourcesToggle: {
+    alignSelf: 'flex-start',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.4rem',
+    padding: 0,
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: '0.68rem',
+    fontWeight: 700,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase' as const,
+    color: 'var(--text-muted)',
+    transition: 'color 0.15s',
+  },
+  sourcesToggleChevron: {
+    fontSize: '0.95rem',
+    lineHeight: 1,
+    transition: 'transform 0.2s cubic-bezier(.22,1,.36,1)',
+    display: 'inline-block',
   },
   sourcesGroup: {
     display: 'flex',

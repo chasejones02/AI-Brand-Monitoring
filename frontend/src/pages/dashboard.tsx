@@ -1159,7 +1159,7 @@ function ScanResultsView({
   return (
     <div style={s.content}>
       {/* Score header */}
-      <TiltCard maxTilt={4} style={{ marginBottom: '2.5rem' }}>
+      <TiltCard maxTilt={4} style={{ marginBottom: '1.5rem' }}>
         <GlowCard customSize radius={14} className="!block !p-0">
         <div style={{ ...s.scoreSection, marginBottom: 0 }}>
           <div style={s.scoreLeft}>
@@ -1253,7 +1253,7 @@ function ScanResultsView({
       })()}
 
       {scan.score_details && (
-        <TiltCard maxTilt={3} style={{ marginBottom: '1.5rem' }}>
+        <TiltCard maxTilt={3} style={{ marginBottom: '2.5rem' }}>
           <GlowCard customSize radius={10} className="!block !p-0">
             <div style={{ ...s.sentimentSummary, marginBottom: 0 }}>
               <div>
@@ -1347,17 +1347,10 @@ function ScanResultsView({
         </div>
       )}
 
-      {/* Recommendations */}
-      {scan.recommendations && scan.recommendations.length > 0 && (
-        <RecommendationsPanel
-          recommendations={scan.recommendations}
-          tier={scan.tier ?? 'free'}
-        />
-      )}
-
       {/* Queries — tap to expand each row for full platform-by-platform
           breakdown, score math, and competitors. This replaces the old
-          separate "Query Breakdown" section entirely. */}
+          separate "Query Breakdown" section entirely. Shown before the
+          recommendations so users review the underlying data first. */}
       <div style={s.queriesSection}>
         <div style={s.queriesHeader}>
           <h2 style={s.sectionTitle}>
@@ -1384,6 +1377,15 @@ function ScanResultsView({
           ))}
         </div>
       </div>
+
+      {/* Recommendations — placed after the generated queries so users
+          review the data before the suggested actions. */}
+      {scan.recommendations && scan.recommendations.length > 0 && (
+        <RecommendationsPanel
+          recommendations={scan.recommendations}
+          tier={scan.tier ?? 'free'}
+        />
+      )}
     </div>
   )
 }
@@ -2257,9 +2259,11 @@ const s: Record<string, React.CSSProperties> = {
     marginTop: 'auto',
   },
 
-  // Query section
+  // Query section. Top spacing comes from the preceding section's
+  // marginBottom (platform grid / sentiment summary); the bottom margin
+  // separates it from the recommendations panel that now follows it.
   queriesSection: {
-    marginTop: '1rem',
+    marginBottom: '2.5rem',
   },
   queriesHeader: {
     display: 'flex',

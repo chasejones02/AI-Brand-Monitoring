@@ -20,6 +20,10 @@ router.get('/', requireAuth, async (req: Request, res: Response): Promise<void> 
   const row = Array.isArray(data) ? data[0] : data
 
   if (error || !row) {
+    // Log the underlying Postgres error — without this, RPC failures (e.g. an
+    // ambiguous-overload "function is not unique") surface only as the generic
+    // client message and are impossible to diagnose.
+    console.error('get_scan_quota_status RPC failed:', error ?? 'no row returned', { userId, setId })
     res.status(500).json({ data: null, error: 'Failed to fetch quota' })
     return
   }
