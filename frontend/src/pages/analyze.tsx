@@ -2,9 +2,16 @@
  * AnalyzePage - Generate scan flow.
  * Steps -> Form.
  * Reached via "Check Your Visibility" CTAs and "Generate scan" nav link.
+ *
+ * Logged-in users who already have a business are redirected to /dashboard.
+ * The form here is the new-user entry point; returning users should manage
+ * their existing business from the dashboard rather than spin up another.
  */
 
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/auth-context'
+import { getBusinesses } from '../lib/api'
 import { Nav } from '../components/nav'
 import { HeroForm } from '../components/hero-form'
 import { Footer } from '../components/footer'
@@ -14,9 +21,55 @@ import { TiltCard } from '../components/ui/tilt-card'
 import { useScrollReveal } from '../hooks/use-scroll-reveal'
 
 export default function AnalyzePage() {
+  const navigate = useNavigate()
+  const { session, loading: authLoading } = useAuth()
+  const [checking, setChecking] = useState(true)
   const formRef = useRef<HTMLDivElement>(null)
 
   useScrollReveal()
+
+  useEffect(() => {
+    if (authLoading) return
+    if (!session) {
+      setChecking(false)
+      return
+    }
+    let cancelled = false
+    getBusinesses()
+      .then(res => {
+        if (cancelled) return
+        if ((res?.businesses?.length ?? 0) > 0) {
+          navigate('/dashboard', { replace: true })
+        } else {
+          setChecking(false)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setChecking(false)
+      })
+    return () => { cancelled = true }
+  }, [authLoading, session, navigate])
+
+  if (authLoading || checking) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--bg)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <div style={{
+          width: '28px',
+          height: '28px',
+          border: '2px solid #1e2b3a',
+          borderTopColor: '#c98f0a',
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+      </div>
+    )
+  }
 
   return (
     <>

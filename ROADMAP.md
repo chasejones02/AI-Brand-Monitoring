@@ -141,6 +141,11 @@ Currently developing against Stripe **test mode** (sandbox). Before flipping to 
 - [ ] Confirm `processed_stripe_events` table exists in production before deploying the new webhook code (deploying code first will 500 every webhook until the migration runs)
 - [ ] Production env has the production `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` — never the local dev project's keys
 
+### AI provider keys — separate prod keys
+- [ ] Create a production-only `ANTHROPIC_API_KEY` at console.anthropic.com (separate from local dev key so they can be revoked independently)
+- [ ] Confirm Anthropic billing is active and a usage limit is set (Haiku 4.5 is cheap but a runaway loop could still rack up cost)
+- [ ] Repeat for `OPENAI_API_KEY`, `PERPLEXITY_API_KEY`, `GEMINI_API_KEY` — each provider should have its own prod key with a usage cap
+
 ### General env hygiene
 - [ ] `FRONTEND_URL` in backend env points to the live frontend domain (used for Stripe success/cancel redirects)
 - [ ] CORS origin in `backend/server.ts` allows the production frontend domain
@@ -171,7 +176,7 @@ Currently developing against Stripe **test mode** (sandbox). Before flipping to 
 - [ ] No recurring scans, competitor names, scan history, or trend data
 
 ### Starter - $29/mo or $24/mo billed annually
-- [ ] All configured platforms: Perplexity, ChatGPT, Claude, Gemini
+- [x] All configured platforms: Perplexity, ChatGPT, Claude, Gemini
 - [x] 1 on-demand scan per rolling 24h window
 - [ ] 10 queries: 5 auto + 5 custom
 - [ ] Full query editor before scan runs

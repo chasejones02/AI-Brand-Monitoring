@@ -1,14 +1,28 @@
 /**
  * Nav — Fixed top navigation.
- * Auth-aware: signed-in users see Dashboard + Account instead of Sign in.
+ * Auth-aware: signed-in users see Dashboard in nav links and a name pill
+ * (linking to /account) next to the "Go to Dashboard" button.
  */
 
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
 
+// Prefer the name the user typed at signup; fall back to OAuth-provided name;
+// finally fall back to the local-part of their email. Never blank.
+function getDisplayName(user: { email?: string | null; user_metadata?: Record<string, any> | null } | null): string {
+  if (!user) return 'Account'
+  const meta = user.user_metadata ?? {}
+  const fromMeta = (typeof meta.full_name === 'string' && meta.full_name.trim())
+    || (typeof meta.name === 'string' && meta.name.trim())
+  if (fromMeta) return fromMeta
+  const email = user.email ?? ''
+  const local = email.split('@')[0]
+  return local || 'Account'
+}
+
 export function Nav({ authPage = false }: { authPage?: boolean }) {
   const navigate = useNavigate()
-  const { session, loading } = useAuth()
+  const { session, user, loading } = useAuth()
   const isSignedIn = !loading && !!session
 
   return (
@@ -45,10 +59,7 @@ export function Nav({ authPage = false }: { authPage?: boolean }) {
               <li><Link to="/">Home</Link></li>
               <li><Link to="/pricing">Pricing</Link></li>
               {isSignedIn ? (
-                <>
-                  <li><Link to="/dashboard">Dashboard</Link></li>
-                  <li><Link to="/account">Account</Link></li>
-                </>
+                <li><Link to="/dashboard">Visibility Dashboard</Link></li>
               ) : (
                 <>
                   <li><Link to="/analyze">Generate scan</Link></li>
@@ -57,12 +68,22 @@ export function Nav({ authPage = false }: { authPage?: boolean }) {
               )}
             </ul>
 
-            <button
-              className="btn-nav"
-              onClick={() => navigate(isSignedIn ? '/dashboard' : '/analyze')}
-            >
-              {isSignedIn ? 'Go to Dashboard' : 'Check Your Visibility'}
-            </button>
+            {isSignedIn ? (
+              <button
+                className="btn-nav"
+                onClick={() => navigate('/account')}
+                aria-label="Account"
+              >
+                {getDisplayName(user)}
+              </button>
+            ) : (
+              <button
+                className="btn-nav"
+                onClick={() => navigate('/analyze')}
+              >
+                Check Your Visibility
+              </button>
+            )}
           </>
         )}
       </div>

@@ -242,6 +242,12 @@
       align-items: center;
       gap: 2rem;
       list-style: none;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      margin: 0;
+      padding: 0;
     }
     .nav-links a {
       color: #ffffff;

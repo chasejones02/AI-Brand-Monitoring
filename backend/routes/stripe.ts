@@ -21,6 +21,17 @@ function normalizeDbTier(tier: string): string {
   return tier.replace('_annual', '')
 }
 
+// Reverse lookup: Stripe price ID → DB tier ('starter'/'growth'). Used by the
+// subscription.updated webhook so plan changes made in the Stripe portal
+// propagate to profiles.subscription_tier.
+const PRICE_TO_TIER: Record<string, string> = Object.entries(PRICE_MAP).reduce(
+  (acc, [tierKey, priceId]) => {
+    if (priceId) acc[priceId] = normalizeDbTier(tierKey)
+    return acc
+  },
+  {} as Record<string, string>
+)
+
 // POST /api/stripe/create-checkout
 // Body: {
 //   tier: 'starter' | 'starter_annual' | 'growth' | 'growth_annual',
@@ -329,9 +340,17 @@ router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
       const customerId = subscription.customer as string
       const status = subscription.status // 'active' | 'past_due' | 'canceled' | etc.
 
+      const priceId = subscription.items?.data?.[0]?.price?.id
+      const tier = priceId ? PRICE_TO_TIER[priceId] : undefined
+
+      const update: { subscription_status: string; subscription_tier?: string } = {
+        subscription_status: status === 'active' ? 'active' : status,
+      }
+      if (tier) update.subscription_tier = tier
+
       await supabase
         .from('profiles')
-        .update({ subscription_status: status === 'active' ? 'active' : status })
+        .update(update)
         .eq('stripe_customer_id', customerId)
       break
     }
