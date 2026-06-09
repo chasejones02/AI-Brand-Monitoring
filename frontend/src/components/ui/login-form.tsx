@@ -372,6 +372,8 @@ interface LoginFormProps {
   onBusinessSubmit: (data: { name: string; location: string; description: string }) => Promise<void>
   onForgotPassword: (email: string) => Promise<void>
   onGoogleSignIn: () => Promise<void>
+  recovery?: boolean
+  onSetNewPassword?: (password: string) => Promise<void>
   flipped: boolean
   initialBusiness?: { name: string; location: string; description: string }
   error?: string
@@ -380,10 +382,13 @@ interface LoginFormProps {
   onClearError?: () => void
 }
 
-export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, onForgotPassword, onGoogleSignIn, flipped, initialBusiness, error, successMessage, loading, onClearError }: LoginFormProps) {
+export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, onForgotPassword, onGoogleSignIn, recovery, onSetNewPassword, flipped, initialBusiness, error, successMessage, loading, onClearError }: LoginFormProps) {
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [localError, setLocalError] = useState('')
   const [fullName, setFullName] = useState('')
   const [bizName, setBizName] = useState(initialBusiness?.name ?? '')
   const [bizLocation, setBizLocation] = useState(initialBusiness?.location ?? '')
@@ -425,6 +430,117 @@ export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, onForgotPasswo
     setBizLoading(true)
     try { await onBusinessSubmit({ name: bizName, location: bizLocation, description: bizDesc }) }
     finally { setBizLoading(false) }
+  }
+
+  const handleRecovery = (e: React.FormEvent) => {
+    e.preventDefault()
+    setLocalError('')
+    if (newPassword.length < 8) { setLocalError('Password must be at least 8 characters'); return }
+    if (newPassword !== confirmPassword) { setLocalError('Passwords do not match'); return }
+    onSetNewPassword?.(newPassword)
+  }
+
+  // ── Recovery: set a new password after clicking the email reset link ──
+  if (recovery) {
+    const recoveryError = localError || error
+    return (
+      <div
+        ref={tiltRef}
+        onMouseMove={handleTiltMove}
+        onMouseLeave={handleTiltLeave}
+        style={{
+          width: '100%',
+          maxWidth: '420px',
+          transform: `perspective(800px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+          willChange: 'transform',
+          transition: 'transform 0.4s cubic-bezier(.22, 1, .36, 1)',
+        }}
+      >
+        <div style={{
+          ...glassCard,
+          borderColor: hovered ? 'rgba(201,143,10,0.3)' : undefined,
+          boxShadow: hovered
+            ? '0 12px 40px -16px rgba(201,143,10,0.35), 0 0 0 1px rgba(255,255,255,0.04) inset, 0 1px 0 rgba(255,255,255,0.18) inset'
+            : glassCard.boxShadow,
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <h2 style={{
+              fontSize: '1.75rem',
+              fontWeight: 700,
+              color: 'var(--text)',
+              fontFamily: "'Outfit', sans-serif",
+              marginBottom: '0.3rem',
+            }}>
+              Set a New Password
+            </h2>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+              Choose a new password for your account
+            </p>
+          </div>
+
+          <form onSubmit={handleRecovery}>
+            <FloatingInput
+              icon={Lock}
+              label="New Password"
+              type="password"
+              value={newPassword}
+              onChange={setNewPassword}
+              minLength={8}
+              showToggle
+              autoFocus
+              onValueChange={() => setLocalError('')}
+            />
+            <FloatingInput
+              icon={Lock}
+              label="Confirm Password"
+              type="password"
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              minLength={8}
+              showToggle
+              onValueChange={() => setLocalError('')}
+            />
+
+            {/* Password requirement hint */}
+            <div style={{ marginTop: '-1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Check
+                size={14}
+                style={{
+                  color: newPassword.length >= 8 ? 'var(--green)' : 'var(--text-dim)',
+                  transition: 'color 0.2s',
+                }}
+              />
+              <span style={{
+                fontSize: '0.75rem',
+                color: newPassword.length >= 8 ? 'var(--green)' : 'var(--text-dim)',
+                transition: 'color 0.2s',
+              }}>
+                At least 8 characters
+              </span>
+            </div>
+
+            {(recoveryError || successMessage) && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: successMessage ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
+                border: `1px solid ${successMessage ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'}`,
+                borderRadius: '8px',
+                padding: '0.6rem 0.9rem',
+                color: successMessage ? 'var(--green)' : 'var(--red)',
+                fontSize: '0.85rem',
+                marginBottom: '1rem',
+              }}>
+                {successMessage || recoveryError}
+              </div>
+            )}
+
+            <SubmitButton loading={!!loading} label="Update Password" loadingLabel="Updating..." />
+          </form>
+        </div>
+      </div>
+    )
   }
 
   return (

@@ -17,6 +17,10 @@ export default function AuthPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const isRecovery = useRef(false)
+  // Captured at first render, before supabase-js clears the URL hash, so we can
+  // detect an expired/invalid reset link (which arrives as an error in the hash
+  // rather than a PASSWORD_RECOVERY event).
+  const initialHash = useRef(window.location.hash)
   const initialBusiness = {
     name: searchParams.get('name') ?? '',
     location: searchParams.get('location') ?? '',
@@ -24,6 +28,7 @@ export default function AuthPage() {
   }
 
   const [flipped, setFlipped] = useState(false)
+  const [recovery, setRecovery] = useState(false)
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [loading, setLoading] = useState(false)
@@ -37,10 +42,33 @@ export default function AuthPage() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
+        // Ref updates synchronously so the redirect guard above sees it before
+        // its effect runs; the state drives the new-password form render.
         isRecovery.current = true
+        setRecovery(true)
       }
     })
     return () => subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    // An expired or already-used reset link sends the user back here with an
+    // error in the URL hash instead of a recovery session. Surface a clear
+    // message so they request a fresh link rather than facing a bare form.
+    const raw = initialHash.current.replace(/^#/, '')
+    if (!raw) return
+    const params = new URLSearchParams(raw)
+    if (!params.get('error') && !params.get('error_code')) return
+
+    const code = params.get('error_code')
+    const desc = params.get('error_description')
+    if (code === 'otp_expired' || code === 'access_denied') {
+      setError('This password reset link has expired or was already used. Request a new one below.')
+    } else {
+      setError(desc ? decodeURIComponent(desc.replace(/\+/g, ' ')) : 'This link is invalid. Request a new one below.')
+    }
+    // Strip the error from the URL so a refresh doesn't re-trigger it.
+    window.history.replaceState(null, '', window.location.pathname)
   }, [])
 
   function handleClearError() {
@@ -62,6 +90,25 @@ export default function AuthPage() {
       })
       if (resetError) throw resetError
       setSuccessMessage('Check your email for a reset link')
+    } catch (err: any) {
+      setError(err.message ?? 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleSetNewPassword(newPassword: string) {
+    setError('')
+    setSuccessMessage('')
+    setLoading(true)
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword })
+      if (updateError) throw updateError
+      // Recovery is complete — drop the recovery guard so the redirect effect
+      // takes the now-authenticated user to their dashboard.
+      isRecovery.current = false
+      setRecovery(false)
+      navigate('/dashboard', { replace: true })
     } catch (err: any) {
       setError(err.message ?? 'Something went wrong')
     } finally {
@@ -203,6 +250,8 @@ export default function AuthPage() {
           onBusinessSubmit={handleBusinessSubmit}
           onForgotPassword={handleForgotPassword}
         onGoogleSignIn={handleGoogleSignIn}
+        recovery={recovery}
+        onSetNewPassword={handleSetNewPassword}
         flipped={flipped}
         initialBusiness={initialBusiness}
         error={error}

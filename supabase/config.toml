@@ -1,0 +1,58 @@
+# Supabase project configuration.
+# Consumed by the Supabase CLI:
+#   supabase login
+#   supabase link --project-ref <your-project-ref>
+#   supabase config push      # pushes auth/email/SMTP settings below to the cloud
+#
+# `env(VAR)` placeholders are read from the shell environment where the CLI runs.
+# Never hardcode secrets here — this file is committed to git.
+
+# Local identifier only (not your cloud project ref).
+project_id = "ai-brand-monitor"
+
+[auth]
+# Base URL of the app. Email links (password reset, confirmation) are built
+# against this, and only redirect_urls below are accepted as `redirectTo`.
+# Override with env(SUPABASE_SITE_URL) in production.
+site_url = "http://localhost:5173"
+
+# Every `redirectTo` the frontend may pass must be allow-listed here, or
+# Supabase silently drops the redirect. The reset flow lands on /auth.
+additional_redirect_urls = [
+  "http://localhost:5173/auth",
+  "http://localhost:5173/dashboard",
+]
+
+[auth.email]
+# Require users to confirm their email before they can sign in.
+enable_confirmations = true
+# Reuse the same reset link within this window without re-sending.
+max_frequency = "60s"
+
+# ── Custom transactional email templates ──────────────────────────
+# Paths are relative to the project root. These override Supabase's
+# default plaintext emails with the branded HTML in supabase/templates/.
+[auth.email.template.recovery]
+subject = "Reset your password"
+content_path = "./supabase/templates/reset-password.html"
+
+# ── Custom SMTP ───────────────────────────────────────────────────
+# REQUIRED for emails to actually reach real users. Without this,
+# Supabase falls back to its built-in service, which is rate-limited
+# to ~2 emails/hour and only delivers to project team members.
+#
+# Recommended providers: Resend, Postmark, SendGrid, AWS SES.
+# Set these env vars before running `supabase config push`:
+#   SUPABASE_SMTP_HOST         e.g. smtp.resend.com
+#   SUPABASE_SMTP_PORT         e.g. 587
+#   SUPABASE_SMTP_USER         provider SMTP username (Resend: "resend")
+#   SUPABASE_SMTP_PASS         provider SMTP password / API key
+#   SUPABASE_SMTP_ADMIN_EMAIL  verified "from" address on your domain
+[auth.email.smtp]
+enabled = true
+host = "env(SUPABASE_SMTP_HOST)"
+port = 465
+user = "env(SUPABASE_SMTP_USER)"
+pass = "env(SUPABASE_SMTP_PASS)"
+admin_email = "env(SUPABASE_SMTP_ADMIN_EMAIL)"
+sender_name = "AI Brand Monitor"
