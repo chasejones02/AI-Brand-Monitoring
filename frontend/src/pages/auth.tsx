@@ -26,6 +26,11 @@ export default function AuthPage() {
     location: searchParams.get('location') ?? '',
     description: searchParams.get('description') ?? '',
   }
+  const hasBusinessIntent = Boolean(
+    initialBusiness.name.trim() &&
+    initialBusiness.location.trim() &&
+    initialBusiness.description.trim()
+  )
 
   const [flipped, setFlipped] = useState(false)
   const [recovery, setRecovery] = useState(false)
@@ -35,9 +40,13 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (session && !isRecovery.current && !flipped) {
+      if (hasBusinessIntent) {
+        setFlipped(true)
+        return
+      }
       navigate('/dashboard', { replace: true })
     }
-  }, [session, navigate, flipped])
+  }, [session, navigate, flipped, hasBusinessIntent])
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
@@ -117,9 +126,13 @@ export default function AuthPage() {
   }
 
   async function handleGoogleSignIn() {
+    const redirectTo = hasBusinessIntent
+      ? `${window.location.origin}/auth?${new URLSearchParams(initialBusiness).toString()}`
+      : `${window.location.origin}/dashboard`
+
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/dashboard' },
+      options: { redirectTo },
     })
     if (oauthError) {
       setError(oauthError.message ?? 'Google sign-in failed')
@@ -190,7 +203,7 @@ export default function AuthPage() {
 
   // Already signed in — show a spinner while the redirect fires so the
   // login form never flashes in front of a logged-in user.
-  if (session && !isRecovery.current && !flipped) {
+  if (session && !isRecovery.current && !flipped && !hasBusinessIntent) {
     return (
       <div style={{
         minHeight: '100vh',
@@ -249,12 +262,12 @@ export default function AuthPage() {
           onSignUp={handleSignUp}
           onBusinessSubmit={handleBusinessSubmit}
           onForgotPassword={handleForgotPassword}
-        onGoogleSignIn={handleGoogleSignIn}
-        recovery={recovery}
-        onSetNewPassword={handleSetNewPassword}
-        flipped={flipped}
-        initialBusiness={initialBusiness}
-        error={error}
+          onGoogleSignIn={handleGoogleSignIn}
+          recovery={recovery}
+          onSetNewPassword={handleSetNewPassword}
+          flipped={flipped}
+          initialBusiness={initialBusiness}
+          error={error}
           successMessage={successMessage}
           loading={loading}
           onClearError={handleClearError}

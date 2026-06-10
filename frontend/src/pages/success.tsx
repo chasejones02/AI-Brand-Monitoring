@@ -74,7 +74,7 @@ export default function SuccessPage() {
           <Link to="/dashboard" style={s.primaryBtn}>
             Go to dashboard →
           </Link>
-          <Link to="/#get-report" style={s.secondaryBtn}>
+          <Link to="/analyze" style={s.secondaryBtn}>
             Run a scan
           </Link>
         </div>

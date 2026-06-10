@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { User, Lock, ArrowRight, Building2, MapPin, FileText, Eye, EyeOff, Check } from 'lucide-react'
 
 /* ─── WebGL Shader ─────────────────────────────────── */
@@ -768,8 +769,8 @@ export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, onForgotPasswo
             }}
           >
             By continuing you agree to our{' '}
-            <a href="#" style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}>Terms</a> &{' '}
-            <a href="#" style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}>Privacy</a>.
+            <Link to="/terms" style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}>Terms</Link> &{' '}
+            <Link to="/privacy" style={{ color: 'var(--text-muted)', textDecoration: 'underline' }}>Privacy</Link>.
           </p>
         </div>
 

@@ -10,6 +10,7 @@ import PricingPage from './pages/pricing'
 import AnalyzePage from './pages/analyze'
 import AccountPage from './pages/account'
 import PreviewPage from './pages/preview'
+import { PrivacyPage, TermsPage } from './pages/legal'
 import { EyeballIntro } from './components/eyeball-intro'
 
 function ErrorFallback({ resetError }: { resetError: () => void }) {
@@ -99,6 +100,8 @@ function AppRoutes() {
       />
       <Route path="/success" element={<SuccessPage />} />
       <Route path="/pricing" element={<PricingPage />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
       <Route
         path="/account"
         element={

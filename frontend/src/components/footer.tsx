@@ -10,6 +10,8 @@ export function Footer() {
       <div className="container site-footer-inner">
         <ul className="footer-links">
           <li><Link to="/pricing">Pricing</Link></li>
+          <li><Link to="/terms">Terms</Link></li>
+          <li><Link to="/privacy">Privacy</Link></li>
           <li><a href="mailto:hello@visaion.com">Contact</a></li>
         </ul>
         <div className="footer-copy">
