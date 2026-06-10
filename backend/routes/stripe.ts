@@ -9,6 +9,14 @@ const router = Router()
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
+type AppSubscriptionStatus = 'free' | 'active' | 'canceled' | 'past_due'
+type AppSubscriptionTier = 'free' | 'starter' | 'growth' | 'agency'
+type ProfileUpdate = {
+  subscription_status?: AppSubscriptionStatus
+  subscription_tier?: AppSubscriptionTier
+  stripe_customer_id?: string
+}
+
 const PRICE_MAP: Record<string, string> = {
   starter: process.env.STRIPE_PRICE_STARTER!,
   starter_annual: process.env.STRIPE_PRICE_STARTER_ANNUAL!,
@@ -31,6 +39,54 @@ const PRICE_TO_TIER: Record<string, string> = Object.entries(PRICE_MAP).reduce(
   },
   {} as Record<string, string>
 )
+
+function isAppTier(tier: string | undefined | null): tier is AppSubscriptionTier {
+  return tier === 'free' || tier === 'starter' || tier === 'growth' || tier === 'agency'
+}
+
+function isPaidTier(tier: string | undefined | null): tier is Exclude<AppSubscriptionTier, 'free'> {
+  return tier === 'starter' || tier === 'growth' || tier === 'agency'
+}
+
+function priceToTier(priceId: string | undefined | null): AppSubscriptionTier | undefined {
+  const tier = priceId ? PRICE_TO_TIER[priceId] : undefined
+  return isAppTier(tier) ? tier : undefined
+}
+
+function entitlementTier(
+  status: AppSubscriptionStatus,
+  priceId: string | undefined | null,
+  fallbackTier?: string | null
+): AppSubscriptionTier {
+  if (status === 'free' || status === 'canceled') return 'free'
+  return priceToTier(priceId) ?? (isPaidTier(fallbackTier) ? fallbackTier : 'starter')
+}
+
+async function updateProfileByUserId(
+  supabase: any,
+  userId: string,
+  update: ProfileUpdate
+) {
+  const { error } = await supabase
+    .from('profiles')
+    .update(update)
+    .eq('id', userId)
+
+  if (error) throw new Error(`Profile update failed for user ${userId}: ${error.message}`)
+}
+
+async function updateProfileByCustomerId(
+  supabase: any,
+  customerId: string,
+  update: ProfileUpdate
+) {
+  const { error } = await supabase
+    .from('profiles')
+    .update(update)
+    .eq('stripe_customer_id', customerId)
+
+  if (error) throw new Error(`Profile update failed for Stripe customer ${customerId}: ${error.message}`)
+}
 
 // POST /api/stripe/create-checkout
 // Body: {
@@ -143,7 +199,7 @@ router.post('/verify-session', requireAuth, async (req: Request, res: Response):
     }
 
     const tier = session.metadata?.tier
-    if (!tier) {
+    if (!isPaidTier(tier)) {
       res.status(400).json({ data: null, error: 'Session is missing tier metadata' })
       return
     }
@@ -153,14 +209,11 @@ router.post('/verify-session', requireAuth, async (req: Request, res: Response):
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    await supabase
-      .from('profiles')
-      .update({
-        subscription_status: 'active',
-        subscription_tier: tier,
-        stripe_customer_id: session.customer as string,
-      })
-      .eq('id', userId)
+    await updateProfileByUserId(supabase, userId, {
+      subscription_status: 'active',
+      subscription_tier: tier,
+      stripe_customer_id: session.customer as string,
+    })
 
     res.json({ data: { status: 'paid', activated: true, tier }, error: null })
   } catch (err: any) {
@@ -172,7 +225,7 @@ router.post('/verify-session', requireAuth, async (req: Request, res: Response):
 // Map a Stripe subscription status to the four states the app tracks. Stripe
 // has more granular statuses ('trialing', 'unpaid', 'incomplete', etc.) than we
 // surface, so collapse them here.
-function mapStripeStatus(status: Stripe.Subscription.Status): 'free' | 'active' | 'canceled' | 'past_due' {
+function mapStripeStatus(status: Stripe.Subscription.Status): AppSubscriptionStatus {
   switch (status) {
     case 'active':
     case 'trialing':
@@ -239,18 +292,15 @@ router.get('/subscription', requireAuth, async (req: Request, res: Response): Pr
         if (relevant) {
           const liveStatus = mapStripeStatus(relevant.status)
           const priceId = relevant.items?.data?.[0]?.price?.id
-          const liveTier =
-            liveStatus === 'canceled'
-              ? 'free'
-              : (priceId && PRICE_TO_TIER[priceId]) || tier
+          const liveTier = entitlementTier(liveStatus, priceId, tier)
 
           // Self-heal the cache when Stripe disagrees, so the rest of the app
           // (quota, scan gating) sees the corrected entitlement too.
           if (liveStatus !== status || liveTier !== tier) {
-            await supabase
-              .from('profiles')
-              .update({ subscription_status: liveStatus, subscription_tier: liveTier })
-              .eq('id', userId)
+            await updateProfileByUserId(supabase, userId, {
+              subscription_status: liveStatus,
+              subscription_tier: liveTier,
+            })
           }
           status = liveStatus
           tier = liveTier
@@ -365,66 +415,69 @@ router.post('/webhook', async (req: Request, res: Response): Promise<void> => {
     return
   }
 
-  switch (event.type) {
-    case 'checkout.session.completed': {
-      const session = event.data.object as Stripe.Checkout.Session
-      const userId = session.metadata?.supabase_user_id
-      const tier = session.metadata?.tier
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session
+        const userId = session.metadata?.supabase_user_id
+        const tier = session.metadata?.tier
 
-      if (userId && tier) {
-        await supabase
-          .from('profiles')
-          .update({
+        if (!userId || !isPaidTier(tier)) {
+          throw new Error(`Checkout session ${session.id} is missing valid paid-tier metadata`)
+        }
+
+        if (userId) {
+          await updateProfileByUserId(supabase, userId, {
             subscription_status: 'active',
             subscription_tier: tier,
             stripe_customer_id: session.customer as string,
           })
-          .eq('id', userId)
+        }
+        break
       }
-      break
-    }
 
-    case 'customer.subscription.deleted': {
-      const subscription = event.data.object as Stripe.Subscription
-      const customerId = subscription.customer as string
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription
+        const customerId = subscription.customer as string
 
-      await supabase
-        .from('profiles')
-        .update({ subscription_status: 'canceled', subscription_tier: 'free' })
-        .eq('stripe_customer_id', customerId)
-      break
-    }
-
-    case 'invoice.payment_failed': {
-      const invoice = event.data.object as Stripe.Invoice
-      const customerId = invoice.customer as string
-
-      await supabase
-        .from('profiles')
-        .update({ subscription_status: 'past_due' })
-        .eq('stripe_customer_id', customerId)
-      break
-    }
-
-    case 'customer.subscription.updated': {
-      const subscription = event.data.object as Stripe.Subscription
-      const customerId = subscription.customer as string
-      const status = subscription.status // 'active' | 'past_due' | 'canceled' | etc.
-
-      const priceId = subscription.items?.data?.[0]?.price?.id
-      const tier = priceId ? PRICE_TO_TIER[priceId] : undefined
-
-      const update: { subscription_status: string; subscription_tier?: string } = {
-        subscription_status: status === 'active' ? 'active' : status,
+        await updateProfileByCustomerId(supabase, customerId, {
+          subscription_status: 'canceled',
+          subscription_tier: 'free',
+        })
+        break
       }
-      if (tier) update.subscription_tier = tier
 
-      await supabase
-        .from('profiles')
-        .update(update)
-        .eq('stripe_customer_id', customerId)
-      break
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice
+        const customerId = invoice.customer as string
+
+        await updateProfileByCustomerId(supabase, customerId, {
+          subscription_status: 'past_due',
+        })
+        break
+      }
+
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object as Stripe.Subscription
+        const customerId = subscription.customer as string
+        const status = mapStripeStatus(subscription.status)
+        const priceId = subscription.items?.data?.[0]?.price?.id
+
+        await updateProfileByCustomerId(supabase, customerId, {
+          subscription_status: status,
+          subscription_tier: entitlementTier(status, priceId),
+        })
+        break
+      }
     }
+  } catch (err) {
+    console.error('Stripe webhook handler failed:', err)
+    Sentry.captureException(err, {
+      tags: { area: 'stripe_webhook', event_id: event.id, event_type: event.type },
+    })
+    await supabase.from('processed_stripe_events').delete().eq('event_id', event.id)
+    res.status(500).json({ error: 'Webhook handler failed' })
+    return
   }
 
   res.json({ received: true })

@@ -20,7 +20,7 @@ export type Profile = {
   full_name: string | null
   stripe_customer_id: string | null
   subscription_status: 'free' | 'active' | 'canceled' | 'past_due'
-  subscription_tier: 'starter' | 'growth' | 'agency'
+  subscription_tier: 'free' | 'starter' | 'growth' | 'agency'
   created_at: string
 }
 

@@ -64,9 +64,9 @@ export function CrystalCursor({ active }: CrystalCursorProps) {
   const shards = useRef<Shard[]>([])
   const isActive = useRef(false)
 
-  /* Keep the ref in sync so the animation loop sees the latest value
-     without re-creating the effect */
-  isActive.current = active
+  useEffect(() => {
+    isActive.current = active
+  }, [active])
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     mouse.current.x = e.clientX

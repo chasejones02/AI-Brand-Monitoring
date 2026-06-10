@@ -18,9 +18,12 @@ export function EyeballIntro({ onComplete }: Props) {
   const visaionRef = useRef<HTMLDivElement>(null)
   const tagRef     = useRef<HTMLDivElement>(null)
   const cbRef      = useRef(onComplete)
-  cbRef.current    = onComplete
 
   const [isDone, setIsDone] = useState(false)
+
+  useEffect(() => {
+    cbRef.current = onComplete
+  }, [onComplete])
 
   useEffect(() => {
     const overlay = overlayRef.current
