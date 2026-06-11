@@ -24,32 +24,40 @@ function LegalPage({
       <main style={s.main}>
         <div style={s.shell}>
           <Link to="/" style={s.backLink}>
-            Back to home
+            <span style={s.backArrow}>←</span> Back to home
           </Link>
 
-          <p style={s.kicker}>{label}</p>
-          <h1 style={s.title}>{title}</h1>
-          <p style={s.updated}>Last updated: {updated}</p>
-          <p style={s.intro}>{intro}</p>
+          <header style={s.header}>
+            <p style={s.kicker}>{label}</p>
+            <h1 style={s.title}>{title}</h1>
+            <p style={s.intro}>{intro}</p>
+            <span style={s.updated}>Last updated {updated}</span>
+          </header>
 
-          <div style={s.rule} />
-
-          {sections.map(section => (
-            <section key={section.title} style={s.section}>
-              <h2 style={s.sectionTitle}>{section.title}</h2>
-              {section.body.map(paragraph => (
-                <p key={paragraph} style={s.body}>
-                  {paragraph}
-                </p>
-              ))}
-            </section>
-          ))}
+          <div style={s.sections}>
+            {sections.map((section, i) => (
+              <section key={section.title} style={s.card}>
+                <span style={s.cardIndex}>{String(i + 1).padStart(2, '0')}</span>
+                <div style={s.cardBody}>
+                  <h2 style={s.sectionTitle}>{section.title}</h2>
+                  {section.body.map(paragraph => (
+                    <p key={paragraph} style={s.body}>
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
 
           <div style={s.contactBox}>
-            <p style={s.contactTitle}>Questions</p>
-            <p style={s.body}>
-              Contact us at <a href="mailto:hello@visaion.com" style={s.inlineLink}>hello@visaion.com</a>.
-            </p>
+            <div>
+              <p style={s.contactTitle}>Questions about this {label.toLowerCase()}?</p>
+              <p style={s.contactCopy}>We usually reply within a business day.</p>
+            </div>
+            <a href="mailto:hello@visaion.com" style={s.contactBtn}>
+              hello@visaion.com
+            </a>
           </div>
         </div>
       </main>
@@ -194,84 +202,133 @@ const s: Record<string, CSSProperties> = {
     padding: '8rem 1.5rem 4rem',
   },
   shell: {
-    width: 'min(860px, 100%)',
+    width: 'min(780px, 100%)',
     margin: '0 auto',
-    padding: '2rem 0',
   },
   backLink: {
     display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.4rem',
     color: 'var(--text-muted)',
     textDecoration: 'none',
-    fontSize: '0.85rem',
-    marginBottom: '2rem',
+    fontSize: '0.82rem',
+    letterSpacing: '0.02em',
+    marginBottom: '2.5rem',
+  },
+  backArrow: {
+    color: 'var(--accent)',
+  },
+  header: {
+    marginBottom: '2.75rem',
   },
   kicker: {
+    display: 'inline-block',
     color: 'var(--accent)',
     textTransform: 'uppercase',
-    letterSpacing: '0.16em',
-    fontSize: '0.72rem',
+    letterSpacing: '0.18em',
+    fontSize: '0.7rem',
     fontWeight: 700,
-    marginBottom: '0.75rem',
+    marginBottom: '1rem',
   },
   title: {
     fontFamily: "'Plus Jakarta Sans', sans-serif",
-    fontSize: 'clamp(2.4rem, 7vw, 5rem)',
-    lineHeight: 0.95,
+    fontWeight: 400,
+    fontSize: 'clamp(2.4rem, 6vw, 3.6rem)',
+    lineHeight: 1.0,
     letterSpacing: '-0.03em',
-    marginBottom: '1rem',
-  },
-  updated: {
-    color: 'var(--text-dim)',
-    fontSize: '0.86rem',
-    marginBottom: '1.25rem',
+    margin: '0 0 1.25rem',
   },
   intro: {
     color: 'var(--text-muted)',
-    fontSize: '1.08rem',
+    fontSize: '1.05rem',
     lineHeight: 1.7,
-    maxWidth: '680px',
+    maxWidth: '640px',
+    margin: '0 0 1.5rem',
   },
-  rule: {
-    height: '1px',
-    background: 'linear-gradient(90deg, var(--accent), transparent)',
-    opacity: 0.45,
-    margin: '2.5rem 0',
+  updated: {
+    display: 'inline-block',
+    color: 'var(--text-dim)',
+    fontSize: '0.74rem',
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.1em',
+    padding: '0.35rem 0.7rem',
+    border: '1px solid var(--border)',
+    borderRadius: '999px',
   },
-  section: {
-    display: 'grid',
-    gridTemplateColumns: 'minmax(160px, 0.42fr) minmax(0, 1fr)',
-    gap: '1.5rem',
-    padding: '1.8rem 0',
-    borderBottom: '1px solid var(--border)',
+  sections: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '0.9rem',
+  },
+  card: {
+    display: 'flex',
+    gap: '1.25rem',
+    background: 'var(--surface)',
+    border: '1px solid var(--border)',
+    borderLeft: '2px solid var(--accent)',
+    borderRadius: '10px',
+    padding: '1.6rem 1.75rem',
+  },
+  cardIndex: {
+    flexShrink: 0,
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: '0.8rem',
+    fontWeight: 500,
+    color: 'var(--accent)',
+    opacity: 0.7,
+    paddingTop: '0.15rem',
+  },
+  cardBody: {
+    flex: 1,
+    minWidth: 0,
   },
   sectionTitle: {
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
     color: 'var(--text)',
-    fontSize: '1rem',
-    lineHeight: 1.4,
-    margin: 0,
+    fontSize: '1.05rem',
+    fontWeight: 600,
+    lineHeight: 1.3,
+    margin: '0 0 0.85rem',
   },
   body: {
     color: 'var(--text-muted)',
-    fontSize: '0.95rem',
+    fontSize: '0.92rem',
     lineHeight: 1.75,
-    margin: '0 0 0.9rem',
+    margin: '0 0 0.85rem',
   },
   contactBox: {
-    marginTop: '2rem',
-    padding: '1.25rem',
+    display: 'flex',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '1rem',
+    marginTop: '2.5rem',
+    padding: '1.5rem 1.75rem',
     border: '1px solid var(--border)',
-    borderRadius: '8px',
-    background: 'rgba(255,255,255,0.03)',
+    borderRadius: '10px',
+    background: 'rgba(240,165,0,0.04)',
   },
   contactTitle: {
-    color: 'var(--accent)',
-    fontSize: '0.78rem',
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: '0.12em',
-    marginBottom: '0.5rem',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    color: 'var(--text)',
+    fontSize: '1rem',
+    fontWeight: 600,
+    margin: '0 0 0.3rem',
   },
-  inlineLink: {
+  contactCopy: {
+    color: 'var(--text-muted)',
+    fontSize: '0.85rem',
+    margin: 0,
+  },
+  contactBtn: {
     color: 'var(--accent)',
+    textDecoration: 'none',
+    fontWeight: 600,
+    fontSize: '0.92rem',
+    padding: '0.7rem 1.25rem',
+    border: '1px solid var(--accent)',
+    borderRadius: '8px',
+    whiteSpace: 'nowrap',
   },
 }
