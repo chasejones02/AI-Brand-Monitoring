@@ -193,7 +193,7 @@ export default function PricingPage() {
           <p className="pp-desc">For businesses that refuse to lose deals they never knew were on the table.</p>
           <ul className="pp-features">
             <li>{check} Everything in Starter</li>
-            <li>{check} 5 scans per day — spot drops before they cost you a month of revenue</li>
+            <li>{check} 40 scans a month — spot drops before they cost you a month of revenue</li>
             <li>{check} 3 business profiles — every brand you own, none left exposed</li>
             <li>{check} 3 query sets per business (auto + 2 custom)</li>
             <li>{check} Full trend history — prove what's working before competitors copy it</li>

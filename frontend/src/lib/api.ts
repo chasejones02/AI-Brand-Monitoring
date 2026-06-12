@@ -61,7 +61,7 @@ export interface TrackingSet {
 
 export interface TrackingSetsResponse {
   sets: TrackingSet[]
-  tier: 'free' | 'starter' | 'growth' | 'agency'
+  tier: 'free' | 'starter' | 'growth'
   max_sets: number
   can_create_more: boolean
 }
@@ -131,7 +131,7 @@ export async function createBusiness(payload: {
 }): Promise<{
   business_id: string
   default_set_id: string
-  tier: 'free' | 'starter' | 'growth' | 'agency'
+  tier: 'free' | 'starter' | 'growth'
   queries: PreviewQuery[]
 }> {
   const { data } = await authFetch('/api/business', {
@@ -143,7 +143,7 @@ export async function createBusiness(payload: {
 
 export interface BusinessesResponse {
   businesses: BusinessWithTrackingSets[]
-  tier: 'free' | 'starter' | 'growth' | 'agency'
+  tier: 'free' | 'starter' | 'growth'
   max_businesses: number
   can_add_more: boolean
 }
@@ -210,7 +210,7 @@ export async function verifyCheckoutSession(sessionId: string): Promise<{
 
 export async function getSubscription(): Promise<{
   status: 'free' | 'active' | 'canceled' | 'past_due'
-  tier: 'free' | 'starter' | 'growth' | 'agency'
+  tier: 'free' | 'starter' | 'growth'
   has_customer: boolean
 }> {
   const { data } = await authFetch('/api/stripe/subscription')
@@ -225,7 +225,7 @@ export async function createPortalSession(): Promise<{ url: string }> {
 // ─── Quota ───────────────────────────────────────────────────────────────────
 
 export interface QuotaStatus {
-  tier: 'free' | 'starter' | 'growth' | 'agency'
+  tier: 'free' | 'starter' | 'growth'
   daily_limit: number
   used_in_window: number
   remaining: number

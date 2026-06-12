@@ -49,7 +49,7 @@ The core loop (sign up -> business entry -> scan -> results -> pay) works end-to
 ### 7. Scan history + re-scan UX
 - [x] Build a scan history list on the dashboard using existing `GET /api/results/business/:id`
 - [x] Add a "Run New Scan" button - this is the core retention mechanic
-- [x] Add tier-based quota system (Starter 1/day, Growth 5/day, rolling 24h) replacing planned automated scans
+- [x] Add tier-based quota system (Starter 1/day, Growth 3/day, rolling 24h) replacing planned automated scans
 - [x] Add trend chart, per-platform sparklines, per-query trend rows
 - **Files:** `frontend/src/pages/dashboard.tsx`, `frontend/src/components/{quota-pill,trend-chart,platform-sparkline,query-trend-row,scan-history-list,history-trends-section}.tsx`, `backend/routes/{quota,scan,results}.ts`, `supabase/migrations/20260510000000_scan_quotas.sql`
 
@@ -187,7 +187,7 @@ Currently developing against Stripe **test mode** (sandbox). Before flipping to 
 
 ### Growth - $49/mo or $41/mo billed annually
 - [ ] Everything in Starter
-- [x] 5 on-demand scans per rolling 24h window
+- [x] 3 on-demand scans per rolling 24h window
 - [ ] 20 custom queries
 - [x] Track up to 5 competitors with scores
 - [x] Historical trend graphs (overall + per-platform + per-query)

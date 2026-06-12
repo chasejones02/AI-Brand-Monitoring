@@ -109,7 +109,7 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
       const quota = Array.isArray(quotaRows) ? quotaRows[0] : quotaRows
       res.status(403).json({
         data: null,
-        error: 'Daily scan limit reached',
+        error: 'Monthly scan limit reached',
         code: 'daily_quota_exceeded',
         next_reset_at: quota?.next_reset_at ?? null,
       })

@@ -3,13 +3,17 @@
  * Steps -> Form.
  * Reached via "Check Your Visibility" CTAs and "Generate scan" nav link.
  *
- * Logged-in users who already have a business are redirected to /dashboard.
- * The form here is the new-user entry point; returning users should manage
- * their existing business from the dashboard rather than spin up another.
+ * Logged-in users who already have a business are normally redirected to
+ * /dashboard — returning users should manage existing businesses there rather
+ * than accidentally spin up another. The exception is the explicit "Add
+ * business" flow (`?add=1`): a paid user under their tier's business limit can
+ * create an additional profile here, and the existing HeroForm -> /preview ->
+ * scan chain runs exactly like the original onboarding. A user already at
+ * their limit sees a "maxed out" message instead of the form.
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
 import { getBusinesses } from '../lib/api'
 import { Nav } from '../components/nav'
@@ -22,8 +26,11 @@ import { useScrollReveal } from '../hooks/use-scroll-reveal'
 
 export default function AnalyzePage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const wantsAdd = searchParams.get('add') === '1'
   const { session, loading: authLoading } = useAuth()
   const [checking, setChecking] = useState(true)
+  const [maxedOut, setMaxedOut] = useState<{ max: number } | null>(null)
   const formRef = useRef<HTMLDivElement>(null)
 
   useScrollReveal()
@@ -38,17 +45,30 @@ export default function AnalyzePage() {
     getBusinesses()
       .then(res => {
         if (cancelled) return
-        if ((res?.businesses?.length ?? 0) > 0) {
-          navigate('/dashboard', { replace: true })
-        } else {
+        const count = res?.businesses?.length ?? 0
+        // No business yet → this is first-business onboarding; show the form.
+        if (count === 0) {
           setChecking(false)
+          return
         }
+        // Has a business but didn't explicitly ask to add one → send them to
+        // the dashboard to manage what they already have.
+        if (!wantsAdd) {
+          navigate('/dashboard', { replace: true })
+          return
+        }
+        // Explicit "Add business" intent: allow another profile only if the
+        // tier's limit hasn't been reached.
+        if (count >= (res?.max_businesses ?? 1)) {
+          setMaxedOut({ max: res?.max_businesses ?? 1 })
+        }
+        setChecking(false)
       })
       .catch(() => {
         if (!cancelled) setChecking(false)
       })
     return () => { cancelled = true }
-  }, [authLoading, session, navigate])
+  }, [authLoading, session, navigate, wantsAdd])
 
   if (authLoading || checking) {
     return (
@@ -68,6 +88,34 @@ export default function AnalyzePage() {
           animation: 'spin 0.8s linear infinite',
         }} />
       </div>
+    )
+  }
+
+  if (maxedOut) {
+    return (
+      <>
+        <div className="landing-clean-bg" aria-hidden />
+        <CrystalCursor active />
+        <Nav />
+        <main>
+          <section className="analyze-hero">
+            <div className="container analyze-hero-inner" style={{ textAlign: 'center', maxWidth: 620 }}>
+              <span className="analyze-kicker anim-1">Add business</span>
+              <h1 className="analyze-title anim-2">
+                You've reached your plan's <em>business limit</em>.
+              </h1>
+              <p className="analyze-sub anim-3">
+                Your plan includes up to {maxedOut.max} business {maxedOut.max === 1 ? 'profile' : 'profiles'}, and
+                they're all in use. To track a different business, remove one from the dashboard first.
+              </p>
+              <div style={{ marginTop: '2rem', display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Link to="/dashboard" className="btn-primary">Back to dashboard</Link>
+              </div>
+            </div>
+          </section>
+        </main>
+        <Footer />
+      </>
     )
   }
 

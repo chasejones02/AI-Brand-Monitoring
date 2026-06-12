@@ -16,7 +16,6 @@ export const TIER_REC_LIMITS: Record<string, number> = {
   free: 1,
   starter: 3,
   growth: TOTAL_RECS,
-  agency: TOTAL_RECS,
 }
 
 function isRealKey(val: string | undefined): boolean {

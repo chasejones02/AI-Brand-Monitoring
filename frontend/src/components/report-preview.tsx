@@ -2,14 +2,14 @@
  * ReportPreview — Sample report section with plan tab switcher.
  *
  * State: activePlan controls which report content + feature list is visible.
- * Plans: 'free' | 'starter' | 'growth' | 'agency'
+ * Plans: 'free' | 'starter' | 'growth'
  *
  * The report preview card scrolls back to top when switching plans.
  */
 
 import { useState, useRef } from 'react'
 
-type Plan = 'free' | 'starter' | 'growth' | 'agency'
+type Plan = 'free' | 'starter' | 'growth'
 
 // Shared platform scores bar rows used by all plans
 function PlatformScores() {
@@ -151,18 +151,18 @@ function PaidHeader({ badge }: { badge: string }) {
 function StarterContent() {
   return (
     <>
-      <PaidHeader badge="Weekly" />
+      <PaidHeader badge="On-demand" />
       <ScoreDisplay />
       <PlatformScores />
       <div className="report-divider"></div>
-      <div className="report-section-label">4-Week Trend</div>
+      <div className="report-section-label">4-Scan Trend</div>
       <div className="trend-bars">
-        <div className="trend-col"><div className="trend-bar" style={{ height: '26px' }}></div><div className="trend-lbl">wk 1</div></div>
-        <div className="trend-col"><div className="trend-bar" style={{ height: '32px' }}></div><div className="trend-lbl">wk 2</div></div>
-        <div className="trend-col"><div className="trend-bar" style={{ height: '30px' }}></div><div className="trend-lbl">wk 3</div></div>
+        <div className="trend-col"><div className="trend-bar" style={{ height: '26px' }}></div><div className="trend-lbl">scan 1</div></div>
+        <div className="trend-col"><div className="trend-bar" style={{ height: '32px' }}></div><div className="trend-lbl">scan 2</div></div>
+        <div className="trend-col"><div className="trend-bar" style={{ height: '30px' }}></div><div className="trend-lbl">scan 3</div></div>
         <div className="trend-col"><div className="trend-bar current" style={{ height: '44px' }}></div><div className="trend-lbl">now</div></div>
       </div>
-      <div className="trend-delta up">↑ +12 pts over 4 weeks</div>
+      <div className="trend-delta up">↑ +12 pts over your last 4 scans</div>
       <CompetitorRadar />
       <QueryBreakdown />
     </>
@@ -172,106 +172,21 @@ function StarterContent() {
 function GrowthContent() {
   return (
     <>
-      <PaidHeader badge="Daily" />
+      <PaidHeader badge="On-demand" />
       <ScoreDisplay />
       <PlatformScores />
       <div className="report-divider"></div>
-      <div className="report-section-label">30-Day Trend</div>
+      <div className="report-section-label">Score Trend</div>
       <div className="trend-bars">
-        <div className="trend-col"><div className="trend-bar" style={{ height: '22px' }}></div><div className="trend-lbl">wk 1</div></div>
-        <div className="trend-col"><div className="trend-bar" style={{ height: '30px' }}></div><div className="trend-lbl">wk 2</div></div>
-        <div className="trend-col"><div className="trend-bar" style={{ height: '28px' }}></div><div className="trend-lbl">wk 3</div></div>
-        <div className="trend-col"><div className="trend-bar" style={{ height: '36px' }}></div><div className="trend-lbl">wk 4</div></div>
-        <div className="trend-col"><div className="trend-bar current" style={{ height: '44px' }}></div><div className="trend-lbl">today</div></div>
+        <div className="trend-col"><div className="trend-bar" style={{ height: '22px' }}></div><div className="trend-lbl">scan 1</div></div>
+        <div className="trend-col"><div className="trend-bar" style={{ height: '30px' }}></div><div className="trend-lbl">scan 2</div></div>
+        <div className="trend-col"><div className="trend-bar" style={{ height: '28px' }}></div><div className="trend-lbl">scan 3</div></div>
+        <div className="trend-col"><div className="trend-bar" style={{ height: '36px' }}></div><div className="trend-lbl">scan 4</div></div>
+        <div className="trend-col"><div className="trend-bar current" style={{ height: '44px' }}></div><div className="trend-lbl">now</div></div>
       </div>
-      <div className="trend-delta up">↑ +18 pts over 30 days</div>
+      <div className="trend-delta up">↑ +18 pts across your scan history</div>
       <CompetitorRadar />
       <QueryBreakdown extra />
-      <div className="report-divider"></div>
-      <div className="report-section-label">Email Digest Preview</div>
-      <div className="query-item" style={{ borderColor: 'rgba(201,143,10,.12)' }}>
-        <div style={{ fontSize: '.8rem', fontWeight: 700, color: 'var(--accent)', marginBottom: '.5rem', letterSpacing: '.04em', textTransform: 'uppercase' }}>Weekly summary — March 11, 2026</div>
-        <div style={{ fontSize: '.88rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>Score up <span style={{ color: 'var(--green)', fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}>+3 pts</span> this week. You moved from #3 → #2 on ChatGPT for your top query. Sweet Things Co. gained ground on Gemini — worth watching.</div>
-      </div>
-    </>
-  )
-}
-
-function AgencyContent() {
-  return (
-    <>
-      <div className="report-preview-header">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '.3rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '.5rem' }}>
-            <div className="report-biz-name">Maple Street Bakery</div>
-            <span className="wl-badge">White-label</span>
-          </div>
-          <div className="report-date">Daily scan · March 11, 2026</div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '.45rem', fontSize: '.82rem', color: 'var(--green)', fontFamily: "'JetBrains Mono',monospace", fontWeight: 600 }}><div className="scan-dot active"></div>Live</div>
-      </div>
-      <div className="profile-chips">
-        <span className="profile-chip active-chip">Maple Street Bakery</span>
-        <span className="profile-chip">Harbor Cakes</span>
-        <span className="profile-chip">Flour + Co.</span>
-        <span className="profile-chip" style={{ color: 'var(--text-muted)' }}>+17 more</span>
-      </div>
-      <ScoreDisplay />
-      <PlatformScores />
-      <div className="report-divider"></div>
-      <div className="report-section-label">Daily Scan Log</div>
-      <div className="daily-log-row">
-        <span>Maple Street Bakery</span>
-        <span className="log-time">08:00 AM</span>
-        <span className="log-change pos">+3 pts</span>
-      </div>
-      <div className="daily-log-row">
-        <span>Harbor Cakes</span>
-        <span className="log-time">08:02 AM</span>
-        <span className="log-change neg">−1 pt</span>
-      </div>
-      <div className="daily-log-row">
-        <span>Flour + Co.</span>
-        <span className="log-time">08:05 AM</span>
-        <span className="log-change neutral">no change</span>
-      </div>
-      <CompetitorRadar />
-      <QueryBreakdown />
-      <div className="report-divider"></div>
-      <div className="report-section-label">API Usage</div>
-      <div className="api-usage-row">
-        <span className="api-usage-label">Queries used</span>
-        <div className="api-usage-bar-wrap"><div className="api-usage-bar" style={{ width: '42%' }}></div></div>
-        <span className="api-usage-val">4,200 / 10k</span>
-      </div>
-      <div className="api-usage-row">
-        <span className="api-usage-label">Profiles active</span>
-        <div className="api-usage-bar-wrap"><div className="api-usage-bar" style={{ width: '25%' }}></div></div>
-        <span className="api-usage-val">5 / 20</span>
-      </div>
-      <div className="report-divider"></div>
-      <div className="report-section-label">Actionable Recommendations</div>
-      <div className="rec-item rec-high">
-        <div className="rec-priority">High</div>
-        <div className="rec-body">
-          <div className="rec-title">Boost your Google review count</div>
-          <div className="rec-detail">Your competitors have 3× more Google reviews — AI models use review volume as a trust signal. Ask recent customers for a review this week.</div>
-        </div>
-      </div>
-      <div className="rec-item rec-med">
-        <div className="rec-priority">Med</div>
-        <div className="rec-body">
-          <div className="rec-title">Add vegan menu options to your website</div>
-          <div className="rec-detail">You're invisible on "bakeries with vegan options" queries. A dedicated menu page could unlock 3 new query matches.</div>
-        </div>
-      </div>
-      <div className="rec-item rec-med">
-        <div className="rec-priority">Med</div>
-        <div className="rec-body">
-          <div className="rec-title">Claim and update your Yelp listing</div>
-          <div className="rec-detail">Perplexity surfaces Yelp data heavily. An incomplete listing is hurting your rank on 2 of your top queries.</div>
-        </div>
-      </div>
     </>
   )
 }
@@ -299,7 +214,7 @@ function FreeFeatures() {
       </div>
       <div className="report-point">
         {rpIcon(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>)}
-        <div><div className="rp-title">One-time snapshot</div><div className="rp-desc">See exactly where you stand today — no credit card required. Upgrade anytime for ongoing monitoring.</div></div>
+        <div><div className="rp-title">One-time snapshot</div><div className="rp-desc">See exactly where you stand today — no credit card required. Upgrade anytime to keep re-scanning as you grow.</div></div>
       </div>
     </div>
   )
@@ -318,7 +233,7 @@ function StarterFeatures() {
       </div>
       <div className="report-point">
         {rpIcon(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>)}
-        <div><div className="rp-title">1 on-demand scan per day</div><div className="rp-desc">Re-run a scan whenever you publish new content or push a campaign. Track shifts in your AI visibility on your timeline.</div></div>
+        <div><div className="rp-title">25 on-demand scans a month</div><div className="rp-desc">Re-run a scan whenever you publish new content or push a campaign. Track shifts in your AI visibility on your timeline.</div></div>
       </div>
       <div className="report-point">
         {rpIcon(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>)}
@@ -333,7 +248,7 @@ function GrowthFeatures() {
     <div className="report-points">
       <div className="report-point">
         {rpIcon(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>)}
-        <div><div className="rp-title">5 on-demand scans per day</div><div className="rp-desc">Run multiple scans throughout the day to A/B test landing pages or watch how AI responses shift after a launch.</div></div>
+        <div><div className="rp-title">40 on-demand scans a month</div><div className="rp-desc">Run multiple scans whenever you need them to A/B test landing pages or watch how AI responses shift after a launch.</div></div>
       </div>
       <div className="report-point">
         {rpIcon(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><path d="M23 6l-9.5 9.5-5-5L1 18" /><path d="M17 6h6v6" /></svg>)}
@@ -344,35 +259,8 @@ function GrowthFeatures() {
         <div><div className="rp-title">Competitor radar</div><div className="rp-desc">15 queries tracked across all 4 AI platforms — see who's stealing your recommendations and by how much.</div></div>
       </div>
       <div className="report-point">
-        {rpIcon(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>)}
-        <div><div className="rp-title">Email digest reports</div><div className="rp-desc">Weekly summaries delivered to your inbox. Know your score, movement, and top changes without logging in.</div></div>
-      </div>
-    </div>
-  )
-}
-
-function AgencyFeatures() {
-  return (
-    <div className="report-points">
-      <div className="report-point">
-        {rpIcon(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>)}
-        <div><div className="rp-title">Up to 20 client profiles</div><div className="rp-desc">Monitor multiple businesses from one dashboard. Perfect for marketing agencies and consultants.</div></div>
-      </div>
-      <div className="report-point">
-        {rpIcon(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>)}
-        <div><div className="rp-title">Daily scans</div><div className="rp-desc">Catch changes in AI recommendations the day they happen. Ideal for fast-moving competitive landscapes.</div></div>
-      </div>
-      <div className="report-point">
-        {rpIcon(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>)}
-        <div><div className="rp-title">White-label PDF reports</div><div className="rp-desc">Send branded reports to clients under your agency's name. Your logo, your domain, your value.</div></div>
-      </div>
-      <div className="report-point">
-        {rpIcon(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>)}
-        <div><div className="rp-title">Actionable recommendations engine</div><div className="rp-desc">"Your competitors have 3× more Google reviews — here's how to fix that." AI-generated steps tied directly to what's costing you rankings.</div></div>
-      </div>
-      <div className="report-point">
-        {rpIcon(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></svg>)}
-        <div><div className="rp-title">API access</div><div className="rp-desc">Pull visibility data directly into your existing tools, dashboards, or client reporting workflows.</div></div>
+        {rpIcon(<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>)}
+        <div><div className="rp-title">Sentiment trend over time</div><div className="rp-desc">Track not just whether AI mentions you, but how it frames you — positive, neutral, or negative — across every scan.</div></div>
       </div>
     </div>
   )
@@ -385,7 +273,7 @@ interface ReportPreviewProps {
 }
 
 export function ReportPreview({ onScrollToForm }: ReportPreviewProps) {
-  const [activePlan, setActivePlan] = useState<Plan>('agency')
+  const [activePlan, setActivePlan] = useState<Plan>('growth')
   const previewRef = useRef<HTMLDivElement>(null)
 
   function switchPlan(plan: Plan) {
@@ -398,21 +286,18 @@ export function ReportPreview({ onScrollToForm }: ReportPreviewProps) {
     { key: 'free', label: 'Free' },
     { key: 'starter', label: 'Starter', price: '$29/mo' },
     { key: 'growth', label: 'Growth', price: '$49/mo' },
-    { key: 'agency', label: 'Agency', price: '$149/mo' },
   ]
 
   const contentMap: Record<Plan, React.ReactNode> = {
     free: <FreeContent />,
     starter: <StarterContent />,
     growth: <GrowthContent />,
-    agency: <AgencyContent />,
   }
 
   const featureMap: Record<Plan, React.ReactNode> = {
     free: <FreeFeatures />,
     starter: <StarterFeatures />,
     growth: <GrowthFeatures />,
-    agency: <AgencyFeatures />,
   }
 
   return (

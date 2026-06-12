@@ -7,7 +7,7 @@ import { getSubscription, createPortalSession, getQuota, type QuotaStatus } from
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Tier = 'free' | 'starter' | 'growth' | 'agency'
+type Tier = 'free' | 'starter' | 'growth'
 type Status = 'free' | 'active' | 'canceled' | 'past_due'
 
 interface SubscriptionData {
@@ -45,7 +45,7 @@ const PLAN_META: Record<Tier, {
     color: 'var(--accent)',
     features: [
       'All platforms — ChatGPT, Claude, Gemini, Perplexity',
-      '1 on-demand scan per day',
+      '25 on-demand scans per month',
       '10 queries per scan',
       'Competitor extraction',
       'Scan history & trend graph',
@@ -59,25 +59,12 @@ const PLAN_META: Record<Tier, {
     color: 'var(--green)',
     features: [
       'All platforms — ChatGPT, Claude, Gemini, Perplexity',
-      '5 on-demand scans per day',
+      '40 on-demand scans per month',
       '20 custom queries',
       'Up to 5 tracked competitors',
       'Full historical trend graphs',
       'Sentiment trend over time',
       'Confidence indicator per score',
-    ],
-  },
-  agency: {
-    label: 'Agency',
-    price: '$149',
-    period: 'per month',
-    color: '#818cf8',
-    features: [
-      'Everything in Growth',
-      'Multiple business profiles',
-      'White-label reports',
-      'API access',
-      'Priority support',
     ],
   },
 }
@@ -266,14 +253,14 @@ export default function AccountPage() {
               <TiltCard maxTilt={5} style={{ animation: 'fadeUp 0.4s cubic-bezier(.22,1,.36,1) 0.12s both' }}>
                 <GlowCard customSize radius={12} className="!block !p-0">
                   <div style={s.usageCard}>
-                    <p style={s.cardEyebrow}>Daily usage</p>
+                    <p style={s.cardEyebrow}>Monthly usage</p>
                     <div style={s.usageRow}>
                       <span style={s.usageNum}>{quota.used_in_window}</span>
                       <span style={s.usageDivider}>/</span>
                       <span style={s.usageTotal}>
                         {quota.daily_limit === 0 ? '∞' : quota.daily_limit}
                       </span>
-                      <span style={s.usageUnit}>scans today</span>
+                      <span style={s.usageUnit}>scans this month</span>
                     </div>
                     <div style={s.usageTrack}>
                       <div style={{
@@ -286,14 +273,14 @@ export default function AccountPage() {
                     </div>
                     {quota.remaining <= 0 && quota.next_reset_at && (
                       <p style={s.usageReset}>
-                        Resets {new Date(quota.next_reset_at).toLocaleTimeString('en-US', {
-                          hour: 'numeric', minute: '2-digit',
+                        Next scan frees up {new Date(quota.next_reset_at).toLocaleDateString('en-US', {
+                          month: 'short', day: 'numeric',
                         })}
                       </p>
                     )}
                     {quota.remaining > 0 && (
                       <p style={s.usageRemaining}>
-                        {quota.remaining} scan{quota.remaining !== 1 ? 's' : ''} remaining today
+                        {quota.remaining} scan{quota.remaining !== 1 ? 's' : ''} remaining this month
                       </p>
                     )}
                   </div>
@@ -333,7 +320,7 @@ export default function AccountPage() {
                     <ul style={{ ...s.featureList, marginBottom: '1.5rem' }}>
                       {[
                         'ChatGPT, Claude & Gemini results',
-                        'Daily rescans to track changes',
+                        'On-demand rescans to track changes',
                         'Competitor analysis',
                         'Historical trend graphs',
                       ].map(f => (

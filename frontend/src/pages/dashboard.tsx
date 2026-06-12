@@ -213,7 +213,7 @@ export default function DashboardPage() {
   const [activeSetId, setActiveSetId] = useState<string | null>(null)
   const [maxSets, setMaxSets] = useState(1)
   const [canCreateMore, setCanCreateMore] = useState(false)
-  const [tier, setTier] = useState<'free' | 'starter' | 'growth' | 'agency'>('free')
+  const [tier, setTier] = useState<'free' | 'starter' | 'growth'>('free')
   const [canAddBusiness, setCanAddBusiness] = useState(false)
   const [maxBusinesses, setMaxBusinesses] = useState(1)
 
@@ -638,7 +638,7 @@ export default function DashboardPage() {
         onNewScan={handleRunScan}
         quota={quota}
         canAddBusiness={canAddBusiness}
-        onAddBusiness={() => navigate('/analyze')}
+        onAddBusiness={() => navigate('/analyze?add=1')}
         businessCount={businesses.length}
         maxBusinesses={maxBusinesses}
       />
@@ -831,11 +831,15 @@ function DashboardNav({
                 ))}
               </select>
             )}
-            {canAddBusiness && (
+            {maxBusinesses > 1 && (
               <button
                 onClick={onAddBusiness}
                 style={s.addBizBtn}
-                title={`Add business (${businessCount} of ${maxBusinesses})`}
+                title={
+                  canAddBusiness
+                    ? `Add business (${businessCount} of ${maxBusinesses})`
+                    : `You've reached your limit of ${maxBusinesses} businesses`
+                }
               >
                 + Add business
               </button>
@@ -867,7 +871,7 @@ function DashboardNav({
             opacity: quotaExhausted ? 0.5 : 1,
             cursor: quotaExhausted ? 'not-allowed' : 'pointer',
           }}
-          title={quotaExhausted ? 'Daily scan limit reached' : 'Run a new scan on this set'}
+          title={quotaExhausted ? 'Monthly scan limit reached' : 'Run a new scan on this set'}
         >
           {quotaExhausted ? 'Quota reached' : '+ Run scan'}
         </button>
@@ -904,7 +908,7 @@ function NoScansState({
   editDisabledReason: string | null
   isRunning: boolean
   showWelcome: boolean
-  tier: 'free' | 'starter' | 'growth' | 'agency'
+  tier: 'free' | 'starter' | 'growth'
 }) {
   const hasQueries = queries.length > 0
   const tierLabel = tier === 'free' ? 'Free' : tier[0].toUpperCase() + tier.slice(1)
@@ -1004,19 +1008,19 @@ function ScanResultsView({
   onNewScan: () => void
   onRetry: () => void
   isRetrying: boolean
-  tier: 'free' | 'starter' | 'growth' | 'agency'
+  tier: 'free' | 'starter' | 'growth'
 }) {
   if (scanError) {
     const lower = scanError.toLowerCase()
     const isSub = lower.includes('subscription')
-    const isQuota = lower.includes('daily scan limit') || lower.includes('quota')
+    const isQuota = lower.includes('scan limit') || lower.includes('quota')
     return (
       <div style={s.emptyState}>
         {isSub ? (
           <>
             <p style={s.emptyTitle}>Upgrade to run scans</p>
             <p style={s.emptyText}>
-              You've used your free scan. Subscribe to run daily scans across
+              You've used your free scan. Subscribe to run on-demand scans across
               ChatGPT, Claude, Gemini, and Perplexity.
             </p>
             <Link
@@ -1028,11 +1032,11 @@ function ScanResultsView({
           </>
         ) : isQuota ? (
           <>
-            <p style={s.emptyTitle}>Daily scan limit reached</p>
+            <p style={s.emptyTitle}>Monthly scan limit reached</p>
             <p style={s.emptyText}>
-              You've used today's scans for this plan. Your next slot opens in the
-              next 24 hours — see the quota indicator at the top of the page for the
-              exact time. Need more? Upgrade for higher daily limits.
+              You've used this month's scans for this plan. Scans free up on a
+              rolling 30-day basis — see the quota indicator at the top of the page
+              for when your next one opens. Need more? Upgrade for a higher monthly limit.
             </p>
             <Link
               to="/pricing"

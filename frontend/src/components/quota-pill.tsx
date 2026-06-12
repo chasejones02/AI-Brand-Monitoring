@@ -11,6 +11,8 @@ function formatCountdown(target: string | null): string | null {
   const ms = new Date(target).getTime() - Date.now()
   if (ms <= 0) return null
   const totalMin = Math.floor(ms / 60000)
+  const days = Math.floor(totalMin / (60 * 24))
+  if (days >= 1) return `${days}d`
   const h = Math.floor(totalMin / 60)
   const m = totalMin % 60
   if (h > 0) return `${h}h ${m}m`
@@ -83,7 +85,7 @@ export function QuotaPill({ quota }: QuotaPillProps) {
   }
 
   return (
-    <div style={baseStyle} title={countdown ? `Next slot in ${countdown}` : undefined}>
+    <div style={baseStyle} title={countdown ? `Next scan frees up in ${countdown}` : undefined}>
       <span
         style={{
           width: '6px',
@@ -94,7 +96,7 @@ export function QuotaPill({ quota }: QuotaPillProps) {
         }}
       />
       <span>
-        {quota.used_in_window}/{quota.daily_limit} scans · 24h
+        {quota.used_in_window}/{quota.daily_limit} scans · this month
       </span>
       {exhausted && countdown && (
         <span style={{ color: 'var(--text-muted)' }}>· next in {countdown}</span>

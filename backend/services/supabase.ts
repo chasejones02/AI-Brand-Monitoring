@@ -20,7 +20,7 @@ export type Profile = {
   full_name: string | null
   stripe_customer_id: string | null
   subscription_status: 'free' | 'active' | 'canceled' | 'past_due'
-  subscription_tier: 'free' | 'starter' | 'growth' | 'agency'
+  subscription_tier: 'free' | 'starter' | 'growth'
   created_at: string
 }
 
@@ -71,14 +71,12 @@ export const TIER_SET_LIMITS: Record<string, number> = {
   free: 1,
   starter: 2,
   growth: 3,
-  agency: 3,
 }
 
 export const TIER_BUSINESS_LIMITS: Record<string, number> = {
   free: 1,
   starter: 1,
   growth: 3,
-  agency: 10,
 }
 
 export type ScanResultCitation = {

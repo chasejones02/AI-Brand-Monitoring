@@ -20,7 +20,7 @@ const FAQS: FaqItem[] = [
   },
   {
     q: 'Is the free scan really free?',
-    a: 'Yes. No credit card, no hidden trial, no "enter your payment info just in case." You get a real scan with real results. Paid plans unlock more platforms, more queries, and recurring scans.',
+    a: 'Yes. No credit card, no hidden trial, no "enter your payment info just in case." You get a real scan with real results. Paid plans unlock more platforms, more queries, and on-demand rescans whenever you want them.',
   },
   {
     q: 'How is this different from traditional SEO tools?',
@@ -28,7 +28,7 @@ const FAQS: FaqItem[] = [
   },
   {
     q: 'How often should I run a scan?',
-    a: 'AI answers change constantly as models get updated and retrained. We recommend scanning at least weekly to catch shifts early. Paid plans include automated recurring scans so you don\'t have to remember.',
+    a: 'AI answers change constantly as models get updated and retrained. We recommend scanning at least weekly to catch shifts early. Paid plans let you re-run scans on demand whenever you publish new content or launch a campaign.',
   },
   {
     q: 'Can I cancel anytime?',

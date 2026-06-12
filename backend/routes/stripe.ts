@@ -10,7 +10,7 @@ const router = Router()
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
 type AppSubscriptionStatus = 'free' | 'active' | 'canceled' | 'past_due'
-type AppSubscriptionTier = 'free' | 'starter' | 'growth' | 'agency'
+type AppSubscriptionTier = 'free' | 'starter' | 'growth'
 type ProfileUpdate = {
   subscription_status?: AppSubscriptionStatus
   subscription_tier?: AppSubscriptionTier
@@ -41,11 +41,11 @@ const PRICE_TO_TIER: Record<string, string> = Object.entries(PRICE_MAP).reduce(
 )
 
 function isAppTier(tier: string | undefined | null): tier is AppSubscriptionTier {
-  return tier === 'free' || tier === 'starter' || tier === 'growth' || tier === 'agency'
+  return tier === 'free' || tier === 'starter' || tier === 'growth'
 }
 
 function isPaidTier(tier: string | undefined | null): tier is Exclude<AppSubscriptionTier, 'free'> {
-  return tier === 'starter' || tier === 'growth' || tier === 'agency'
+  return tier === 'starter' || tier === 'growth'
 }
 
 function priceToTier(priceId: string | undefined | null): AppSubscriptionTier | undefined {

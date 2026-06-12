@@ -17,7 +17,7 @@ import {
   type TrackingSetQuery,
 } from '../lib/api'
 
-type Tier = 'free' | 'starter' | 'growth' | 'agency'
+type Tier = 'free' | 'starter' | 'growth'
 
 interface PreviewState {
   queries: PreviewQuery[]
@@ -118,7 +118,7 @@ export default function PreviewPage() {
     })
   }
 
-  const isFree = tier === 'free' || tier === 'agency'
+  const isFree = tier === 'free'
   const queryCount = queries.length
 
   return (
