@@ -1,6 +1,6 @@
 # AI Brand Monitor Roadmap
 
-> Last updated: 2026-05-05. Keep this file updated as items are completed.
+> Last updated: 2026-06-12. Keep this file updated as items are completed.
 > Important: after any roadmap item ships, check it off in this file in the same change set.
 
 ---
@@ -49,7 +49,7 @@ The core loop (sign up -> business entry -> scan -> results -> pay) works end-to
 ### 7. Scan history + re-scan UX
 - [x] Build a scan history list on the dashboard using existing `GET /api/results/business/:id`
 - [x] Add a "Run New Scan" button - this is the core retention mechanic
-- [x] Add tier-based quota system (Starter 1/day, Growth 3/day, rolling 24h) replacing planned automated scans
+- [x] Add tier-based quota system. **Now a per-user rolling-30-day cap (Starter 25, Growth 40), changed 2026-06-12 from the original daily model for margin safety** — see `supabase/migrations/20260612000000_monthly_scan_quota.sql`. Note: RPC still returns a `daily_limit` column / `daily_quota_exceeded` reason code that are monthly semantically (legacy names kept to avoid churning the API contract).
 - [x] Add trend chart, per-platform sparklines, per-query trend rows
 - **Files:** `frontend/src/pages/dashboard.tsx`, `frontend/src/components/{quota-pill,trend-chart,platform-sparkline,query-trend-row,scan-history-list,history-trends-section}.tsx`, `backend/routes/{quota,scan,results}.ts`, `supabase/migrations/20260510000000_scan_quotas.sql`
 
@@ -177,8 +177,8 @@ Currently developing against Stripe **test mode** (sandbox). Before flipping to 
 
 ### Starter - $29/mo or $24/mo billed annually
 - [x] All configured platforms: Perplexity, ChatGPT, Claude, Gemini
-- [x] 1 on-demand scan per rolling 24h window
-- [ ] 10 queries: 5 auto + 5 custom
+- [x] 25 on-demand scans per rolling 30-day window (was 1/day; changed 2026-06-12)
+- [~] ~~10 queries: 5 auto + 5 custom~~ — capped at **5 queries per tracking set** (editor + creation). Per-tier query-count differentiation is intentionally deferred: each extra query multiplies per-scan API cost, which would break the monthly-cap margin math.
 - [ ] Full query editor before scan runs
 - [ ] Competitor extraction up to 3 tracked competitors
 - [ ] 4 per-platform recommendations per scan
@@ -187,11 +187,11 @@ Currently developing against Stripe **test mode** (sandbox). Before flipping to 
 
 ### Growth - $49/mo or $41/mo billed annually
 - [ ] Everything in Starter
-- [x] 3 on-demand scans per rolling 24h window
-- [ ] 20 custom queries
+- [x] 40 on-demand scans per rolling 30-day window (was 3/day; changed 2026-06-12)
+- [~] ~~20 custom queries~~ — capped at 5 per tracking set (see Starter note; deferred for cost reasons)
 - [x] Track up to 5 competitors with scores
 - [x] Historical trend graphs (overall + per-platform + per-query)
-- [ ] Weekly email digest
+- [~] ~~Weekly email digest~~ — removed from launch product 2026-06-12 (not built; depends on automated recurring scans, which we are not shipping unless users ask)
 - [ ] Sentiment trend over time
 
 ### Agency - dropped for launch
@@ -206,7 +206,7 @@ Do NOT start these until launch blockers are done and real users have used the p
 - ~~Automated recurring scans~~ — superseded by on-demand quota model (see #7).
 - [x] Historical trend graphs (shipped with #7)
 - [ ] Competitor radar (richer view; basic competitor extraction already shipped)
-- [ ] Email digest reports
+- [ ] Email digest reports — deferred; recurring-scan UI/copy was pulled from the product 2026-06-12, build only if users ask
 - [ ] Multi-tier usage enforcement (mostly handled by quota RPC; query-count limits still TODO)
 - [ ] Multi-business profiles for future Agency tier
 

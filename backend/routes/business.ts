@@ -29,7 +29,7 @@ const CreateBusinessSchema = z.object({
   description: z.string().min(10).max(1000).optional(),
   website: z.string().url().optional().or(z.literal('')),
   industry: z.string().optional(),
-  queries: z.array(z.string().min(3).max(500)).min(1).max(10).optional(),
+  queries: z.array(z.string().min(3).max(500)).min(1).max(5).optional(),
   generate_queries: z.boolean().optional(),
   query_count: z.number().int().min(3).max(5).optional(),
 }).superRefine((data, ctx) => {

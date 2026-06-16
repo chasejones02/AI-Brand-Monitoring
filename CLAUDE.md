@@ -10,7 +10,7 @@ AI Brand Monitor is a SaaS tool that tracks how businesses appear in AI-generate
 
 **Target users:** Small and medium businesses — local services, e-commerce, consultants, small SaaS, and marketing agencies.
 
-**Business model:** Subscription tiers at $29/mo (Starter), $49/mo (Growth), $149/mo (Agency).
+**Business model:** Subscription tiers at $29/mo (Starter) and $49/mo (Growth). Agency ($149) was dropped from launch — only Free, Starter, and Growth exist in the product. Paid scans are capped per user on a rolling 30-day window (Starter 25, Growth 40) to keep every tier profitable against API cost.
 
 ---
 
@@ -258,7 +258,7 @@ Normalize across all target queries × all platforms. This will evolve — don't
 - Query engine: Perplexity (free) + OpenAI & Perplexity (paid)
 - Results page: mention detection, position, sentiment
 - Basic AI Visibility Score (0–100)
-- Stripe checkout — 3 tiers ($29/$49/$149)
+- Stripe checkout — 2 paid tiers ($29 Starter / $49 Growth; Agency dropped from launch)
 
 **Ship trigger:** A stranger can sign up, pay, enter their business, and get a useful report with zero manual intervention.
 

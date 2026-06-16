@@ -208,23 +208,49 @@ async function queryPerplexity(prompt: string, context?: QueryContext): Promise<
   }
 }
 
-async function queryAnthropic(prompt: string): Promise<{ text: string; usage: UsageMetrics }> {
+async function queryAnthropic(prompt: string): Promise<{ text: string; citations: Citation[]; usage: UsageMetrics }> {
   if (!anthropic) throw new Error('Anthropic API key not configured')
 
+  // Live web search via Anthropic's server-side tool. Without it, Haiku answers
+  // from training data only and almost never names small/local businesses — the
+  // same blind spot we avoid for OpenAI/Gemini. max_uses caps the agentic search
+  // loop so one query can't rack up unbounded search cost ($10 per 1k searches).
+  // max_tokens matches Perplexity's 1024 to avoid mid-list truncation.
   const response = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 500,
+    max_tokens: 1024,
     messages: [{ role: 'user', content: prompt }],
+    // The installed SDK (^0.39) predates the web_search server-tool type, but the
+    // API accepts it — the client just serializes the body. Cast to bypass the
+    // stale type. Upgrade @anthropic-ai/sdk later to drop the cast.
+    tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 5 } as any],
   })
 
-  const block = response.content[0]
-  const text = block?.type === 'text' ? block.text : ''
+  let text = ''
+  const seen = new Set<string>()
+  const citations: Citation[] = []
+  for (const block of response.content ?? []) {
+    if (block.type !== 'text') continue
+    text += block.text
+    for (const cit of ((block as any).citations ?? []) as any[]) {
+      const uri = cit?.url
+      if (typeof uri !== 'string' || !uri || seen.has(uri)) continue
+      seen.add(uri)
+      citations.push({ uri, title: typeof cit.title === 'string' ? cit.title : null })
+      if (citations.length >= 10) break
+    }
+  }
+
+  // Anthropic reports actual searches performed in usage.server_tool_use — bill off this.
+  const search_calls = (response.usage as any)?.server_tool_use?.web_search_requests ?? 0
+
   return {
     text,
+    citations,
     usage: {
       input_tokens: response.usage?.input_tokens ?? 0,
       output_tokens: response.usage?.output_tokens ?? 0,
-      search_calls: 0,
+      search_calls,
     },
   }
 }
@@ -294,8 +320,8 @@ export async function runQueryOnPlatforms(
         const { text, citations, usage } = await queryOpenAI(prompt)
         return { platform, raw_response: text, citations, usage }
       } else if (platform === 'anthropic') {
-        const { text, usage } = await queryAnthropic(prompt)
-        return { platform, raw_response: text, usage }
+        const { text, citations, usage } = await queryAnthropic(prompt)
+        return { platform, raw_response: text, citations, usage }
       } else if (platform === 'perplexity') {
         const { text, usage } = await queryPerplexity(prompt, context)
         return { platform, raw_response: text, usage }

@@ -11,19 +11,21 @@ type ProviderPricing = {
   search_per_call: number
 }
 
-// USD. Verify against actual provider invoices before any pricing decision —
-// early-2026 testing showed gpt-5.5 + web_search ran ~$0.84/scan vs our
-// initial estimate of ~$0.15, so treat these numbers as directional until
-// reconciled against the OpenAI/Google billing dashboards.
-//   - OpenAI gpt-4.1-mini + web_search: token prices + ~$10 per 1k tool calls
-//   - Gemini 2.5-flash grounded: $35 per 1k grounded prompts + token prices
-//   - Perplexity sonar: search bundled into request pricing (~$0.001/req)
-//   - Anthropic claude-haiku-4-5: token-only (no web search yet)
+// USD. Reconciled against provider invoices 2026-06-12. Treat as directional —
+// re-check when providers change rates or when real billing diverges.
+//   - OpenAI gpt-4.1-mini + web_search (low): $0.40/1M in, $1.60/1M out; tool
+//     call calibrated to ~$0.07/scan (5 searches) seen in real OpenAI billing.
+//   - Gemini 2.5-flash grounded: $0.30/1M in, $2.50/1M out, $35/1k grounded prompts.
+//   - Perplexity sonar: $1/1M in & out; request fee ~$0.012/req (invoice: 104
+//     req = $1.25) — NOT $0.001; the prior value under-reported cost ~12x.
+//   - Anthropic claude-haiku-4-5 + web_search: $1/1M in, $5/1M out, $10/1k searches.
+// NOTE: the per-result gpt-4o-mini analyzeMention pass (~$0.006/scan) is not
+// captured here — its usage isn't threaded back into ScanUsage.
 const PRICING: Record<Platform, ProviderPricing> = {
-  openai:     { input_per_1k: 0.0004, output_per_1k: 0.0016, search_per_call: 0.010 },
-  gemini:     { input_per_1k: 0.000075, output_per_1k: 0.0003, search_per_call: 0.035 },
-  perplexity: { input_per_1k: 0.001, output_per_1k: 0.001, search_per_call: 0.001 },
-  anthropic:  { input_per_1k: 0.0008, output_per_1k: 0.004, search_per_call: 0 },
+  openai:     { input_per_1k: 0.0004, output_per_1k: 0.0016, search_per_call: 0.0125 },
+  gemini:     { input_per_1k: 0.0003, output_per_1k: 0.0025, search_per_call: 0.035 },
+  perplexity: { input_per_1k: 0.001, output_per_1k: 0.001, search_per_call: 0.012 },
+  anthropic:  { input_per_1k: 0.001, output_per_1k: 0.005, search_per_call: 0.010 },
 }
 
 export function estimatePlatformCost(platform: Platform, usage: UsageMetrics): number {
