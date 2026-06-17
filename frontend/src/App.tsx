@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { Sentry } from './lib/sentry'
+import { capturePageview } from './lib/posthog'
 import { AuthProvider, useAuth } from './contexts/auth-context'
 import { LandingPage } from './pages/landing'
 import AuthPage from './pages/auth'
@@ -76,7 +77,18 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+// Fires a PostHog pageview on every route change. Needed because this is a
+// single-page app — react-router swaps views without a full page reload, so
+// the browser never fires a native navigation event for PostHog to catch.
+function usePostHogPageviews() {
+  const location = useLocation()
+  useEffect(() => {
+    capturePageview()
+  }, [location.pathname])
+}
+
 function AppRoutes() {
+  usePostHogPageviews()
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
