@@ -10,24 +10,6 @@ const check = (
   </svg>
 )
 
-const testimonials = [
-  {
-    quote: "I didn't realize AI was recommending my competitor to everyone searching for HVAC in my city. Within a week I knew exactly what was happening and where I stood.",
-    author: 'Marcus T.',
-    role: 'HVAC contractor, Dallas TX',
-  },
-  {
-    quote: "We were paying for SEO but completely blind to AI. This showed us we had a 12% visibility score on ChatGPT. That number alone justified the subscription.",
-    author: 'Priya K.',
-    role: 'Marketing consultant',
-  },
-  {
-    quote: "The trend graph showed our score jumped after we updated our About page copy. We finally have proof that content changes are actually working.",
-    author: 'Jamie L.',
-    role: 'E-commerce founder',
-  },
-]
-
 type BillingPeriod = 'monthly' | 'annual'
 
 export function Pricing() {
@@ -176,17 +158,6 @@ export function Pricing() {
               {loading === 'growth' ? 'Redirecting…' : 'Stop losing AI-driven deals'}
             </button>
           </GlowCard>
-        </div>
-
-        {/* Testimonials */}
-        <div className="pricing-testimonials">
-          {testimonials.map((t) => (
-            <div key={t.author} className="pricing-testimonial">
-              <p className="pricing-testimonial-quote">"{t.quote}"</p>
-              <p className="pricing-testimonial-author">{t.author}</p>
-              <p className="pricing-testimonial-role">{t.role}</p>
-            </div>
-          ))}
         </div>
 
         <div className="pricing-bottom-nudge">

@@ -1542,9 +1542,9 @@
     /* Billing toggle */
     .pricing-billing-wrap {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 0.75rem;
+      gap: 0.6rem;
       margin: 2.25rem 0 0;
     }
     .pricing-billing-toggle {
@@ -1588,45 +1588,12 @@
       margin: 0.2rem 0 1.25rem;
     }
 
-    /* Testimonials */
-    .pricing-testimonials {
-      margin-top: 3rem;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1rem;
-    }
-    .pricing-testimonial {
-      background: rgba(255,255,255,0.02);
-      border: 1px solid rgba(255,255,255,0.05);
-      border-radius: 12px;
-      padding: 1.25rem 1.5rem;
-    }
-    .pricing-testimonial-quote {
-      font-size: 0.875rem;
-      color: var(--text-muted);
-      line-height: 1.65;
-      font-style: italic;
-      margin-bottom: 0.85rem;
-    }
-    .pricing-testimonial-author {
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--text-dim);
-    }
-    .pricing-testimonial-role {
-      font-size: 0.73rem;
-      color: var(--text-dim);
-      opacity: 0.6;
-      margin-top: 0.15rem;
-    }
-
     @media (max-width: 600px) {
       .pricing-free-strip {
         flex-direction: column;
         text-align: center;
         gap: 0.5rem;
       }
-      .pricing-testimonials { grid-template-columns: 1fr; }
     }
 
     /* ─── Bottom CTA ────────────────────────────────────── */
@@ -4277,9 +4244,9 @@
     /* Billing toggle */
     .pp-billing-wrap {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 0.75rem;
+      gap: 0.6rem;
       margin: 2rem 0 0;
       position: relative;
       z-index: 1;
@@ -4325,45 +4292,8 @@
       margin: 0.2rem 0 1.25rem;
     }
 
-    /* Testimonials */
-    .pp-testimonials {
-      max-width: 820px;
-      margin: 3rem auto 0;
-      padding: 0 2rem;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 1rem;
-      position: relative;
-      z-index: 1;
-    }
-    .pp-testimonial {
-      background: rgba(255,255,255,0.02);
-      border: 1px solid rgba(255,255,255,0.05);
-      border-radius: 12px;
-      padding: 1.25rem 1.5rem;
-    }
-    .pp-testimonial-quote {
-      font-size: 0.875rem;
-      color: var(--text-muted);
-      line-height: 1.65;
-      font-style: italic;
-      margin-bottom: 0.85rem;
-    }
-    .pp-testimonial-author {
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: var(--text-dim);
-    }
-    .pp-testimonial-role {
-      font-size: 0.73rem;
-      color: var(--text-dim);
-      opacity: 0.6;
-      margin-top: 0.15rem;
-    }
-
     @media (max-width: 900px) {
       .pp-grid { grid-template-columns: 1fr; max-width: 420px; }
-      .pp-testimonials { grid-template-columns: 1fr; }
       .pp-free-strip {
         flex-direction: column;
         text-align: center;

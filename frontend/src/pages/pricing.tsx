@@ -18,24 +18,6 @@ const check = (
   </svg>
 )
 
-const testimonials = [
-  {
-    quote: "I didn't realize AI was recommending my competitor to everyone searching for HVAC in my city. Within a week I knew exactly what was happening and where I stood.",
-    author: 'Marcus T.',
-    role: 'HVAC contractor, Dallas TX',
-  },
-  {
-    quote: "We were paying for SEO but completely blind to AI. This showed us we had a 12% visibility score on ChatGPT. That number alone justified the subscription.",
-    author: 'Priya K.',
-    role: 'Marketing consultant',
-  },
-  {
-    quote: "The trend graph showed our score jumped after we updated our About page copy. We finally have proof that content changes are actually working.",
-    author: 'Jamie L.',
-    role: 'E-commerce founder',
-  },
-]
-
 type BillingPeriod = 'monthly' | 'annual'
 
 export default function PricingPage() {
@@ -207,17 +189,6 @@ export default function PricingPage() {
             {loading === 'growth' ? 'Redirecting…' : 'Stop losing AI-driven deals'}
           </button>
         </TiltCard>
-      </div>
-
-      {/* Testimonials */}
-      <div className="pp-testimonials">
-        {testimonials.map((t) => (
-          <div key={t.author} className="pp-testimonial">
-            <p className="pp-testimonial-quote">"{t.quote}"</p>
-            <p className="pp-testimonial-author">{t.author}</p>
-            <p className="pp-testimonial-role">{t.role}</p>
-          </div>
-        ))}
       </div>
 
       {/* Bottom nudge */}
