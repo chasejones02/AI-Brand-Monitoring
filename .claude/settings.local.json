@@ -31,7 +31,16 @@
       "Bash(curl -sv http://localhost:3001/_sentry-test)",
       "Bash(curl -sf http://localhost:3001/health -m 3)",
       "Bash(echo \"exit:$?\")",
-      "Bash(awk -F= '{print \"key length:\", length\\($2\\)}')"
+      "Bash(awk -F= '{print \"key length:\", length\\($2\\)}')",
+      "Bash(which Rscript 2>&1; echo \"---\"; ls \"/c/Program Files/R/\" 2>&1)",
+      "Read(//c/Program Files/R//**)",
+      "Bash(\"/c/Program Files/R/R-4.5.1/bin/Rscript.exe\" -e 'tryCatch\\(shiny::h1\\(\"Choose an NBA Mini Game\", style=\"text-align: center;\",\\), error=function\\(e\\) cat\\(\"ERROR:\", conditionMessage\\(e\\), \"\\\\n\"\\)\\)')",
+      "Read(//c/Users/jones/OneDrive/Research Assistant/SUMMER/1st Month Shiny App/**)",
+      "Bash('/c/Program Files/R/R-4.5.1/bin/Rscript.exe' -e ' *)",
+      "PowerShell(& \"C:\\\\Program Files\\\\R\\\\R-4.5.1\\\\bin\\\\Rscript.exe\" -e \"for \\(p in c\\('shiny','ggplot2','bslib','shinyFeedback','shinyWidgets'\\)\\) cat\\(p, requireNamespace\\(p, quietly=TRUE\\), '\\\\n'\\)\")",
+      "PowerShell($env:R_LIBS_USER)",
+      "PowerShell(Set-Location \"C:\\\\Users\\\\jones\\\\OneDrive\\\\Research Assistant\\\\SUMMER\\\\1st Month Shiny App\"; & \"C:\\\\Program Files\\\\R\\\\R-4.5.1\\\\bin\\\\Rscript.exe\" -e \"options\\(shiny.testmode=TRUE\\); tryCatch\\({ app <- shiny::shinyAppFile\\('NBA 2026 Game.R'\\); ui <- app\\\\$httpHandler; cat\\('App object created OK\\\\n'\\); u <- if \\(is.function\\(app\\\\$ui\\)\\) app\\\\$ui\\(list\\(\\)\\) else app\\\\$ui; cat\\('UI built OK\\\\n'\\) }, error=function\\(e\\) cat\\('ERROR:', conditionMessage\\(e\\), '\\\\n'\\)\\)\")",
+      "PowerShell(Set-Location \"C:\\\\Users\\\\jones\\\\OneDrive\\\\Research Assistant\\\\SUMMER\\\\1st Month Shiny App\"; $job = Start-Job -ScriptBlock { & \"C:\\\\Program Files\\\\R\\\\R-4.5.1\\\\bin\\\\Rscript.exe\" \"C:\\\\Users\\\\jones\\\\OneDrive\\\\Research Assistant\\\\SUMMER\\\\1st Month Shiny App\\\\_diag2.R\" 2>&1 }; Start-Sleep -Seconds 12; try { $r = Invoke-WebRequest -Uri \"http://127.0.0.1:7777\" -UseBasicParsing -TimeoutSec 5; Write-Output \\(\"HTTP STATUS: \" + $r.StatusCode\\) } catch { Write-Output \\(\"REQUEST FAILED: \" + $_.Exception.Message\\) }; Stop-Job $job; Receive-Job $job; Remove-Job $job)"
     ]
   }
 }

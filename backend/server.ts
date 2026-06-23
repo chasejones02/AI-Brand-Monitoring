@@ -28,8 +28,23 @@ const PORT = env.PORT
 // Do NOT set to `true` — that lets clients spoof the header.
 app.set('trust proxy', 1)
 
+// FRONTEND_URL may list multiple comma-separated origins (e.g. www + apex).
+// Normalize away trailing slashes so a stray "/" in the env var can't break CORS.
+const stripSlash = (s: string) => s.trim().replace(/\/+$/, '')
+const allowedOrigins = (process.env.FRONTEND_URL ?? 'http://localhost:5173')
+  .split(',')
+  .map(stripSlash)
+  .filter(Boolean)
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL ?? 'http://localhost:5173',
+  origin(origin, callback) {
+    // No Origin header = same-origin / non-browser client (curl, health checks)
+    if (!origin || allowedOrigins.includes(stripSlash(origin))) {
+      callback(null, true)
+    } else {
+      callback(new Error(`Not allowed by CORS: ${origin}`))
+    }
+  },
   credentials: true,
 }))
 
