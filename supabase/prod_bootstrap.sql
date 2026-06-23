@@ -1547,3 +1547,27 @@ begin
 end;
 $$;
 
+
+-- =====[ POST / GRANTS ]==============================================
+-- Grant the Supabase API roles access to everything in public.
+--
+-- Without these, PostgREST (the REST API supabase-js talks to) gets a Postgres
+-- "permission denied" (42501) on every table — even the service_role the
+-- backend uses — so the dashboard 500s with "Failed to fetch businesses" even
+-- though the schema is correct. RLS stays enabled, so anon/authenticated still
+-- only see rows their policies allow; service_role bypasses RLS by design.
+-- These mirror the grants a normal Supabase project ships with.
+-- ====================================================================
+
+grant usage on schema public to anon, authenticated, service_role;
+
+grant all on all tables in schema public to anon, authenticated, service_role;
+grant all on all sequences in schema public to anon, authenticated, service_role;
+grant all on all routines in schema public to anon, authenticated, service_role;
+
+alter default privileges in schema public
+  grant all on tables to anon, authenticated, service_role;
+alter default privileges in schema public
+  grant all on sequences to anon, authenticated, service_role;
+alter default privileges in schema public
+  grant all on routines to anon, authenticated, service_role;
