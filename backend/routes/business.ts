@@ -188,6 +188,7 @@ router.get('/', requireAuth, async (req: Request, res: Response): Promise<void> 
     .order('created_at', { ascending: false })
 
   if (error) {
+    console.error('GET /api/business query failed:', JSON.stringify(error))
     res.status(500).json({ data: null, error: 'Failed to fetch businesses' })
     return
   }
