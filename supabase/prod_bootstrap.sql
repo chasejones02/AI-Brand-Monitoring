@@ -71,14 +71,15 @@ create table if not exists public.scan_results (
   created_at timestamptz default now()
 );
 
--- Auto-create profile when a user signs up
+-- Auto-create profile when a user signs up. Coalesce email to '' so anonymous
+-- sign-ins (NULL email) don't violate profiles.email NOT NULL.
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
   insert into public.profiles (id, email, full_name)
   values (
     new.id,
-    new.email,
+    coalesce(new.email, ''),
     new.raw_user_meta_data->>'full_name'
   );
   return new;
@@ -89,6 +90,26 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Keep profiles.email in sync when the auth email changes (e.g. an anonymous
+-- user upgrading in place via updateUser({ email })). Stripe checkout reads
+-- profiles.email to stamp the customer.
+create or replace function public.handle_user_email_update()
+returns trigger as $$
+begin
+  if new.email is distinct from old.email then
+    update public.profiles
+      set email = coalesce(new.email, '')
+      where id = new.id;
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_auth_user_email_updated on auth.users;
+create trigger on_auth_user_email_updated
+  after update on auth.users
+  for each row execute procedure public.handle_user_email_update();
 
 -- Row Level Security
 alter table public.profiles enable row level security;

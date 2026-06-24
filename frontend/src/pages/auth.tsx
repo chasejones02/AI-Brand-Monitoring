@@ -166,8 +166,11 @@ export default function AuthPage() {
       })
       if (signUpError) throw signUpError
 
+      // Email confirmation is disabled in Supabase, so signUp returns a session
+      // immediately and we go straight to the business step. Guard the rare
+      // case where a session isn't returned so the user isn't left stranded.
       if (!data.session) {
-        setError('Check your email for a confirmation link, then come back and sign in.')
+        setError('Account created — please sign in to continue.')
         setLoading(false)
         return
       }

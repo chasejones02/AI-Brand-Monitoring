@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { createCheckoutSession } from '../lib/api'
 import { useAuth } from '../contexts/auth-context'
+import { supabase } from '../lib/supabase'
 import { GlowCard } from './ui/spotlight-card'
+import { UpgradeClaimModal } from './upgrade-claim'
 
 const check = (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -20,14 +22,14 @@ export function Pricing() {
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [billing, setBilling] = useState<BillingPeriod>('annual')
+  // Anonymous users must attach an email + password before paying.
+  const [claimTier, setClaimTier] = useState<'starter' | 'growth' | null>(null)
+  const [claimError, setClaimError] = useState('')
+  const [claimLoading, setClaimLoading] = useState(false)
 
   const prices = { starter: billing === 'annual' ? 24 : 29, growth: billing === 'annual' ? 41 : 49 }
 
-  async function handleCheckout(tier: 'starter' | 'growth') {
-    if (!session) {
-      document.getElementById('get-report')?.scrollIntoView({ behavior: 'smooth' })
-      return
-    }
+  async function runCheckout(tier: 'starter' | 'growth') {
     const checkoutTier = billing === 'annual' ? (`${tier}_annual` as const) : tier
     setLoading(tier)
     setError('')
@@ -37,6 +39,38 @@ export function Pricing() {
     } catch (err: any) {
       setError(err.message ?? 'Something went wrong. Please try again.')
       setLoading(null)
+    }
+  }
+
+  function handleCheckout(tier: 'starter' | 'growth') {
+    if (!session) {
+      document.getElementById('get-report')?.scrollIntoView({ behavior: 'smooth' })
+      return
+    }
+    // Anonymous (free-scan) users have a session but no login — collect an
+    // email/password and convert the account in place before Stripe.
+    if (session.user?.is_anonymous) {
+      setClaimError('')
+      setClaimTier(tier)
+      return
+    }
+    runCheckout(tier)
+  }
+
+  async function handleClaimConfirm(email: string, password: string) {
+    const tier = claimTier
+    if (!tier) return
+    setClaimLoading(true)
+    setClaimError('')
+    try {
+      const { error: updateErr } = await supabase.auth.updateUser({ email, password })
+      if (updateErr) throw updateErr
+      setClaimTier(null)
+      setClaimLoading(false)
+      await runCheckout(tier)
+    } catch (err: any) {
+      setClaimError(err.message ?? 'Could not save your account. Please try again.')
+      setClaimLoading(false)
     }
   }
 
@@ -170,6 +204,16 @@ export function Pricing() {
           </button>
         </div>
       </div>
+
+      {claimTier && (
+        <UpgradeClaimModal
+          subtitle={<>Create a login to upgrade to <strong style={{ color: 'var(--text)' }}>{claimTier === 'growth' ? 'Growth' : 'Starter'}</strong>. Your business and free scan stay exactly where they are.</>}
+          onClose={() => { if (!claimLoading) setClaimTier(null) }}
+          onConfirm={handleClaimConfirm}
+          error={claimError}
+          loading={claimLoading}
+        />
+      )}
     </section>
   )
 }

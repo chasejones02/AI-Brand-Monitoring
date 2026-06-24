@@ -7,6 +7,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
+import { supabase } from '../lib/supabase'
 import { createBusiness } from '../lib/api'
 
 export function HeroForm() {
@@ -29,14 +30,16 @@ export function HeroForm() {
     setError('')
 
     try {
+      // No login required for the free scan: silently create an anonymous
+      // Supabase session. This mints a real user + JWT, so createBusiness and
+      // every downstream authed route work exactly as for a logged-in user.
       if (!session) {
-        const params = new URLSearchParams({
-          name: bizName.trim(),
-          location: location.trim(),
-          description: description.trim(),
-        }).toString()
-        navigate(`/auth?${params}`)
-        return
+        const { error: anonError } = await supabase.auth.signInAnonymously()
+        if (anonError) {
+          setError('Could not start your scan. Please try again.')
+          setSubmitting(false)
+          return
+        }
       }
 
       const { business_id, default_set_id, tier, queries } = await createBusiness({

@@ -10,6 +10,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useSearchParams, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
+import { supabase } from '../lib/supabase'
+import { UpgradeClaimModal } from '../components/upgrade-claim'
 import { GlowCard } from '../components/ui/spotlight-card'
 import { TiltCard } from '../components/ui/tilt-card'
 import { CrystalCursor } from '../components/crystal-cursor'
@@ -226,6 +228,30 @@ export default function DashboardPage() {
     const t = setTimeout(() => setCursorActive(true), 700)
     return () => clearTimeout(t)
   }, [])
+
+  // Anonymous (free-scan) users have a session but no real login. Nudge them to
+  // attach an email + password so their results aren't lost if they clear their
+  // browser. Converting in place keeps the same user_id, business, and scans.
+  const isAnonymous = !!user?.is_anonymous
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const [saveLoading, setSaveLoading] = useState(false)
+
+  async function handleSaveAccount(email: string, password: string) {
+    setSaveLoading(true)
+    setSaveError('')
+    try {
+      const { error: updateErr } = await supabase.auth.updateUser({ email, password })
+      if (updateErr) throw updateErr
+      // USER_UPDATED fires on the auth listener → session refreshes and
+      // user.is_anonymous flips to false, so the banner hides on its own.
+      setShowSaveModal(false)
+      setSaveLoading(false)
+    } catch (err: any) {
+      setSaveError(err.message ?? 'Could not save your account. Please try again.')
+      setSaveLoading(false)
+    }
+  }
 
   const refreshQuota = useCallback(async (setId?: string) => {
     try {
@@ -643,6 +669,18 @@ export default function DashboardPage() {
         maxBusinesses={maxBusinesses}
       />
 
+      {isAnonymous && (
+        <div style={s.saveBanner}>
+          <span style={s.saveBannerText}>
+            <span style={s.saveBannerDot} aria-hidden />
+            You're browsing as a guest. Create a free account so your results aren't lost.
+          </span>
+          <button onClick={() => { setSaveError(''); setShowSaveModal(true) }} style={s.saveBannerBtn}>
+            Save my results
+          </button>
+        </div>
+      )}
+
       {globalError && (
         <div style={s.errorBanner}>
           <span>{globalError}</span>
@@ -767,6 +805,19 @@ export default function DashboardPage() {
         isSubmitting={isSubmitting}
         error={editorError}
       />
+
+      {showSaveModal && (
+        <UpgradeClaimModal
+          title="Save your results"
+          subtitle="Create a free account so your business and scan are saved — and you can sign back in from any device."
+          submitLabel="Create account"
+          loadingLabel="Saving…"
+          onClose={() => { if (!saveLoading) setShowSaveModal(false) }}
+          onConfirm={handleSaveAccount}
+          error={saveError}
+          loading={saveLoading}
+        />
+      )}
     </div>
   )
 }
@@ -1662,6 +1713,46 @@ const s: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     padding: 0,
     lineHeight: 1,
+  },
+
+  // Guest "save your results" banner — shown to anonymous (free-scan) users.
+  saveBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '1rem',
+    flexWrap: 'wrap' as const,
+    background: 'rgba(240,165,0,0.08)',
+    borderBottom: '1px solid rgba(240,165,0,0.22)',
+    padding: '0.7rem 2rem',
+  },
+  saveBannerText: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.6rem',
+    fontSize: '0.85rem',
+    color: 'var(--text)',
+  },
+  saveBannerDot: {
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    background: 'var(--accent)',
+    flexShrink: 0,
+    boxShadow: '0 0 8px rgba(240,165,0,0.6)',
+  },
+  saveBannerBtn: {
+    background: 'var(--accent)',
+    border: 'none',
+    borderRadius: '6px',
+    color: '#000',
+    padding: '0.4rem 1rem',
+    fontSize: '0.82rem',
+    fontWeight: 700,
+    fontFamily: "'Outfit', sans-serif",
+    cursor: 'pointer',
+    whiteSpace: 'nowrap' as const,
+    flexShrink: 0,
   },
 
   // Loading
