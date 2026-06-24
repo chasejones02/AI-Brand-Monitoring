@@ -12,7 +12,7 @@ export function Footer() {
           <li><Link to="/pricing">Pricing</Link></li>
           <li><Link to="/terms">Terms</Link></li>
           <li><Link to="/privacy">Privacy</Link></li>
-          <li><a href="mailto:hello@visaion.com">Contact</a></li>
+          <li><a href="mailto:support@visaionbrand.com">Contact</a></li>
         </ul>
         <div className="footer-copy">
           © 2026 Vis<span className="logo-ai">ai</span>on. All rights reserved.

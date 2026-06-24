@@ -131,7 +131,7 @@ Currently developing against Stripe **test mode** (sandbox). Before flipping to 
 - [ ] Copy the new live `STRIPE_PRICE_STARTER` and `STRIPE_PRICE_GROWTH` price IDs into the production env
 - [ ] Replace `STRIPE_SECRET_KEY` in production env with the live `sk_live_...` key
 - [ ] Replace `VITE_STRIPE_PUBLISHABLE_KEY` (or equivalent) in the frontend env with the live `pk_live_...` key
-- [ ] Create a **live-mode** webhook endpoint in Stripe pointed at the production backend URL (e.g. `https://api.yourdomain.com/api/stripe/webhook`)
+- [ ] Create a **live-mode** webhook endpoint in Stripe pointed at the production backend URL (e.g. `https://api.visaionbrand.com/api/stripe/webhook`)
 - [ ] Subscribe that endpoint to the same events the backend handles: `checkout.session.completed`, `customer.subscription.deleted`, `customer.subscription.updated`, `invoice.payment_failed`
 - [ ] Copy the live webhook **signing secret** (`whsec_...`) into production env as `STRIPE_WEBHOOK_SECRET`. This is NOT the same as the local `stripe listen` secret used in development
 - [ ] Make a real $0.50 test purchase end-to-end after deploy and confirm `profiles.subscription_status` flips to `active`

@@ -55,8 +55,8 @@ function LegalPage({
               <p style={s.contactTitle}>Questions about this {label.toLowerCase()}?</p>
               <p style={s.contactCopy}>We usually reply within a business day.</p>
             </div>
-            <a href="mailto:hello@visaion.com" style={s.contactBtn}>
-              hello@visaion.com
+            <a href="mailto:support@visaionbrand.com" style={s.contactBtn}>
+              support@visaionbrand.com
             </a>
           </div>
         </div>
@@ -166,7 +166,7 @@ export function PrivacyPage() {
           title: 'Data retention',
           body: [
             'We retain account, business, scan, and billing records for as long as needed to provide the service, meet operational needs, resolve disputes, enforce agreements, and comply with legal obligations.',
-            'If you want to request deletion of your account or business data, contact us at hello@visaion.com.',
+            'If you want to request deletion of your account or business data, contact us at support@visaionbrand.com.',
           ],
         },
         {

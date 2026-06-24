@@ -83,7 +83,7 @@ export default function SuccessPage() {
 
         <p style={s.footer}>
           Questions? Reply to your confirmation email or{' '}
-          <a href="mailto:support@aibrandmonitor.com" style={s.footerLink}>contact support</a>.
+          <a href="mailto:support@visaionbrand.com" style={s.footerLink}>contact support</a>.
         </p>
       </div>
     </div>
