@@ -370,13 +370,13 @@ function GoogleLogo() {
 interface LoginFormProps {
   onSignIn: (email: string, password: string) => Promise<void>
   onSignUp: (email: string, password: string, fullName: string) => Promise<void>
-  onBusinessSubmit: (data: { name: string; location: string; description: string }) => Promise<void>
+  onBusinessSubmit: (data: { name: string; location: string; description: string; isOnline: boolean }) => Promise<void>
   onForgotPassword: (email: string) => Promise<void>
   onGoogleSignIn: () => Promise<void>
   recovery?: boolean
   onSetNewPassword?: (password: string) => Promise<void>
   flipped: boolean
-  initialBusiness?: { name: string; location: string; description: string }
+  initialBusiness?: { name: string; location: string; description: string; isOnline?: boolean }
   error?: string
   successMessage?: string
   loading?: boolean
@@ -393,6 +393,7 @@ export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, onForgotPasswo
   const [fullName, setFullName] = useState('')
   const [bizName, setBizName] = useState(initialBusiness?.name ?? '')
   const [bizLocation, setBizLocation] = useState(initialBusiness?.location ?? '')
+  const [bizIsOnline, setBizIsOnline] = useState(initialBusiness?.isOnline ?? false)
   const [bizDesc, setBizDesc] = useState(initialBusiness?.description ?? '')
   const [bizLoading, setBizLoading] = useState(false)
   const tiltRef = useRef<HTMLDivElement>(null)
@@ -426,10 +427,11 @@ export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, onForgotPasswo
 
   const handleBusiness = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!bizLocation.includes(',')) return
+    // Online businesses have no physical location, so only validate it otherwise.
+    if (!bizIsOnline && !bizLocation.includes(',')) return
     if (bizDesc.trim().length < 10) return
     setBizLoading(true)
-    try { await onBusinessSubmit({ name: bizName, location: bizLocation, description: bizDesc }) }
+    try { await onBusinessSubmit({ name: bizName, location: bizLocation, description: bizDesc, isOnline: bizIsOnline }) }
     finally { setBizLoading(false) }
   }
 
@@ -807,7 +809,36 @@ export function LoginForm({ onSignIn, onSignUp, onBusinessSubmit, onForgotPasswo
 
           <form onSubmit={handleBusiness}>
             <FloatingInput icon={Building2} label="Business Name" value={bizName} onChange={setBizName} />
-            <FloatingInput icon={MapPin} label="Location (city, state)" value={bizLocation} onChange={setBizLocation} />
+
+            {/* Online toggle — lets location-less businesses skip the address field */}
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)',
+                marginBottom: bizIsOnline ? '1rem' : '0.4rem',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={bizIsOnline}
+                onChange={e => setBizIsOnline(e.target.checked)}
+                style={{ accentColor: 'var(--accent)', width: '15px', height: '15px', cursor: 'pointer' }}
+              />
+              Online business — no physical location
+            </label>
+
+            {bizIsOnline ? (
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-dim)', lineHeight: 1.5, marginBottom: '1.5rem' }}>
+                We'll base your scan on what your business does, not where it is.
+              </p>
+            ) : (
+              <FloatingInput icon={MapPin} label="Location (city, state)" value={bizLocation} onChange={setBizLocation} />
+            )}
+
             <FloatingTextarea icon={FileText} label="Short Description" value={bizDesc} onChange={setBizDesc} minLength={10} />
             <SubmitButton loading={bizLoading} label="Continue to Dashboard" loadingLabel="Setting up..." />
           </form>

@@ -21,15 +21,19 @@ export default function AuthPage() {
   // detect an expired/invalid reset link (which arrives as an error in the hash
   // rather than a PASSWORD_RECOVERY event).
   const initialHash = useRef(window.location.hash)
+  const initialIsOnline = searchParams.get('is_online') === 'true'
   const initialBusiness = {
     name: searchParams.get('name') ?? '',
     location: searchParams.get('location') ?? '',
     description: searchParams.get('description') ?? '',
+    isOnline: initialIsOnline,
   }
+  // Online businesses carry no location, so it's only part of the intent
+  // when the business isn't online.
   const hasBusinessIntent = Boolean(
     initialBusiness.name.trim() &&
-    initialBusiness.location.trim() &&
-    initialBusiness.description.trim()
+    initialBusiness.description.trim() &&
+    (initialBusiness.location.trim() || initialIsOnline)
   )
 
   const [flipped, setFlipped] = useState(false)
@@ -126,8 +130,16 @@ export default function AuthPage() {
   }
 
   async function handleGoogleSignIn() {
+    // Preserve the business intent across the OAuth round-trip, including the
+    // online flag (which replaces the missing location for online businesses).
+    const businessParams = new URLSearchParams({
+      name: initialBusiness.name,
+      location: initialBusiness.location,
+      description: initialBusiness.description,
+      ...(initialIsOnline ? { is_online: 'true' } : {}),
+    })
     const redirectTo = hasBusinessIntent
-      ? `${window.location.origin}/auth?${new URLSearchParams(initialBusiness).toString()}`
+      ? `${window.location.origin}/auth?${businessParams.toString()}`
       : `${window.location.origin}/dashboard`
 
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
@@ -183,7 +195,7 @@ export default function AuthPage() {
     }
   }
 
-  async function handleBusinessSubmit(data: { name: string; location: string; description: string }) {
+  async function handleBusinessSubmit(data: { name: string; location: string; description: string; isOnline: boolean }) {
     try {
       if (data.description.trim().length < 10) {
         setError('Add a short description of what your business does.')
@@ -191,10 +203,10 @@ export default function AuthPage() {
       }
       const { business_id, default_set_id, tier, queries } = await createBusiness({
         name: data.name,
-        location: data.location,
         description: data.description,
         generate_queries: true,
         query_count: 5,
+        ...(data.isOnline ? { is_online: true } : { location: data.location }),
       })
       navigate(`/preview/${business_id}`, {
         state: { queries, tier, defaultSetId: default_set_id },

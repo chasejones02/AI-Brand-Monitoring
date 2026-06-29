@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { createCheckoutSession } from '../lib/api'
+import { createCheckoutSession, createPortalSession, getSubscription } from '../lib/api'
 import { useAuth } from '../contexts/auth-context'
 import { supabase } from '../lib/supabase'
 import { GlowCard } from './ui/spotlight-card'
@@ -13,6 +13,10 @@ const check = (
 )
 
 type BillingPeriod = 'monthly' | 'annual'
+type PaidTier = 'starter' | 'growth'
+
+// Used to decide whether a switch is an upgrade or a downgrade.
+const TIER_RANK: Record<'free' | PaidTier, number> = { free: 0, starter: 1, growth: 2 }
 
 export function Pricing() {
   const { session } = useAuth()
@@ -26,6 +30,20 @@ export function Pricing() {
   const [claimTier, setClaimTier] = useState<'starter' | 'growth' | null>(null)
   const [claimError, setClaimError] = useState('')
   const [claimLoading, setClaimLoading] = useState(false)
+  // Current subscription, so we can flag the active plan and route plan changes
+  // through the billing portal instead of opening a duplicate subscription.
+  const [sub, setSub] = useState<{ status: string; tier: 'free' | PaidTier } | null>(null)
+
+  useEffect(() => {
+    // Anonymous and logged-out visitors have no subscription to reconcile.
+    if (!session || session.user?.is_anonymous) return
+    let cancelled = false
+    getSubscription()
+      .then(s => { if (!cancelled) setSub(s) })
+      // Non-fatal: if this fails we just fall back to the default buy buttons.
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [session])
 
   const prices = { starter: billing === 'annual' ? 24 : 29, growth: billing === 'annual' ? 41 : 49 }
 
@@ -77,6 +95,54 @@ export function Pricing() {
   function dismissCanceled() {
     searchParams.delete('canceled')
     setSearchParams(searchParams, { replace: true })
+  }
+
+  // A live (active or past-due) subscription. Such a user must never be sent
+  // back through Checkout — that opens a second parallel subscription and
+  // double-bills them. Plan changes go through the Stripe billing portal, which
+  // swaps the plan in place with proration.
+  const liveSub =
+    sub && (sub.status === 'active' || sub.status === 'past_due')
+      ? (sub as { status: string; tier: PaidTier })
+      : null
+
+  async function openPortal(tier: PaidTier) {
+    setLoading(tier)
+    setError('')
+    try {
+      const { url } = await createPortalSession()
+      window.location.href = url
+    } catch (err: any) {
+      setError(err.message ?? 'Could not open the billing portal. Please try again.')
+      setLoading(null)
+    }
+  }
+
+  // Renders the CTA for a plan card: "current plan" (disabled) for the active
+  // tier, an upgrade/downgrade button (→ portal) for subscribers on the other
+  // tier, or the normal checkout button for everyone else.
+  function planButton(tier: PaidTier, className: string) {
+    if (liveSub && liveSub.tier === tier) {
+      return (
+        <button className={`${className} btn-pricing-current`} disabled aria-disabled="true">
+          {check} Your current plan
+        </button>
+      )
+    }
+    if (liveSub) {
+      const isUpgrade = TIER_RANK[tier] > TIER_RANK[liveSub.tier]
+      const tierLabel = tier === 'growth' ? 'Growth' : 'Starter'
+      return (
+        <button className={className} onClick={() => openPortal(tier)} disabled={loading !== null}>
+          {loading === tier ? 'Opening…' : `${isUpgrade ? 'Upgrade' : 'Downgrade'} to ${tierLabel}`}
+        </button>
+      )
+    }
+    return (
+      <button className={className} onClick={() => handleCheckout(tier)} disabled={loading !== null}>
+        {loading === tier ? 'Redirecting…' : 'Stop losing AI-driven deals'}
+      </button>
+    )
   }
 
   return (
@@ -154,13 +220,7 @@ export function Pricing() {
               <li>{check} 3 prioritized fixes per scan so you're not guessing what to change</li>
               <li>{check} 1 business profile</li>
             </ul>
-            <button
-              className="btn-pricing"
-              onClick={() => handleCheckout('starter')}
-              disabled={loading !== null}
-            >
-              {loading === 'starter' ? 'Redirecting…' : 'Stop losing AI-driven deals'}
-            </button>
+            {planButton('starter', 'btn-pricing')}
           </GlowCard>
 
           {/* Growth */}
@@ -184,13 +244,7 @@ export function Pricing() {
               <li>{check} Full trend history — prove what's working before competitors copy it</li>
               <li>{check} 7 recommendations ranked by impact — fix the costliest gap first</li>
             </ul>
-            <button
-              className="btn-pricing featured-btn"
-              onClick={() => handleCheckout('growth')}
-              disabled={loading !== null}
-            >
-              {loading === 'growth' ? 'Redirecting…' : 'Stop losing AI-driven deals'}
-            </button>
+            {planButton('growth', 'btn-pricing featured-btn')}
           </GlowCard>
         </div>
 

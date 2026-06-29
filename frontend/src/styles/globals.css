@@ -1610,6 +1610,25 @@
       transform: scale(1.02);
     }
     .btn-pricing:disabled { opacity: 0.6; cursor: not-allowed; }
+    /* "Your current plan" state — clearly owned, not a dimmed loading button */
+    .btn-pricing-current,
+    .btn-pricing-current:disabled {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      background: rgba(34,197,94,0.1);
+      border-color: rgba(34,197,94,0.4);
+      color: var(--green);
+      opacity: 1;
+      cursor: default;
+      box-shadow: none;
+    }
+    .btn-pricing-current:hover {
+      border-color: rgba(34,197,94,0.4);
+      color: var(--green);
+      box-shadow: none;
+    }
 
     .pricing-canceled-banner {
       display: flex;
@@ -4412,6 +4431,26 @@
     .pp-btn:disabled {
       opacity: 0.6;
       cursor: not-allowed;
+    }
+    /* "Your current plan" state — clearly owned, not a dimmed loading button */
+    .pp-btn-current,
+    .pp-btn-current:disabled {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      background: rgba(34,197,94,0.1);
+      border-color: rgba(34,197,94,0.45);
+      color: var(--green);
+      opacity: 1;
+      cursor: default;
+      box-shadow: none;
+    }
+    .pp-btn-current:hover {
+      background: rgba(34,197,94,0.1);
+      border-color: rgba(34,197,94,0.45);
+      box-shadow: none;
+      transform: none;
     }
 
     /* Free scan strip above pricing cards */
