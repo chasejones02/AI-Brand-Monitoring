@@ -27,12 +27,16 @@ export function initPostHog() {
     // Don't record people until we know who they are isn't desired here — we
     // want anonymous funnel data too — so leave identification opt-in via the
     // auth context (identifyUser / resetUser below).
-    loaded: () => {
+    loaded: (ph) => {
       initialized = true
+      // TEMP: expose for console debugging (window.posthog.debug()) while we
+      // chase down why custom events aren't landing. Remove once resolved.
+      ;(window as unknown as { posthog?: unknown }).posthog = ph
     },
   })
 
   initialized = true
+  ;(window as unknown as { posthog?: unknown }).posthog = posthog
 }
 
 // Fire a pageview. Called on every route change.
@@ -57,8 +61,20 @@ export const EVENTS = {
 
 // Track a named product event (e.g. 'scan_started', 'checkout_started').
 export function captureEvent(name: string, props?: Record<string, unknown>) {
-  if (!initialized) return
-  posthog.capture(name, props)
+  if (!initialized) {
+    // TEMP diagnostic: should never happen if init ran. Remove once resolved.
+    console.warn('[posthog] captureEvent BEFORE init:', name)
+    return
+  }
+  // TEMP diagnostic: proves the call executes at runtime. Remove once resolved.
+  console.info('[posthog] capture →', name, props)
+  // send_instantly bypasses the batch queue (in case events are lost in a
+  // navigation/identify transition); skip_client_rate_limiting guards against
+  // the SDK's rate limiter silently dropping low-volume custom events.
+  posthog.capture(name, props, {
+    send_instantly: true,
+    skip_client_rate_limiting: true,
+  })
 }
 
 // Tie events to a logged-in user so funnels can follow them across sessions.
