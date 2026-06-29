@@ -41,7 +41,21 @@ export function capturePageview() {
   posthog.capture('$pageview')
 }
 
-// Track a named product event (e.g. 'scan_started', 'checkout_clicked').
+// The acquisition funnel. These five events, plus the automatic $pageview,
+// are the steps we build the PostHog funnel insight from:
+//   $pageview → business_created → scan_started → scan_completed
+//             → checkout_started → subscription_activated
+// Keep names in sync with the PostHog funnel definition. Don't rename casually —
+// renaming breaks historical funnel continuity.
+export const EVENTS = {
+  BUSINESS_CREATED: 'business_created',       // entered the funnel (anon or authed)
+  SCAN_STARTED: 'scan_started',               // confirmed preview, scan kicked off
+  SCAN_COMPLETED: 'scan_completed',           // activation — first useful report
+  CHECKOUT_STARTED: 'checkout_started',       // free→paid intent (hit Stripe)
+  SUBSCRIPTION_ACTIVATED: 'subscription_activated', // conversion — paid & active
+} as const
+
+// Track a named product event (e.g. 'scan_started', 'checkout_started').
 export function captureEvent(name: string, props?: Record<string, unknown>) {
   if (!initialized) return
   posthog.capture(name, props)

@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { captureEvent, EVENTS } from './posthog'
 
 const API_URL = import.meta.env.VITE_API_URL as string
 
@@ -139,6 +140,8 @@ export async function createBusiness(payload: {
     method: 'POST',
     body: JSON.stringify(payload),
   })
+  // Funnel step 2: entered the funnel. Fires for anonymous free-scan users too.
+  captureEvent(EVENTS.BUSINESS_CREATED, { tier: data?.tier })
   return data
 }
 
@@ -167,6 +170,8 @@ export async function triggerScan(
       ...(trackingSetId ? { tracking_set_id: trackingSetId } : {}),
     }),
   })
+  // Funnel step 3: user confirmed the preview and a scan is now running.
+  captureEvent(EVENTS.SCAN_STARTED, { scan_id: data?.scan_id })
   return data
 }
 
@@ -194,6 +199,9 @@ export async function createCheckoutSession(
       ...(options.returnSetId ? { return_set_id: options.returnSetId } : {}),
     }),
   })
+  // Funnel step 5: free→paid intent — we have a Stripe checkout URL and are
+  // about to redirect. `tier` distinguishes Starter vs Growth, monthly vs annual.
+  captureEvent(EVENTS.CHECKOUT_STARTED, { tier })
   return data
 }
 

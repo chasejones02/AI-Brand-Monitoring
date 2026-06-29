@@ -41,6 +41,7 @@ import {
   type BusinessWithTrackingSets,
   type BusinessesResponse,
 } from '../lib/api'
+import { captureEvent, EVENTS } from '../lib/posthog'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -381,6 +382,10 @@ export default function DashboardPage() {
   const activeScanIdRef = useRef<string | null>(null)
   useEffect(() => { activeScanIdRef.current = activeScanId }, [activeScanId])
 
+  // Polling keeps calling fetchScan after completion (waiting on recommendations),
+  // so guard the activation event to fire exactly once per scan id.
+  const completedFiredRef = useRef<Set<string>>(new Set())
+
   const fetchScan = useCallback(async (scanId: string) => {
     try {
       const data = await getScanResults(scanId)
@@ -400,6 +405,14 @@ export default function DashboardPage() {
           // A completed scan changes the trend chart and consumes a quota slot.
           setTrendsRefreshKey(k => k + 1)
           refreshQuota()
+          // Funnel step 4 (activation): first useful report. Fire once per scan.
+          if (!completedFiredRef.current.has(scanId)) {
+            completedFiredRef.current.add(scanId)
+            captureEvent(EVENTS.SCAN_COMPLETED, {
+              scan_id: scanId,
+              visibility_score: data.visibility_score ?? null,
+            })
+          }
         }
       }
     } catch (err: any) {

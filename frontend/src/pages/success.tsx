@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/auth-context'
 import { verifyCheckoutSession } from '../lib/api'
+import { captureEvent, EVENTS } from '../lib/posthog'
 
 export default function SuccessPage() {
   const { user } = useAuth()
@@ -33,8 +34,13 @@ export default function SuccessPage() {
     if (!sessionId) return
     verifyCheckoutSession(sessionId)
       .then(result => {
-        if (result?.activated && returnSetId) {
-          navigate(`/dashboard?setId=${returnSetId}&welcome=1`, { replace: true })
+        if (result?.activated) {
+          // Funnel step 6 (conversion): paid and now active. Fire regardless of
+          // whether we redirect to the dashboard or stay on this card.
+          captureEvent(EVENTS.SUBSCRIPTION_ACTIVATED, { tier: result.tier })
+          if (returnSetId) {
+            navigate(`/dashboard?setId=${returnSetId}&welcome=1`, { replace: true })
+          }
         }
       })
       .catch(err => {
