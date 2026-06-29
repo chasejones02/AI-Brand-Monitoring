@@ -128,6 +128,7 @@ export async function createBusiness(payload: {
   queries?: string[]
   generate_queries?: boolean
   query_count?: number
+  is_online?: boolean
 }): Promise<{
   business_id: string
   default_set_id: string

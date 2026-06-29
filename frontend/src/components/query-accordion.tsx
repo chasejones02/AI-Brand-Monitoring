@@ -124,6 +124,7 @@ export function QueryAccordion({ result, index, platforms, defaultOpen = false, 
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
+        className="qa-header"
         style={styles.header}
         aria-expanded={open}
       >
@@ -131,9 +132,9 @@ export function QueryAccordion({ result, index, platforms, defaultOpen = false, 
           <span style={{ ...styles.dotInner, background: dotColor }} />
         </span>
 
-        <p style={styles.text}>{result.query_text}</p>
+        <p className="qa-text" style={styles.text}>{result.query_text}</p>
 
-        <div style={styles.summary}>
+        <div className="qa-summary" style={styles.summary}>
           <span style={styles.summaryMentions}>
             <span style={styles.summaryMentionsNum}>{mentionsCount}</span>
             <span style={styles.summaryMentionsLabel}>

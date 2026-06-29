@@ -32,15 +32,19 @@ const CreateBusinessSchema = z.object({
   queries: z.array(z.string().min(3).max(500)).min(1).max(5).optional(),
   generate_queries: z.boolean().optional(),
   query_count: z.number().int().min(3).max(5).optional(),
+  // Online/national business — no physical location; queries are generated
+  // from the description without geographic anchoring.
+  is_online: z.boolean().optional(),
 }).superRefine((data, ctx) => {
-  if (data.generate_queries && !data.location?.trim()) {
+  const online = data.is_online === true
+  if (data.generate_queries && !online && !data.location?.trim()) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['location'],
       message: 'Location is required for generated free-scan queries',
     })
   }
-  if (data.generate_queries && data.location?.trim() && !hasRegionLevelLocation(data.location)) {
+  if (data.generate_queries && !online && data.location?.trim() && !hasRegionLevelLocation(data.location)) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['location'],
@@ -73,7 +77,7 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
     return
   }
 
-  const { name, location, description, website, industry, generate_queries, query_count } = parsed.data
+  const { name, location, description, website, industry, generate_queries, query_count, is_online } = parsed.data
   const userId = req.userId!
   const businessDescription = description?.trim() || industry?.trim() || ''
 
@@ -97,9 +101,10 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
   if (generate_queries) {
     queryInputs = await generateQueriesForBusiness({
       name,
-      location: location!,
+      location: location ?? '',
       description: businessDescription,
       count: query_count,
+      online: is_online === true,
     })
   } else {
     queryInputs = (parsed.data.queries ?? []).map(query_text => ({

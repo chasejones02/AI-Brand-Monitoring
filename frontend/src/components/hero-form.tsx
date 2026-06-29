@@ -15,6 +15,7 @@ export function HeroForm() {
   const { session } = useAuth()
   const [bizName, setBizName]     = useState('')
   const [location, setLocation]   = useState('')
+  const [isOnline, setIsOnline]   = useState(false)
   const [description, setDescription] = useState('')
   const [isSubmitting, setSubmitting]  = useState(false)
   const [error, setError]              = useState('')
@@ -22,8 +23,10 @@ export function HeroForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!bizName.trim()) { setError('Please enter your business name.'); return }
-    if (!location.trim()) { setError('Please enter your business location.'); return }
-    if (!location.includes(',')) { setError('Please enter a precise location like "Brookings, SD".'); return }
+    if (!isOnline) {
+      if (!location.trim()) { setError('Please enter your business location.'); return }
+      if (!location.includes(',')) { setError('Please enter a precise location like "Brookings, SD".'); return }
+    }
     if (description.trim().length < 10) { setError('Please add a short description of what your business does.'); return }
 
     setSubmitting(true)
@@ -44,10 +47,12 @@ export function HeroForm() {
 
       const { business_id, default_set_id, tier, queries } = await createBusiness({
         name: bizName.trim(),
-        location: location.trim(),
         description: description.trim(),
         generate_queries: true,
         query_count: 5,
+        ...(isOnline
+          ? { is_online: true }
+          : { location: location.trim() }),
       })
       navigate(`/preview/${business_id}`, {
         state: { queries, tier, defaultSetId: default_set_id },
@@ -78,17 +83,33 @@ export function HeroForm() {
       </div>
 
       <div className="form-group">
-        <label htmlFor="biz-location">Location (City, State)</label>
-        <input
-          type="text"
-          id="biz-location"
-          name="location"
-          placeholder="Brookings, SD"
-          required
-          autoComplete="address-level2"
-          value={location}
-          onChange={e => setLocation(e.target.value)}
-        />
+        <div className="form-label-row">
+          <label htmlFor="biz-location">Location (City, State)</label>
+          <label className="online-toggle">
+            <input
+              type="checkbox"
+              checked={isOnline}
+              onChange={e => setIsOnline(e.target.checked)}
+            />
+            <span className="online-toggle-track"><span className="online-toggle-thumb" /></span>
+            <span className="online-toggle-text">Online business</span>
+          </label>
+        </div>
+        {isOnline ? (
+          <p className="online-toggle-note">
+            No physical location — we'll base your scan on what your business does, not where it is.
+          </p>
+        ) : (
+          <input
+            type="text"
+            id="biz-location"
+            name="location"
+            placeholder="Brookings, SD"
+            autoComplete="address-level2"
+            value={location}
+            onChange={e => setLocation(e.target.value)}
+          />
+        )}
       </div>
 
       <div className="form-group">

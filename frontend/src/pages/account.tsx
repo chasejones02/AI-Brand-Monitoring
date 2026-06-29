@@ -86,6 +86,7 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true)
   const [portalLoading, setPortalLoading] = useState(false)
   const [error, setError] = useState('')
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -139,14 +140,33 @@ export default function AccountPage() {
             <span>Vis<span style={{ color: 'var(--accent)' }}>ai</span>on</span>
           </Link>
         </div>
-        <div style={s.navRight}>
+        <div className="acct-nav-right" style={s.navRight}>
           {user?.email && <span style={s.navEmail}>{user.email}</span>}
           <Link to="/dashboard" style={s.navLink}>Dashboard</Link>
           <button onClick={signOut} style={s.signOutBtn}>Sign out</button>
         </div>
+
+        {/* Hamburger — hidden on desktop, shown ≤900px (see globals.css) */}
+        <button
+          className="nav-burger"
+          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(o => !o)}
+        >
+          <span className={`nav-burger-icon${menuOpen ? ' open' : ''}`}>
+            <span></span><span></span><span></span>
+          </span>
+        </button>
+
+        <div className={`nav-mobile-menu${menuOpen ? ' open' : ''}`}>
+          <Link to="/" onClick={() => setMenuOpen(false)}>Home</Link>
+          <Link to="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</Link>
+          <Link to="/pricing" onClick={() => setMenuOpen(false)}>Pricing</Link>
+          <button className="nav-mobile-action" onClick={() => { setMenuOpen(false); signOut() }}>Sign out</button>
+        </div>
       </nav>
 
-      <div style={s.content}>
+      <div className="acct-content" style={s.content}>
         {/* Back */}
         <Link to="/dashboard" style={s.backLink}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -175,12 +195,12 @@ export default function AccountPage() {
             <p style={s.loadingText}>Loading your account…</p>
           </div>
         ) : (
-          <div style={s.grid}>
+          <div className="acct-grid" style={s.grid}>
 
             {/* ── Plan card ── */}
             <TiltCard maxTilt={4} style={{ gridColumn: '1 / -1', animation: 'fadeUp 0.4s cubic-bezier(.22,1,.36,1) 0.05s both' }}>
               <GlowCard customSize radius={14} className="!block !p-0">
-                <div style={s.planCard}>
+                <div className="acct-plan-card" style={s.planCard}>
                   <div style={s.planCardLeft}>
                     <div style={s.planCardTop}>
                       <span style={{ ...s.statusBadge, color: statusMeta.color, background: statusMeta.bg }}>

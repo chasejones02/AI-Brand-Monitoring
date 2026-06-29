@@ -635,7 +635,7 @@ export default function DashboardPage() {
   // ── Render ─────────────────────────────────────────────────────────────────
   if (appState === 'loading') {
     return (
-      <div style={s.page}>
+      <div className="dash-page" style={s.page}>
         <div style={s.loadingScreen}>
           <div style={s.loadingSpinner} />
           <p style={s.loadingText}>Loading dashboard…</p>
@@ -649,7 +649,7 @@ export default function DashboardPage() {
     : null
 
   return (
-    <div style={s.page}>
+    <div className="dash-page" style={s.page}>
       <CrystalCursor active={cursorActive} />
 
       <DashboardNav
@@ -858,9 +858,10 @@ function DashboardNav({
   maxBusinesses,
 }: DashboardNavProps) {
   const quotaExhausted = !!quota && quota.remaining <= 0
+  const [menuOpen, setMenuOpen] = useState(false)
   return (
-    <nav style={s.nav}>
-      <div style={s.navLeft}>
+    <nav className="dash-nav" style={s.nav}>
+      <div className="dash-nav-left" style={s.navLeft}>
         <Link to="/" style={s.navLogo}>
           <img src="/logo-eye.png" alt="Visaion" style={{ height: '40px', width: 'auto', display: 'block' }} />
           <span>Vis<span style={{ color: 'var(--accent)' }}>ai</span>on</span>
@@ -899,7 +900,7 @@ function DashboardNav({
         )}
       </div>
 
-      <div style={s.navRight}>
+      <div className="dash-nav-right" style={s.navRight}>
         <QuotaPill quota={quota} />
         {scanHistory.length > 0 && (
           <select
@@ -926,8 +927,28 @@ function DashboardNav({
         >
           {quotaExhausted ? 'Quota reached' : '+ Run scan'}
         </button>
-        {email && <Link to="/account" style={s.navEmail}>{email}</Link>}
-        <button onClick={onSignOut} style={s.signOutBtn}>Sign out</button>
+        {email && <Link to="/account" className="dash-nav-email" style={s.navEmail}>{email}</Link>}
+        <button onClick={onSignOut} className="dash-nav-signout" style={s.signOutBtn}>Sign out</button>
+
+        {/* Hamburger — hidden on desktop, shown ≤900px (see globals.css) */}
+        <button
+          className="nav-burger"
+          aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(o => !o)}
+        >
+          <span className={`nav-burger-icon${menuOpen ? ' open' : ''}`}>
+            <span></span><span></span><span></span>
+          </span>
+        </button>
+      </div>
+
+      {/* Mobile dropdown menu — hidden on desktop, shown ≤900px (see globals.css) */}
+      <div className={`nav-mobile-menu${menuOpen ? ' open' : ''}`}>
+        <Link to="/" onClick={() => setMenuOpen(false)}>Home</Link>
+        <Link to="/pricing" onClick={() => setMenuOpen(false)}>Pricing</Link>
+        <Link to="/account" onClick={() => setMenuOpen(false)}>Account &amp; billing</Link>
+        <button className="nav-mobile-action" onClick={() => { setMenuOpen(false); onSignOut() }}>Sign out</button>
       </div>
     </nav>
   )
@@ -1160,7 +1181,7 @@ function ScanResultsView({
             {scan?.business_name ?? 'your business'}
           </strong>
           .<br />
-          This usually takes 15–60 seconds.
+          This may take a few minutes — hang tight.
         </p>
         <div style={s.platformPills}>
           {(tier === 'free' ? ['Perplexity'] : ['ChatGPT', 'Gemini', 'Claude', 'Perplexity']).map(p => (
@@ -1201,8 +1222,10 @@ function ScanResultsView({
   const platforms = scan.results.length > 0 ? Object.keys(scan.results[0].platforms) : []
   const isPerplexityOnly = platforms.length === 1 && platforms[0] === 'perplexity'
   // isFreeScan = scan was run on Perplexity only AND the viewer is still on free tier.
-  // After upgrading, existing Perplexity-only scans show competitors unblurred.
-  const isFreeScan = isPerplexityOnly && (scan.tier ?? 'free') === 'free'
+  // Gate on the viewer's CURRENT subscription (`tier`), not the tier the scan was
+  // run under (`scan.tier`) — so upgrading to a paid plan retroactively unblurs the
+  // competitors (already collected) on existing Perplexity-only scans.
+  const isFreeScan = isPerplexityOnly && tier === 'free'
   const allGenerated = scan.results.length > 0 && scan.results.every(r => r.source === 'generated')
 
   // Resolve which tracking set this scan was actually run against — usually
@@ -1425,7 +1448,7 @@ function ScanResultsView({
                   index={i}
                   platforms={platforms}
                   glowWrapped
-                  isFreeScan={isPerplexityOnly}
+                  isFreeScan={isFreeScan}
                 />
               </GlowCard>
             </TiltCard>
